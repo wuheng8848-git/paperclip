@@ -21,6 +21,7 @@ import { Bot, Plus, List, GitBranch, SlidersHorizontal } from "lucide-react";
 import { AGENT_ROLE_LABELS, type Agent } from "@paperclipai/shared";
 
 import { getAdapterLabel } from "../adapters/adapter-display-registry";
+import { agentsPage, nav } from "../lib/i18n";
 
 const roleLabels = AGENT_ROLE_LABELS as Record<string, string>;
 
@@ -116,11 +117,11 @@ export function Agents() {
   }, [agents]);
 
   useEffect(() => {
-    setBreadcrumbs([{ label: "Agents" }]);
+    setBreadcrumbs([{ label: nav.agents }]);
   }, [setBreadcrumbs]);
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={Bot} message="Select a company to view agents." />;
+    return <EmptyState icon={Bot} message={agentsPage.emptySelectCompany} />;
   }
 
   if (isLoading) {
@@ -136,10 +137,10 @@ export function Agents() {
         <Tabs value={tab} onValueChange={(v) => navigate(`/agents/${v}`)}>
           <PageTabBar
             items={[
-              { value: "all", label: "All" },
-              { value: "active", label: "Active" },
-              { value: "paused", label: "Paused" },
-              { value: "error", label: "Error" },
+              { value: "all", label: agentsPage.all },
+              { value: "active", label: agentsPage.active },
+              { value: "paused", label: agentsPage.paused },
+              { value: "error", label: agentsPage.error },
             ]}
             value={tab}
             onValueChange={(v) => navigate(`/agents/${v}`)}
@@ -156,7 +157,7 @@ export function Agents() {
               onClick={() => setFiltersOpen(!filtersOpen)}
             >
               <SlidersHorizontal className="h-3 w-3" />
-              Filters
+              {agentsPage.filters}
               {showTerminated && <span className="ml-0.5 px-1 bg-foreground/10 rounded text-[10px]">1</span>}
             </button>
             {filtersOpen && (
@@ -171,7 +172,7 @@ export function Agents() {
                   )}>
                     {showTerminated && <span className="text-background text-[10px] leading-none">&#10003;</span>}
                   </span>
-                  Show terminated
+                  {agentsPage.showTerminated}
                 </button>
               </div>
             )}
@@ -201,13 +202,13 @@ export function Agents() {
           )}
           <Button size="sm" variant="outline" onClick={openNewAgent}>
             <Plus className="h-3.5 w-3.5 mr-1.5" />
-            New Agent
+            {nav.newAgent}
           </Button>
         </div>
       </div>
 
       {filtered.length > 0 && (
-        <p className="text-xs text-muted-foreground">{filtered.length} agent{filtered.length !== 1 ? "s" : ""}</p>
+        <p className="text-xs text-muted-foreground">{agentsPage.agentCount(filtered.length)}</p>
       )}
 
       {error && <p className="text-sm text-destructive">{error.message}</p>}
@@ -215,8 +216,8 @@ export function Agents() {
       {agents && agents.length === 0 && (
         <EmptyState
           icon={Bot}
-          message="Create your first agent to get started."
-          action="New Agent"
+          message={agentsPage.empty}
+          action={nav.newAgent}
           onAction={openNewAgent}
         />
       )}
@@ -286,7 +287,7 @@ export function Agents() {
 
       {effectiveView === "list" && agents && agents.length > 0 && filtered.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-8">
-          No agents match the selected filter.
+          {agentsPage.noMatch}
         </p>
       )}
 
@@ -301,13 +302,13 @@ export function Agents() {
 
       {effectiveView === "org" && orgTree && orgTree.length > 0 && filteredOrg.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-8">
-          No agents match the selected filter.
+          {agentsPage.noMatch}
         </p>
       )}
 
       {effectiveView === "org" && orgTree && orgTree.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-8">
-          No organizational hierarchy defined.
+          {agentsPage.noOrg}
         </p>
       )}
     </div>
@@ -419,8 +420,8 @@ function LiveRunIndicator({
         <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
         <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
       </span>
-      <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400">
-        Live{liveCount > 1 ? ` (${liveCount})` : ""}
+        <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400">
+        {agentsPage.live(liveCount)}
       </span>
     </Link>
   );

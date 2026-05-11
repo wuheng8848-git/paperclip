@@ -23,6 +23,7 @@ import { Identity } from "./Identity";
 import type { Issue } from "@paperclipai/shared";
 import { AlertTriangle } from "lucide-react";
 import { isSuccessfulRunHandoffRequired } from "../lib/successful-run-handoff";
+import { formatIssueStatus } from "../lib/i18n";
 
 const boardStatuses = [
   "backlog",
@@ -35,7 +36,7 @@ const boardStatuses = [
 ];
 
 function statusLabel(status: string): string {
-  return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return formatIssueStatus(status);
 }
 
 interface Agent {

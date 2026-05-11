@@ -22,6 +22,7 @@ import { useToastActions } from "../context/ToastContext";
 import { useDialogActions } from "../context/DialogContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { queryKeys } from "../lib/queryKeys";
+import { agentDetail, nav } from "../lib/i18n";
 import { AgentConfigForm } from "../components/AgentConfigForm";
 import { PageTabBar } from "../components/PageTabBar";
 import { adapterLabels, roleLabels, help } from "../components/agent-config-primitives";
@@ -865,7 +866,7 @@ export function AgentDetail() {
 
   useEffect(() => {
     const crumbs: { label: string; href?: string }[] = [
-      { label: "Agents", href: "/agents" },
+      { label: nav.agents, href: "/agents" },
     ];
     const agentName = agent?.name ?? routeAgentRef ?? "Agent";
     if (activeView === "dashboard" && !urlRunId) {
@@ -873,20 +874,20 @@ export function AgentDetail() {
     } else {
       crumbs.push({ label: agentName, href: `/agents/${canonicalAgentRef}/dashboard` });
       if (urlRunId) {
-        crumbs.push({ label: "Runs", href: `/agents/${canonicalAgentRef}/runs` });
-        crumbs.push({ label: `Run ${urlRunId.slice(0, 8)}` });
+        crumbs.push({ label: agentDetail.runs, href: `/agents/${canonicalAgentRef}/runs` });
+        crumbs.push({ label: `${agentDetail.runPrefix} ${urlRunId.slice(0, 8)}` });
       } else if (activeView === "instructions") {
-        crumbs.push({ label: "Instructions" });
+        crumbs.push({ label: agentDetail.instructions });
       } else if (activeView === "configuration") {
-        crumbs.push({ label: "Configuration" });
+        crumbs.push({ label: agentDetail.configuration });
       // } else if (activeView === "skills") { // TODO: bring back later
       //   crumbs.push({ label: "Skills" });
       } else if (activeView === "runs") {
-        crumbs.push({ label: "Runs" });
+        crumbs.push({ label: agentDetail.runs });
       } else if (activeView === "budget") {
-        crumbs.push({ label: "Budget" });
+        crumbs.push({ label: agentDetail.budget });
       } else {
-        crumbs.push({ label: "Dashboard" });
+        crumbs.push({ label: agentDetail.dashboard });
       }
     }
     setBreadcrumbs(crumbs);
@@ -1019,12 +1020,12 @@ export function AgentDetail() {
         >
           <PageTabBar
             items={[
-              { value: "dashboard", label: "Dashboard" },
-              { value: "instructions", label: "Instructions" },
-              { value: "skills", label: "Skills" },
-              { value: "configuration", label: "Configuration" },
-              { value: "runs", label: "Runs" },
-              { value: "budget", label: "Budget" },
+              { value: "dashboard", label: agentDetail.dashboard },
+              { value: "instructions", label: agentDetail.instructions },
+              { value: "skills", label: agentDetail.skills },
+              { value: "configuration", label: agentDetail.configuration },
+              { value: "runs", label: agentDetail.runs },
+              { value: "budget", label: agentDetail.budget },
             ]}
             value={activeView}
             onValueChange={(value) => navigate(`/agents/${canonicalAgentRef}/${value}`)}

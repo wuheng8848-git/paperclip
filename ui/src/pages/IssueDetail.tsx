@@ -22,6 +22,7 @@ import { assigneeValueFromSelection, suggestedCommentAssigneeValue } from "../li
 import { buildCompanyUserInlineOptions, buildCompanyUserLabelMap, buildCompanyUserProfileMap, buildMarkdownMentionOptions } from "../lib/company-members";
 import { extractIssueTimelineEvents } from "../lib/issue-timeline-events";
 import { queryKeys } from "../lib/queryKeys";
+import { issueBreadcrumb } from "../lib/i18n";
 import { keepPreviousDataForSameQueryTail } from "../lib/query-placeholder-data";
 import { collectLiveIssueIds } from "../lib/liveIssueIds";
 import {
@@ -1321,7 +1322,7 @@ export function IssueDetail() {
     }
   }, [hasLiveRuns, locallyQueuedCommentRunIds.size]);
   const sourceBreadcrumb = useMemo(
-    () => readIssueDetailBreadcrumb(issueId, location.state, location.search) ?? { label: "Issues", href: "/issues" },
+    () => readIssueDetailBreadcrumb(issueId, location.state, location.search) ?? { label: issueBreadcrumb.issues, href: "/issues" },
     [issueId, location.state, location.search],
   );
 

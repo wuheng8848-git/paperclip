@@ -17,7 +17,7 @@ import { useCompany } from "../context/CompanyContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useGeneralSettings } from "../context/GeneralSettingsContext";
 import { useSidebar } from "../context/SidebarContext";
-import { queryKeys } from "../lib/queryKeys";
+import { issueBreadcrumb } from "../lib/i18n";
 import { useDialogActions } from "../context/DialogContext";
 import {
   applyIssueFilters,
@@ -25,6 +25,7 @@ import {
   type IssueFilterState,
 } from "../lib/issue-filters";
 import { collectLiveIssueIds } from "../lib/liveIssueIds";
+import { queryKeys } from "../lib/queryKeys";
 import { formatAssigneeUserLabel } from "../lib/assignees";
 import { buildCompanyUserLabelMap, buildCompanyUserProfileMap } from "../lib/company-members";
 import {
@@ -689,7 +690,7 @@ export function Inbox() {
   const issueLinkState = useMemo(
     () =>
       createIssueDetailLocationState(
-        "Inbox",
+        issueBreadcrumb.inbox,
         `${location.pathname}${location.search}${location.hash}`,
         "inbox",
       ),

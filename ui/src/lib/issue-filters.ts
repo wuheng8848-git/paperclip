@@ -1,4 +1,5 @@
 import type { Issue } from "@paperclipai/shared";
+import { formatIssueStatus, formatPriorityLabel } from "./i18n";
 
 export type IssueFilterWorkspaceLookup = {
   mode?: string | null;
@@ -38,13 +39,19 @@ export const issueStatusOrder = ["in_progress", "todo", "backlog", "in_review", 
 export const issuePriorityOrder = ["critical", "high", "medium", "low"];
 
 export const issueQuickFilterPresets = [
-  { label: "All", statuses: [] as string[] },
-  { label: "Active", statuses: ["todo", "in_progress", "in_review", "blocked"] },
-  { label: "Backlog", statuses: ["backlog"] },
-  { label: "Done", statuses: ["done", "cancelled"] },
+  { label: "全部", statuses: [] as string[] },
+  { label: "活跃", statuses: ["todo", "in_progress", "in_review", "blocked"] },
+  { label: "待整理", statuses: ["backlog"] },
+  { label: "已完成", statuses: ["done", "cancelled"] },
 ];
 
 export function issueFilterLabel(value: string): string {
+  if (issuePriorityOrder.includes(value as (typeof issuePriorityOrder)[number])) {
+    return formatPriorityLabel(value);
+  }
+  if (issueStatusOrder.includes(value as (typeof issueStatusOrder)[number])) {
+    return formatIssueStatus(value);
+  }
   return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 

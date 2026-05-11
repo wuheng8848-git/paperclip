@@ -1,4 +1,5 @@
 import type { DashboardRunActivityDay, HeartbeatRun } from "@paperclipai/shared";
+import { chartIssueStatusLabel, dashboard, formatPriorityLabel } from "../lib/i18n";
 
 /* ---- Utilities ---- */
 
@@ -92,7 +93,7 @@ export function RunActivityChart(props: RunChartProps) {
   const maxValue = Math.max(...activity.map(v => v.total), 1);
   const hasData = activity.some(v => v.total > 0);
 
-  if (!hasData) return <p className="text-xs text-muted-foreground">No runs yet</p>;
+  if (!hasData) return <p className="text-xs text-muted-foreground">{dashboard.noRunsYet}</p>;
 
   return (
     <div>
@@ -144,7 +145,7 @@ export function PriorityChart({ issues }: { issues: { priority: string; createdA
   const maxValue = Math.max(...Array.from(grouped.values()).map(v => Object.values(v).reduce((a, b) => a + b, 0)), 1);
   const hasData = Array.from(grouped.values()).some(v => Object.values(v).reduce((a, b) => a + b, 0) > 0);
 
-  if (!hasData) return <p className="text-xs text-muted-foreground">No issues</p>;
+  if (!hasData) return <p className="text-xs text-muted-foreground">{dashboard.noIssuesYet}</p>;
 
   return (
     <div>
@@ -169,7 +170,7 @@ export function PriorityChart({ issues }: { issues: { priority: string; createdA
         })}
       </div>
       <DateLabels days={days} />
-      <ChartLegend items={priorityOrder.map(p => ({ color: priorityColors[p], label: p.charAt(0).toUpperCase() + p.slice(1) }))} />
+      <ChartLegend items={priorityOrder.map(p => ({ color: priorityColors[p], label: formatPriorityLabel(p) }))} />
     </div>
   );
 }
@@ -182,16 +183,6 @@ const statusColors: Record<string, string> = {
   blocked: "#ef4444",
   cancelled: "#6b7280",
   backlog: "#64748b",
-};
-
-const statusLabels: Record<string, string> = {
-  todo: "To Do",
-  in_progress: "In Progress",
-  in_review: "In Review",
-  done: "Done",
-  blocked: "Blocked",
-  cancelled: "Cancelled",
-  backlog: "Backlog",
 };
 
 export function IssueStatusChart({ issues }: { issues: { status: string; createdAt: Date }[] }) {
@@ -211,7 +202,7 @@ export function IssueStatusChart({ issues }: { issues: { status: string; created
   const maxValue = Math.max(...Array.from(grouped.values()).map(v => Object.values(v).reduce((a, b) => a + b, 0)), 1);
   const hasData = allStatuses.size > 0;
 
-  if (!hasData) return <p className="text-xs text-muted-foreground">No issues</p>;
+  if (!hasData) return <p className="text-xs text-muted-foreground">{dashboard.noIssuesYet}</p>;
 
   return (
     <div>
@@ -236,7 +227,7 @@ export function IssueStatusChart({ issues }: { issues: { status: string; created
         })}
       </div>
       <DateLabels days={days} />
-      <ChartLegend items={statusOrder.map(s => ({ color: statusColors[s] ?? "#6b7280", label: statusLabels[s] ?? s }))} />
+      <ChartLegend items={statusOrder.map(s => ({ color: statusColors[s] ?? "#6b7280", label: chartIssueStatusLabel(s) }))} />
     </div>
   );
 }
@@ -247,7 +238,7 @@ export function SuccessRateChart(props: RunChartProps) {
   const grouped = new Map(activity.map((day) => [day.date, day]));
 
   const hasData = activity.some(v => v.total > 0);
-  if (!hasData) return <p className="text-xs text-muted-foreground">No runs yet</p>;
+  if (!hasData) return <p className="text-xs text-muted-foreground">{dashboard.noRunsYet}</p>;
 
   return (
     <div>

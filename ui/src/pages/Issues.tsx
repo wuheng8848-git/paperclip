@@ -10,6 +10,7 @@ import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { collectLiveIssueIds } from "../lib/liveIssueIds";
 import { queryKeys } from "../lib/queryKeys";
 import { createIssueDetailLocationState } from "../lib/issueDetailBreadcrumb";
+import { issueBreadcrumb, issuesPage } from "../lib/i18n";
 import { EmptyState } from "../components/EmptyState";
 import { IssuesList } from "../components/IssuesList";
 import { CircleDot } from "lucide-react";
@@ -108,7 +109,7 @@ export function Issues() {
   const issueLinkState = useMemo(
     () =>
       createIssueDetailLocationState(
-        "Issues",
+        issueBreadcrumb.issues,
         `${location.pathname}${location.search}${location.hash}`,
         "issues",
       ),
@@ -116,7 +117,7 @@ export function Issues() {
   );
 
   useEffect(() => {
-    setBreadcrumbs([{ label: "Issues" }]);
+    setBreadcrumbs([{ label: issuesPage.title }]);
   }, [setBreadcrumbs]);
 
   const issuePageSize = workspaceIdFilter ? WORKSPACE_FILTER_ISSUE_LIMIT : ISSUES_PAGE_SIZE;
@@ -173,7 +174,7 @@ export function Issues() {
   });
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={CircleDot} message="Select a company to view issues." />;
+    return <EmptyState icon={CircleDot} message={issuesPage.emptySelectCompany} />;
   }
 
   return (

@@ -68,7 +68,10 @@ import { statusBadge } from "../lib/status-colors";
 import { workflowSort } from "../lib/workflow-sort";
 import { isSuccessfulRunHandoffRequired } from "../lib/successful-run-handoff";
 import { ISSUE_STATUSES, type Issue, type IssueStatus, type Project } from "@paperclipai/shared";
-const ISSUE_SEARCH_DEBOUNCE_MS = 250;
+import { issueStatusLabelsBoard, issuesList } from "../lib/i18n";
+
+const boardIssueStatuses = ISSUE_STATUSES;
+const issueStatusLabels = issueStatusLabelsBoard as Record<IssueStatus, string>;
 const ISSUE_SEARCH_RESULT_LIMIT = 200;
 const ISSUE_BOARD_COLUMN_RESULT_LIMIT = 200;
 const INITIAL_ISSUE_ROW_RENDER_LIMIT = 100;
@@ -87,16 +90,8 @@ function findIssuesScrollContainer(element: HTMLElement | null): HTMLElement | n
   }
   return null;
 }
-const boardIssueStatuses = ISSUE_STATUSES;
-const issueStatusLabels: Record<IssueStatus, string> = {
-  backlog: "Backlog",
-  todo: "Todo",
-  in_progress: "In progress",
-  in_review: "In review",
-  done: "Done",
-  blocked: "Blocked",
-  cancelled: "Cancelled",
-};
+
+const ISSUE_SEARCH_DEBOUNCE_MS = 250;
 const progressSegmentClasses: Record<IssueStatus, string> = {
   backlog: "bg-muted-foreground/40",
   todo: "bg-blue-500",
@@ -433,9 +428,9 @@ function IssueSearchInput({
             e.currentTarget.blur();
           }
         }}
-        placeholder="Search issues..."
+        placeholder={issuesList.searchPlaceholder}
         className="pl-7 text-xs sm:text-sm"
-        aria-label="Search issues"
+        aria-label={issuesList.searchAria}
         data-page-search-target="true"
       />
     </div>
@@ -1234,8 +1229,8 @@ export function IssuesList({
     viewState.groupBy,
   ]);
 
-  const createActionLabel = createIssueLabel ? `Create ${createIssueLabel}` : "Create Issue";
-  const createButtonLabel = createIssueLabel ? `New ${createIssueLabel}` : "New Issue";
+  const createActionLabel = createIssueLabel ? `创建 ${createIssueLabel}` : issuesList.createIssue;
+  const createButtonLabel = createIssueLabel ? `新建 ${createIssueLabel}` : issuesList.newIssue;
   const openCreateIssueDialog = useCallback((group?: { key: string; items: Issue[] }) => {
     openNewIssue(newIssueDefaults(group));
   }, [newIssueDefaults, openNewIssue]);
@@ -1298,14 +1293,14 @@ export function IssuesList({
             <button
               className={`p-1.5 transition-colors ${viewState.viewMode === "list" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               onClick={() => updateView({ viewMode: "list" })}
-              title="List view"
+              title={issuesList.listView}
             >
               <List className="h-3.5 w-3.5" />
             </button>
             <button
               className={`p-1.5 transition-colors ${viewState.viewMode === "board" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               onClick={() => updateView({ viewMode: "board" })}
-              title="Board view"
+              title={issuesList.boardView}
             >
               <Columns3 className="h-3.5 w-3.5" />
             </button>
@@ -1318,7 +1313,7 @@ export function IssuesList({
               size="icon"
               className={cn("hidden h-8 w-8 shrink-0 sm:inline-flex", viewState.nestingEnabled && "bg-accent")}
               onClick={() => updateView({ nestingEnabled: !viewState.nestingEnabled })}
-              title={viewState.nestingEnabled ? "Disable parent-child nesting" : "Enable parent-child nesting"}
+              title={viewState.nestingEnabled ? "关闭父子嵌套" : issuesList.nestingToggle}
             >
               <ListTree className="h-3.5 w-3.5" />
             </Button>
@@ -1329,7 +1324,7 @@ export function IssuesList({
             visibleColumnSet={visibleIssueColumnSet}
             onToggleColumn={toggleIssueColumn}
             onResetColumns={() => setIssueColumns(DEFAULT_INBOX_ISSUE_COLUMNS)}
-            title="Choose which issue columns stay visible"
+            title={issuesList.columnsPicker}
             iconOnly
           />
 
@@ -1351,19 +1346,19 @@ export function IssuesList({
           {viewState.viewMode === "list" && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title="Sort">
+                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title={issuesList.sort}>
                   <ArrowUpDown className="h-3.5 w-3.5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-48 p-0">
                 <div className="p-2 space-y-0.5">
                   {([
-                    ["workflow", "Workflow"],
-                    ["status", "Status"],
-                    ["priority", "Priority"],
-                    ["title", "Title"],
-                    ["created", "Created"],
-                    ["updated", "Updated"],
+                    ["workflow", issuesList.colWorkflow],
+                    ["status", issuesList.colStatus],
+                    ["priority", issuesList.colPriority],
+                    ["title", issuesList.colTitle],
+                    ["created", issuesList.colCreated],
+                    ["updated", issuesList.colUpdated],
                   ] as const).map(([field, label]) => (
                     <button
                       key={field}
@@ -1395,20 +1390,20 @@ export function IssuesList({
           {viewState.viewMode === "list" && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title="Group">
+                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title={issuesList.group}>
                   <Layers className="h-3.5 w-3.5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-44 p-0">
                 <div className="p-2 space-y-0.5">
                   {([
-                    ["status", "Status"],
-                    ["priority", "Priority"],
-                    ["assignee", "Assignee"],
-                    ["project", "Project"],
-                    ["workspace", "Workspace"],
-                    ["parent", "Parent Issue"],
-                    ["none", "None"],
+                    ["status", issuesList.groupStatus],
+                    ["priority", issuesList.groupPriority],
+                    ["assignee", issuesList.groupAssignee],
+                    ["project", issuesList.groupProject],
+                    ["workspace", issuesList.groupWorkspace],
+                    ["parent", issuesList.groupParent],
+                    ["none", issuesList.groupNone],
                   ] as const).map(([value, label]) => (
                     <button
                       key={value}
@@ -1443,7 +1438,7 @@ export function IssuesList({
       {!isLoading && filtered.length === 0 && viewState.viewMode === "list" && (
         <EmptyState
           icon={CircleDot}
-          message="No issues match the current filters or search."
+          message={issuesList.noMatch}
           action={createActionLabel}
           onAction={() => openCreateIssueDialog()}
         />
@@ -1821,10 +1816,10 @@ export function IssuesList({
             <div className="py-2" data-testid="issues-load-more-sentinel">
               <p className="text-xs text-muted-foreground">
                 {isLoadingMoreIssues
-                  ? "Loading more issues..."
+                  ? issuesList.loadingMore
                   : remainingIssueRowCount > 0
-                    ? `Rendering ${Math.min(renderedIssueRowLimit, filtered.length)} of ${filtered.length} issues`
-                    : "Scroll to load more issues"}
+                    ? `已渲染 ${Math.min(renderedIssueRowLimit, filtered.length)} / ${filtered.length} 条事务`
+                    : issuesList.scrollLoad}
               </p>
             </div>
           )}

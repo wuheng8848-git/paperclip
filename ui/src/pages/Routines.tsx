@@ -12,6 +12,7 @@ import { useCompany } from "../context/CompanyContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useToastActions } from "../context/ToastContext";
 import { buildMarkdownMentionOptions } from "../lib/company-members";
+import { nav } from "../lib/i18n";
 import { queryKeys } from "../lib/queryKeys";
 import { groupBy } from "../lib/groupBy";
 import { createIssueDetailLocationState } from "../lib/issueDetailBreadcrumb";
@@ -428,7 +429,7 @@ export function Routines() {
   const recentRunsIssueLinkState = useMemo(
     () =>
       createIssueDetailLocationState(
-        "Recent Runs",
+        nav.recentRuns,
         buildRoutinesTabHref("runs"),
         "issues",
       ),

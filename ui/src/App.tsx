@@ -57,6 +57,7 @@ import { useCompany } from "./context/CompanyContext";
 import { useDialogActions } from "./context/DialogContext";
 import { loadLastInboxTab } from "./lib/inbox";
 import { shouldRedirectCompanylessRouteToOnboarding } from "./lib/onboarding-route";
+import { onboarding } from "./lib/i18n";
 
 function boardRoutes() {
   return (
@@ -158,15 +159,15 @@ function OnboardingRoutePage() {
     : null;
 
   const title = matchedCompany
-    ? `Add another agent to ${matchedCompany.name}`
+    ? onboarding.addAgentTitle(matchedCompany.name)
     : companies.length > 0
-      ? "Create another company"
-      : "Create your first company";
+      ? onboarding.createAnotherCompany
+      : onboarding.firstCompany;
   const description = matchedCompany
-    ? "Run onboarding again to add an agent and a starter task for this company."
+    ? onboarding.addAgentDesc
     : companies.length > 0
-      ? "Run onboarding again to create another company and seed its first agent."
-      : "Get started by creating a company and your first agent.";
+      ? onboarding.anotherCompanyDesc
+      : onboarding.firstDesc;
 
   return (
     <div className="mx-auto max-w-xl py-10">
@@ -181,7 +182,7 @@ function OnboardingRoutePage() {
                 : openOnboarding()
             }
           >
-            {matchedCompany ? "Add Agent" : "Start Onboarding"}
+            {matchedCompany ? onboarding.addAgent : onboarding.startOnboarding}
           </Button>
         </div>
       </div>
@@ -194,7 +195,7 @@ function CompanyRootRedirect() {
   const location = useLocation();
 
   if (loading) {
-    return <div className="mx-auto max-w-xl py-10 text-sm text-muted-foreground">Loading...</div>;
+    return <div className="mx-auto max-w-xl py-10 text-sm text-muted-foreground">{onboarding.loading}</div>;
   }
 
   const targetCompany = selectedCompany ?? companies[0] ?? null;
@@ -218,7 +219,7 @@ function UnprefixedBoardRedirect() {
   const { companies, selectedCompany, loading } = useCompany();
 
   if (loading) {
-    return <div className="mx-auto max-w-xl py-10 text-sm text-muted-foreground">Loading...</div>;
+    return <div className="mx-auto max-w-xl py-10 text-sm text-muted-foreground">{onboarding.loading}</div>;
   }
 
   const targetCompany = selectedCompany ?? companies[0] ?? null;
@@ -248,12 +249,12 @@ function NoCompaniesStartPage() {
   return (
     <div className="mx-auto max-w-xl py-10">
       <div className="rounded-lg border border-border bg-card p-6">
-        <h1 className="text-xl font-semibold">Create your first company</h1>
+        <h1 className="text-xl font-semibold">{onboarding.firstCompanyTitle}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Get started by creating a company.
+          {onboarding.firstCompanyBody}
         </p>
         <div className="mt-4">
-          <Button onClick={() => openOnboarding()}>New Company</Button>
+          <Button onClick={() => openOnboarding()}>{onboarding.newCompany}</Button>
         </div>
       </div>
     </div>

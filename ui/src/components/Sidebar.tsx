@@ -28,6 +28,7 @@ import { useInboxBadge } from "../hooks/useInboxBadge";
 import { Button } from "@/components/ui/button";
 import { PluginSlotOutlet } from "@/plugins/slots";
 import { SidebarCompanyMenu } from "./SidebarCompanyMenu";
+import { nav } from "../lib/i18n";
 
 export function Sidebar() {
   const { openNewIssue } = useDialogActions();
@@ -61,8 +62,8 @@ export function Sidebar() {
           variant="ghost"
           size="icon-sm"
           className="text-muted-foreground shrink-0"
-          aria-label="Search"
-          title="Search"
+          aria-label={nav.search}
+          title={nav.search}
         >
           <NavLink to="/search">
             <Search className="h-4 w-4" />
@@ -78,12 +79,12 @@ export function Sidebar() {
             className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
           >
             <SquarePen className="h-4 w-4 shrink-0" />
-            <span className="truncate">New Issue</span>
+            <span className="truncate">{nav.newIssue}</span>
           </button>
-          <SidebarNavItem to="/dashboard" label="Dashboard" icon={LayoutDashboard} liveCount={liveRunCount} />
+          <SidebarNavItem to="/dashboard" label={nav.dashboard} icon={LayoutDashboard} liveCount={liveRunCount} />
           <SidebarNavItem
             to="/inbox"
-            label="Inbox"
+            label={nav.inbox}
             icon={Inbox}
             badge={inboxBadge.inbox}
             badgeTone={inboxBadge.failedRuns > 0 ? "danger" : "default"}
@@ -98,12 +99,12 @@ export function Sidebar() {
           />
         </div>
 
-        <SidebarSection label="Work">
-          <SidebarNavItem to="/issues" label="Issues" icon={CircleDot} />
-          <SidebarNavItem to="/routines" label="Routines" icon={Repeat} />
-          <SidebarNavItem to="/goals" label="Goals" icon={Target} />
+        <SidebarSection label={nav.work}>
+          <SidebarNavItem to="/issues" label={nav.issues} icon={CircleDot} />
+          <SidebarNavItem to="/routines" label={nav.routines} icon={Repeat} />
+          <SidebarNavItem to="/goals" label={nav.goals} icon={Target} />
           {showWorkspacesLink ? (
-            <SidebarNavItem to="/workspaces" label="Workspaces" icon={GitBranch} />
+            <SidebarNavItem to="/workspaces" label={nav.workspaces} icon={GitBranch} />
           ) : null}
         </SidebarSection>
 
@@ -111,12 +112,12 @@ export function Sidebar() {
 
         <SidebarAgents />
 
-        <SidebarSection label="Company">
-          <SidebarNavItem to="/org" label="Org" icon={Network} />
-          <SidebarNavItem to="/skills" label="Skills" icon={Boxes} />
-          <SidebarNavItem to="/costs" label="Costs" icon={DollarSign} />
-          <SidebarNavItem to="/activity" label="Activity" icon={History} />
-          <SidebarNavItem to="/company/settings" label="Settings" icon={Settings} />
+        <SidebarSection label={nav.company}>
+          <SidebarNavItem to="/org" label={nav.org} icon={Network} />
+          <SidebarNavItem to="/skills" label={nav.skills} icon={Boxes} />
+          <SidebarNavItem to="/costs" label={nav.costs} icon={DollarSign} />
+          <SidebarNavItem to="/activity" label={nav.activity} icon={History} />
+          <SidebarNavItem to="/company/settings" label={nav.settings} icon={Settings} />
         </SidebarSection>
 
         <PluginSlotOutlet

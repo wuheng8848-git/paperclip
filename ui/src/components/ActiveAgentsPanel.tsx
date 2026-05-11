@@ -6,6 +6,7 @@ import { heartbeatsApi, type LiveRunForIssue } from "../api/heartbeats";
 import type { TranscriptEntry } from "../adapters";
 import { issuesApi } from "../api/issues";
 import { queryKeys } from "../lib/queryKeys";
+import { activeAgentsPanel, dashboard } from "../lib/i18n";
 import { cn, relativeTime } from "../lib/utils";
 import { ExternalLink } from "lucide-react";
 import { Identity } from "./Identity";
@@ -38,13 +39,13 @@ interface ActiveAgentsPanelProps {
 
 export function ActiveAgentsPanel({
   companyId,
-  title = "Agents",
+  title = activeAgentsPanel.defaultTitle,
   minRunCount = MIN_DASHBOARD_RUNS,
   fetchLimit,
   cardLimit = DASHBOARD_RUN_CARD_LIMIT,
   gridClassName,
   cardClassName,
-  emptyMessage = "No recent agent runs.",
+  emptyMessage = activeAgentsPanel.defaultEmpty,
   queryScope = "dashboard",
   showMoreLink = true,
 }: ActiveAgentsPanelProps) {
@@ -116,7 +117,7 @@ export function ActiveAgentsPanel({
       {showMoreLink && hiddenRunCount > 0 && (
         <div className="mt-3 flex justify-end text-xs text-muted-foreground">
           <Link to="/dashboard/live" className="hover:text-foreground hover:underline">
-            {hiddenRunCount} more active/recent run{hiddenRunCount === 1 ? "" : "s"}
+            {dashboard.moreRuns(hiddenRunCount)}
           </Link>
         </div>
       )}
