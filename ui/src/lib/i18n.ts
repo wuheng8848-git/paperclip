@@ -413,7 +413,7 @@ export const newIssue = {
   newIssue: "新建事务",
   titlePlaceholder: "事务标题",
   descriptionPlaceholder: "添加描述…",
-  for: "分配给",
+  for: "For",
   assignee: "经办人",
   noAssignee: "无经办人",
   searchAssignees: "搜索经办人…",
@@ -481,7 +481,7 @@ export const newIssue = {
   modelLanePrimary: "主模型",
   modelLaneCheap: "经济通道",
   modelLaneCustom: "自定义",
-  inProjectRow: "于",
+  inProjectRow: "in",
   priority: {
     critical: "紧急",
     high: "高",
