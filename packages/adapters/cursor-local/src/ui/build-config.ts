@@ -1,5 +1,5 @@
 import type { CreateConfigValues } from "@paperclipai/adapter-utils";
-import { DEFAULT_CURSOR_LOCAL_MODEL } from "../index.js";
+import { DEFAULT_CURSOR_LOCAL_MODEL } from "../adapter-constants.js";
 
 function parseCommaArgs(value: string): string[] {
   return value

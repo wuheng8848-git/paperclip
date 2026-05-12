@@ -12,6 +12,9 @@
     "directory": "packages/adapters/cursor-local"
   },
   "type": "module",
+  "paperclip": {
+    "adapterServerEntry": "./src/create-server-adapter.ts"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./server": "./src/server/index.ts",

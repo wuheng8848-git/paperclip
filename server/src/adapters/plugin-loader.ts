@@ -11,6 +11,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import type { ServerAdapterModule } from "./types.js";
 import { logger } from "../middleware/logger.js";
 
@@ -66,10 +67,19 @@ function resolvePackageDir(record: Pick<AdapterPluginRecord, "localPath" | "pack
 
 function resolvePackageEntryPoint(packageDir: string): string {
   const pkgJsonPath = path.join(packageDir, "package.json");
-  const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf-8"));
+  const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf-8")) as {
+    exports?: Record<string, unknown>;
+    main?: string;
+    paperclip?: { adapterServerEntry?: unknown };
+  };
+
+  const serverEntry = pkg.paperclip?.adapterServerEntry;
+  if (typeof serverEntry === "string" && serverEntry.trim().length > 0) {
+    return serverEntry.trim();
+  }
 
   if (pkg.exports && typeof pkg.exports === "object" && pkg.exports["."]) {
-    const exp = pkg.exports["."];
+    const exp = pkg.exports["."] as string | { import?: string; default?: string };
     return typeof exp === "string" ? exp : (exp.import ?? exp.default ?? "index.js");
   }
   return pkg.main ?? "index.js";
@@ -177,7 +187,7 @@ export async function loadExternalAdapterPackage(
 
   logger.info({ packageName, packageDir, entryPoint, modulePath, hasUiParser: !!uiParserSource }, "Loading external adapter package");
 
-  const mod = await import(modulePath);
+  const mod = await import(pathToFileURL(modulePath).href);
   const adapterModule = validateAdapterModule(mod, packageName);
 
   if (uiParserSource) {
@@ -212,7 +222,7 @@ export async function reloadExternalAdapter(
   const packageDir = resolvePackageDir(record);
   const entryPoint = resolvePackageEntryPoint(packageDir);
   const modulePath = path.resolve(packageDir, entryPoint);
-  const fileUrl = `file://${modulePath}`;
+  const fileUrl = pathToFileURL(modulePath).href;
 
   // Bust ESM module cache so re-import loads fresh code from disk.
   // Query-string trick (?t=...) works in Node; Bun may need the file:// URL

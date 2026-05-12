@@ -1,8 +1,16 @@
+import type { AdapterSessionCodec } from "@paperclipai/adapter-utils";
+
 export { execute, ensureCursorSkillsInjected } from "./execute.js";
 export { listCursorSkills, syncCursorSkills } from "./skills.js";
 export { testEnvironment } from "./test.js";
 export { parseCursorJsonl, isCursorUnknownSessionError } from "./parse.js";
-import type { AdapterSessionCodec } from "@paperclipai/adapter-utils";
+export {
+  listCursorModels,
+  parseCursorModelsOutput,
+  resetCursorModelsCacheForTests,
+  setCursorModelsRunnerForTests,
+} from "./list-models.js";
+export type { CursorModelsCommandResult } from "./list-models.js";
 
 function readNonEmptyString(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
