@@ -49,9 +49,10 @@ export const modelProfiles: AdapterModelProfileDefinition[] = [
   {
     key: "cheap",
     label: "Cheap",
-    description: "Use the lowest-cost known Codex local model lane without changing the primary model.",
+    description:
+      "Use gpt-5.3-codex with lower reasoning effort as the budget lane (avoids gpt-5.3-codex-spark, which ChatGPT-account Codex logins often reject).",
     adapterConfig: {
-      model: "gpt-5.3-codex-spark",
+      model: DEFAULT_CODEX_LOCAL_MODEL,
       modelReasoningEffort: "low",
     },
     source: "adapter_default",
@@ -88,6 +89,7 @@ Notes:
 - Paperclip injects desired local skills into the effective CODEX_HOME/skills/ directory at execution time so Codex can discover "$paperclip" and related skills without polluting the project working directory. In managed-home mode (the default) this is ~/.paperclip/instances/<id>/companies/<companyId>/codex-home/skills/; when CODEX_HOME is explicitly overridden in adapter config, that override is used instead.
 - Unless explicitly overridden in adapter config, Paperclip runs Codex with a per-company managed CODEX_HOME under the active Paperclip instance and seeds auth/config from the shared Codex home (the CODEX_HOME env var, when set, or ~/.codex).
 - Some model/tool combinations reject certain effort levels (for example minimal with web search enabled).
+- Model \`gpt-5.3-codex-spark\` may fail with ChatGPT-account (\`codex login\`) authentication; prefer \`gpt-5.3-codex\` or an OpenAI API key workflow when that error appears.
 - Fast mode is supported on GPT-5.4 and manual model IDs. When enabled for those models, Paperclip applies \`service_tier="fast"\` and \`features.fast_mode=true\`.
 - When Paperclip realizes a workspace/runtime for a run, it injects PAPERCLIP_WORKSPACE_* and PAPERCLIP_RUNTIME_* env vars for agent-side tooling.
 `;

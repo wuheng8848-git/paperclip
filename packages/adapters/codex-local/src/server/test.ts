@@ -129,6 +129,30 @@ async function prepareCodexHelloProbe(input: {
     const probeHome = input.targetIsRemote
       ? path.posix.join(input.cwd, ".paperclip-runtime", "codex", `probe-home-${input.runId}`)
       : path.join(os.tmpdir(), `paperclip-codex-probe-${input.runId}`);
+
+    // Local host: materialize `$CODEX_HOME/auth.json` in Node so the probe never
+    // depends on `sh` (Windows desktops often lack a POSIX shell).
+    if (!input.targetIsRemote) {
+      await fs.mkdir(probeHome, { recursive: true });
+      await fs.writeFile(path.join(probeHome, "auth.json"), JSON.stringify({ OPENAI_API_KEY: input.probeApiKey }), {
+        encoding: "utf8",
+        mode: 0o600,
+      });
+      const cleanupProbeHome = async () => {
+        await fs.rm(probeHome, { recursive: true, force: true }).catch(() => {});
+        await cleanup();
+      };
+      return {
+        command: input.command,
+        args: input.args,
+        env: {
+          ...input.env,
+          CODEX_HOME: probeHome,
+        },
+        cleanup: cleanupProbeHome,
+      };
+    }
+
     return {
       command: "sh",
       args: [

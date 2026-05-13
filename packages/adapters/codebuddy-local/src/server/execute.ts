@@ -116,6 +116,16 @@ function parseCodeBuddyJsonOutput(
   return { resultJson, assistantMessages, assistantText, sessionId };
 }
 
+function excerptStdioForDiagnostics(stdout: string, maxChars = 900): string {
+  const normalized = stdout.replace(/\r\n/g, "\n");
+  const trimmed = normalized.trim();
+  if (!trimmed) return "";
+  if (trimmed.length <= maxChars) return trimmed;
+  const head = Math.ceil((maxChars - 24) * 0.55);
+  const tail = maxChars - 24 - head;
+  return `${trimmed.slice(0, head)}\n…(truncated)…\n${trimmed.slice(-Math.max(tail, 0))}`;
+}
+
 /**
  * Parse stream-json output. Each line is a JSON object.
  * The last line with `type: "result"` is the terminal result.
@@ -397,12 +407,22 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   if (!resultJson) {
     const stderrLine =
       proc.stderr.split(/\r?\n/).map((l: string) => l.trim()).find(Boolean) ?? "";
-    const errorMessage =
+    const baseMessage =
       (proc.exitCode ?? 0) !== 0
         ? stderrLine
           ? `CodeBuddy exited with code ${proc.exitCode ?? -1}: ${stderrLine}`
           : `CodeBuddy exited with code ${proc.exitCode ?? -1}`
         : "Failed to parse CodeBuddy JSON output";
+
+    const extra: string[] = [];
+    const outExcerpt = excerptStdioForDiagnostics(proc.stdout);
+    if (outExcerpt) extra.push(`stdout excerpt:\n${outExcerpt}`);
+    if ((proc.exitCode ?? 0) === 0) {
+      const errExcerpt = excerptStdioForDiagnostics(proc.stderr, 420);
+      if (errExcerpt) extra.push(`stderr excerpt:\n${errExcerpt}`);
+    }
+
+    const errorMessage = extra.length > 0 ? `${baseMessage}\n\n${extra.join("\n\n")}` : baseMessage;
 
     return {
       exitCode: proc.exitCode,
