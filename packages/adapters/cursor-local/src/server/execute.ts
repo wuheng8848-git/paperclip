@@ -593,7 +593,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   let turnCount = 0;
   let maxTurnsExhausted = false;
 
-  const wrappedOnSpawn = async (info: { pid: number }) => {
+  const wrappedOnSpawn = async (
+    info: { pid: number; processGroupId: number | null; startedAt: string },
+  ) => {
     childPid = info.pid;
     if (onSpawn) await onSpawn(info);
   };
