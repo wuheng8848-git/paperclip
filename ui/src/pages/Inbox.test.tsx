@@ -215,7 +215,7 @@ describe("InboxIssueMetaLeading", () => {
     const statusIcon = container.querySelector('span[class*="border-blue-600"]');
     const liveBadge = container.querySelector('span[class*="px-1.5"][class*="bg-blue-500/10"]');
     const liveBadgeLabel = Array.from(container.querySelectorAll("span")).find(
-      (node) => node.textContent === "Live" && node.className.includes("text-"),
+      (node) => node.textContent === "实时" && node.className.includes("text-"),
     );
     const liveDot = container.querySelector('span[class*="bg-blue-500"]');
     const pulseRing = container.querySelector('span[class*="animate-pulse"]');
@@ -226,7 +226,7 @@ describe("InboxIssueMetaLeading", () => {
     expect(liveBadge).not.toBeNull();
     expect(liveBadge?.className).toContain("bg-blue-500/10");
     expect(liveBadgeLabel).not.toBeNull();
-    expect(liveBadgeLabel?.className).toContain("text-blue-600");
+    expect(liveBadgeLabel?.classList.contains("text-blue-600")).toBe(true);
     expect(liveDot).not.toBeNull();
     expect(pulseRing).not.toBeNull();
 

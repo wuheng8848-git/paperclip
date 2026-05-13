@@ -50,7 +50,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EmptyState } from "../../components/EmptyState";
-import { cn } from "../../lib/utils";
+import { cn, relativeTime } from "../../lib/utils";
 
 type Step = "select" | "review" | "result";
 
@@ -180,17 +180,7 @@ function formatRelativeShort(value: string | null | undefined): string {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  const diff = Date.now() - date.getTime();
-  if (diff < 0) return date.toLocaleDateString();
-  const seconds = Math.floor(diff / 1000);
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 48) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return date.toLocaleDateString();
+  return relativeTime(date);
 }
 
 function readableErrorMessage(error: unknown): string {

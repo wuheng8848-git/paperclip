@@ -1,19 +1,12 @@
 import { AlertTriangle, RotateCcw, TimerReset } from "lucide-react";
 import type { DevServerHealthStatus } from "../api/health";
+import { relativeTime } from "../lib/utils";
 
 function formatRelativeTimestamp(value: string | null): string | null {
   if (!value) return null;
   const timestamp = new Date(value).getTime();
   if (Number.isNaN(timestamp)) return null;
-
-  const deltaMs = Date.now() - timestamp;
-  if (deltaMs < 60_000) return "just now";
-  const deltaMinutes = Math.round(deltaMs / 60_000);
-  if (deltaMinutes < 60) return `${deltaMinutes}m ago`;
-  const deltaHours = Math.round(deltaMinutes / 60);
-  if (deltaHours < 24) return `${deltaHours}h ago`;
-  const deltaDays = Math.round(deltaHours / 24);
-  return `${deltaDays}d ago`;
+  return relativeTime(value);
 }
 
 function describeReason(devServer: DevServerHealthStatus): string {

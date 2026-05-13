@@ -1246,6 +1246,287 @@ export const envVarEditorUi = {
     "「变量名」填写进程期望的环境变量名（例如 GH_TOKEN）。选择「密钥」可在运行前解析为公司密钥库中的值。以 PAPERCLIP_ 开头的变量仍由系统自动注入。",
 } as const;
 
+const BUDGET_SCOPE_TYPE_ZH: Record<string, string> = {
+  company: "公司",
+  agent: "智能体",
+  project: "项目",
+};
+
+/** 预算事件的暂停原因 — 仅界面展示（API 值仍为英文） */
+const BUDGET_PAUSE_REASON_ZH: Record<string, string> = {
+  manual: "手动",
+  budget: "预算",
+  system: "系统",
+};
+
+/** 预算策略卡片（Costs、智能体 / 项目详情的 plain 与默认 card） */
+export const budgetPolicyUi = {
+  sectionObserved: "已入账",
+  sectionBudget: "预算",
+  pctOfLimit: (p: number) => `限额已用 ${p}%`,
+  noCapConfigured: "未配置上限",
+  budgetDisabledDisplay: "已关闭",
+
+  softWarnThreshold: (p: number) => `告警阈值 ${p}%`,
+  pauseReasonPausedSuffix: (reasonZh: string) => ` · ${reasonZh}暂停`,
+
+  remainingLabel: "剩余",
+  unlimited: "无上限",
+
+  windowLifetime: "终身预算",
+  windowMonthlyUtc: "按月预算（UTC）",
+
+  badgePaused: "已暂停",
+  badgeWarning: "告警",
+  badgeHardStop: "熔断",
+  badgeHealthy: "正常",
+
+  pauseExecutionProject:
+    "在提高预算或关闭关联事件之前，此项目的执行任务将保持暂停。",
+  pauseHeartbeatsScope:
+    "在提高预算或关闭关联事件之前，此范围内的心跳将保持暂停。",
+
+  budgetUsdLabel: "预算（美元）",
+  budgetInputPlaceholder: "0.00",
+  savingButton: "保存中…",
+  updateBudgetButton: "更新预算",
+  setBudgetButton: "设置预算",
+
+  invalidUsdInputHint: "请输入有效的非负数（美元）。",
+} as const;
+
+export function formatBudgetScopeTypeZh(scopeType: string): string {
+  return BUDGET_SCOPE_TYPE_ZH[scopeType] ?? titleCaseUnderscores(scopeType);
+}
+
+export function formatBudgetWindowKindLabel(windowKind: string): string {
+  return windowKind === "lifetime"
+    ? budgetPolicyUi.windowLifetime
+    : budgetPolicyUi.windowMonthlyUtc;
+}
+
+export function formatBudgetPauseReasonZh(reason: string): string {
+  return BUDGET_PAUSE_REASON_ZH[reason] ?? reason;
+}
+
+export function formatBudgetPolicyStatusBadge(paused: boolean, status: string): string {
+  if (paused) return budgetPolicyUi.badgePaused;
+  if (status === "warning") return budgetPolicyUi.badgeWarning;
+  if (status === "hard_stop") return budgetPolicyUi.badgeHardStop;
+  return budgetPolicyUi.badgeHealthy;
+}
+
+export function budgetPolicySoftWarnLine(
+  warnPercent: number,
+  paused: boolean,
+  pauseReason: string | null,
+): string {
+  const base = budgetPolicyUi.softWarnThreshold(warnPercent);
+  if (paused && pauseReason) {
+    return `${base}${budgetPolicyUi.pauseReasonPausedSuffix(formatBudgetPauseReasonZh(pauseReason))}`;
+  }
+  return base;
+}
+
+/** 审批记录在收件箱等处展示的状态（API 仍为英文枚举） */
+const INBOX_APPROVAL_STATUS_ZH: Record<string, string> = {
+  pending: "待处理",
+  revision_requested: "需修改",
+  approved: "已批准",
+  rejected: "已拒绝",
+  cancelled: "已取消",
+};
+
+export function formatInboxApprovalStatus(status: string): string {
+  return INBOX_APPROVAL_STATUS_ZH[status] ?? formatBadgeStatus(status);
+}
+
+/** 审批类型短名 — {@link ApprovalPayload} 与用户可见标题前缀 */
+export const approvalPayloadTypeLabels: Record<string, string> = {
+  hire_agent: "雇佣智能体",
+  approve_ceo_strategy: "CEO 战略",
+  budget_override_required: "预算超限",
+  request_board_approval: "董事会审批",
+};
+
+/** 收件箱页、行内控件与相关列表（列选择器、“实时”徽章等） */
+export const inboxUi = {
+  selectCompanyMessage: "请先选择公司以查看收件箱。",
+
+  tabs: {
+    mine: "与我相关",
+    recent: "最近",
+    unread: "未读",
+    all: "全部",
+  } as const,
+
+  creatorQuickLabelBoard: "看板",
+  creatorQuickLabelSelf: "自己",
+
+  searchPlaceholder: "搜索收件箱…",
+
+  nestingEnableTitle: "开启父子事务嵌套",
+  nestingDisableTitle: "关闭父子事务嵌套",
+  groupByTitle: "分组",
+  groupByNone: "不分组",
+  groupByType: "类型",
+  groupByAssignee: "负责人",
+  groupByProject: "项目",
+  groupByWorkspace: "工作区",
+
+  issueColumnPickerEyebrow: "桌面端事务行",
+  issueColumnPickerDefaultTitle: "选择收件箱中显示的列",
+  columnsButton: "列",
+  resetColumnsDefaults: "恢复默认",
+  resetColumnsHint: "状态、编号、更新时间",
+
+  issuesColumnLabels: {
+    status: "状态",
+    id: "编号",
+    assignee: "分配对象",
+    project: "项目",
+    workspace: "工作区",
+    parent: "父事务",
+    labels: "标签",
+    updated: "最近活跃",
+  } as const satisfies Record<string, string>,
+
+  issuesColumnDescriptions: {
+    status: "左侧状态图标。",
+    id: "如 PAP-1009 的编号。",
+    assignee: "分配的智能体或协作人。",
+    project: "关联项目色块名称。",
+    workspace: "执行或项目侧工作区名称。",
+    parent: "父事务编号与标题。",
+    labels: "事务标签名称。",
+    updated: "最近可见活跃时间说明。",
+  } as const satisfies Record<string, string>,
+
+  liveBadge: "实时",
+  swipeArchive: "归档",
+
+  markAsReadAria: "标记已读",
+  dismissFromInboxAria: "从收件箱移除",
+  dismissAria: "关闭",
+
+  failedRunFallbackMessage: "运行异常退出（无详细文案）。",
+  failedRunUntitledIssue: "失败运行",
+  failedRunWithAgentSep: " — ",
+
+  retry: "重试",
+  retrying: "重试中…",
+
+  approve: "批准",
+  reject: "拒绝",
+
+  approvalRequestedByLine: (name: string) => `由 ${name} 发起`,
+
+  joinRequestIpLine: (timeAgoText: string, ip: string) => `${timeAgoText} 自 IP ${ip} 提出申请`,
+  joinRequestAdapterPrefix: "适配器：",
+
+  joinRequestAgentBare: "智能体加入申请",
+  joinRequestAgentNamed: (name: string) => `智能体加入申请：${name}`,
+  joinRequestHumanFallback: "人工加入申请",
+
+  agentsErrorSummary: (n: number) => `${n} 个智能体出现错误`,
+  budgetMonthUtilSummary: (pct: number) => `本月预算已用 ${pct}%`,
+
+  markAllRead: "全部标为已读",
+  markingEllipsis: "处理中…",
+  markAllReadConfirmTitle: "全部标为已读？",
+  markAllReadConfirmBodyOne: "将把 1 条未读标为已读。",
+  markAllReadConfirmBodyMany: (n: number) => `将把 ${n} 条未读标为已读。`,
+  cancel: "取消",
+
+  categoryPlaceholder: "类别",
+  approvalStatusPlaceholder: "审批状态",
+
+  categoryEverything: "全部分类",
+  categoryRecentIssues: "我最近接触的事务",
+  categoryJoinRequests: "加入申请",
+  categoryApprovals: "审批",
+  categoryFailedRuns: "失败运行",
+  categoryAlerts: "告警",
+
+  approvalFilterAllStatuses: "全部审批状态",
+  approvalFilterActionable: "待我处理",
+  approvalFilterResolved: "已结案",
+
+  emptySearch: "没有与搜索条件匹配的收件项。",
+  emptyMine: "收件箱已清空。",
+  emptyUnread: "暂无新收件项。",
+  emptyRecent: "暂无最近收件项。",
+  emptyFiltered: "当前筛选条件下没有收件项。",
+
+  searchArchivedDivider: "已归档",
+  searchOtherDivider: "其他匹配",
+  timeDividerEarlier: "更早",
+
+  alertsSectionTitle: "提醒",
+
+  newIssueInGroupTitle: (groupLabel: string) => `在「${groupLabel}」新建事务`,
+  newIssueInGroupAria: (groupLabel: string) => `在「${groupLabel}」新建事务`,
+
+  subTasksOne: "（1 个子任务）",
+  subTasksMany: (n: number) => `（${n} 个子任务）`,
+
+  errApprove: "批准失败",
+  errReject: "拒绝失败",
+  errApproveJoin: "批准加入失败",
+  errRejectJoin: "拒绝加入失败",
+  errArchiveIssue: "无法归档",
+  errUndoArchive: "无法撤销归档",
+  errRetrySkipped: "重试已跳过。",
+
+  activityUpdated: (t: string) => `更新于 ${t}`,
+
+  issueRowPlanningTooltip: "此事务处于规划模式。",
+  issueRowParkedBlockerTooltip: "被停滞工作阻塞——至少有一名已分配阻塞者为待整理状态，暂时不会唤起执行者。",
+  issueRowProductivityReviewAria: "待效率复盘",
+  productivityReviewTooltip: (detail: string) => `效率复盘：${detail}`,
+  planningModeChip: "规划中",
+  parkedWorkChip: "阻塞（待整理）",
+
+  assigneeFallbackLabel: "用户",
+  workspaceFilterTooltip: "按此工作区筛选",
+  parentSubIssueItalic: "子事务",
+} as const;
+
+/** 侧栏「团队」→「组织」页（组织图） */
+export const orgChartUi = {
+  importCompany: "导入团队",
+  exportCompany: "导出团队",
+  emptySelectCompany: "请先选择团队以查看组织图。",
+  emptyNoHierarchy: "尚未配置组织层级。",
+  zoomIn: "放大",
+  zoomOut: "缩小",
+  fitToScreen: "适应画布",
+  fitToScreenAria: "将组织图适配到可见区域",
+} as const;
+
+export const issueFiltersPopoverUi = {
+  buttonTooltip: "筛选",
+  buttonTooltipActive: (n: number) => `筛选 · ${n} 项生效`,
+  buttonLabelCompact: "筛选",
+  heading: "筛选条件",
+  clear: "清空",
+  quickFilters: "快捷筛选",
+  sectionStatus: "状态",
+  sectionPriority: "优先级",
+  sectionAssignee: "负责人",
+  noAssignee: "未分配",
+  assigneeMe: "自己",
+  sectionCreator: "创建者",
+  creatorsSearchPlaceholder: "搜索创建者…",
+  creatorsNoMatch: "没有匹配的创建者。",
+  sectionProject: "项目",
+  sectionLabels: "标签",
+  sectionWorkspace: "工作区",
+  sectionVisibility: "可见性",
+  liveOnlyRuns: "仅进行中的运行",
+  hideRoutineRuns: "隐藏例行运行",
+} as const;
+
 export const issueBreadcrumb = {
   inbox: "收件箱",
   issues: "事务",

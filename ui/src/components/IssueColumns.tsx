@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatAssigneeUserLabel } from "../lib/assignees";
+import { inboxUi } from "../lib/i18n";
 import type { InboxIssueColumn } from "../lib/inbox";
 import { cn } from "../lib/utils";
 import { timeAgo } from "../lib/timeAgo";
@@ -23,29 +24,29 @@ import { StatusIcon } from "./StatusIcon";
 export const issueTrailingColumns: InboxIssueColumn[] = ["assignee", "project", "workspace", "parent", "labels", "updated"];
 
 const issueColumnLabels: Record<InboxIssueColumn, string> = {
-  status: "Status",
-  id: "ID",
-  assignee: "Assignee",
-  project: "Project",
-  workspace: "Workspace",
-  parent: "Parent issue",
-  labels: "Tags",
-  updated: "Last updated",
+  status: inboxUi.issuesColumnLabels.status,
+  id: inboxUi.issuesColumnLabels.id,
+  assignee: inboxUi.issuesColumnLabels.assignee,
+  project: inboxUi.issuesColumnLabels.project,
+  workspace: inboxUi.issuesColumnLabels.workspace,
+  parent: inboxUi.issuesColumnLabels.parent,
+  labels: inboxUi.issuesColumnLabels.labels,
+  updated: inboxUi.issuesColumnLabels.updated,
 };
 
 const issueColumnDescriptions: Record<InboxIssueColumn, string> = {
-  status: "Issue state chip on the left edge.",
-  id: "Ticket identifier like PAP-1009.",
-  assignee: "Assigned agent or board user.",
-  project: "Linked project pill with its color.",
-  workspace: "Execution or project workspace used for the issue.",
-  parent: "Parent issue identifier and title.",
-  labels: "Issue labels and tags.",
-  updated: "Latest visible activity time.",
+  status: inboxUi.issuesColumnDescriptions.status,
+  id: inboxUi.issuesColumnDescriptions.id,
+  assignee: inboxUi.issuesColumnDescriptions.assignee,
+  project: inboxUi.issuesColumnDescriptions.project,
+  workspace: inboxUi.issuesColumnDescriptions.workspace,
+  parent: inboxUi.issuesColumnDescriptions.parent,
+  labels: inboxUi.issuesColumnDescriptions.labels,
+  updated: inboxUi.issuesColumnDescriptions.updated,
 };
 
 export function issueActivityText(issue: Issue): string {
-  return `Updated ${timeAgo(issue.lastActivityAt ?? issue.lastExternalCommentAt ?? issue.updatedAt)}`;
+  return inboxUi.activityUpdated(timeAgo(issue.lastActivityAt ?? issue.lastExternalCommentAt ?? issue.updatedAt));
 }
 
 function issueTrailingGridTemplate(columns: InboxIssueColumn[]): string {
@@ -84,17 +85,17 @@ export function IssueColumnPicker({
           variant={iconOnly ? "outline" : "ghost"}
           size={iconOnly ? "icon" : "sm"}
           className={iconOnly ? "h-8 w-8 shrink-0" : "hidden h-8 shrink-0 px-2 text-xs sm:inline-flex"}
-          title="Columns"
+          title={inboxUi.columnsButton}
         >
           <Columns3 className={iconOnly ? "h-3.5 w-3.5" : "mr-1 h-3.5 w-3.5"} />
-          {!iconOnly && "Columns"}
+          {!iconOnly && inboxUi.columnsButton}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[300px] rounded-xl border-border/70 p-1.5 shadow-xl shadow-black/10">
         <DropdownMenuLabel className="px-2 pb-1 pt-1.5">
           <div className="space-y-1">
             <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-              Desktop issue rows
+              {inboxUi.issueColumnPickerEyebrow}
             </div>
             <div className="text-sm font-medium text-foreground">
               {title}
@@ -125,8 +126,8 @@ export function IssueColumnPicker({
           onSelect={onResetColumns}
           className="rounded-lg px-3 py-2 text-sm"
         >
-          Reset defaults
-          <span className="ml-auto text-xs text-muted-foreground">status, id, updated</span>
+          {inboxUi.resetColumnsDefaults}
+          <span className="ml-auto text-xs text-muted-foreground">{inboxUi.resetColumnsHint}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -187,7 +188,7 @@ export function InboxIssueMetaLeading({
               "text-blue-600 dark:text-blue-400",
             )}
           >
-            Live
+            {inboxUi.liveBadge}
           </span>
         </span>
       )}
@@ -227,7 +228,7 @@ export function InboxIssueTrailingColumns({
   onFilterWorkspace?: (workspaceId: string) => void;
 }) {
   const activityText = timeAgo(issue.lastActivityAt ?? issue.lastExternalCommentAt ?? issue.updatedAt);
-  const userLabel = assigneeUserName ?? formatAssigneeUserLabel(issue.assigneeUserId, currentUserId) ?? "User";
+  const userLabel = assigneeUserName ?? formatAssigneeUserLabel(issue.assigneeUserId, currentUserId) ?? inboxUi.assigneeFallbackLabel;
 
   return (
     <span
@@ -349,7 +350,7 @@ export function InboxIssueTrailingColumns({
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top" sideOffset={6}>
-                    Filter by workspace
+                    {inboxUi.workspaceFilterTooltip}
                   </TooltipContent>
                 </Tooltip>
               ) : (
@@ -369,7 +370,7 @@ export function InboxIssueTrailingColumns({
               {parentIdentifier ? (
                 <span className="font-mono">{parentIdentifier}</span>
               ) : (
-                <span className="italic">Sub-issue</span>
+                <span className="italic">{inboxUi.parentSubIssueItalic}</span>
               )}
             </span>
           );

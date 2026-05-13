@@ -17,7 +17,7 @@ import { useCompany } from "../context/CompanyContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useGeneralSettings } from "../context/GeneralSettingsContext";
 import { useSidebar } from "../context/SidebarContext";
-import { issueBreadcrumb } from "../lib/i18n";
+import { formatInboxApprovalStatus, inboxUi, issueBreadcrumb } from "../lib/i18n";
 import { useDialogActions } from "../context/DialogContext";
 import {
   applyIssueFilters,
@@ -172,11 +172,7 @@ function firstNonEmptyLine(value: string | null | undefined): string | null {
 }
 
 function runFailureMessage(run: HeartbeatRun): string {
-  return firstNonEmptyLine(run.error) ?? firstNonEmptyLine(run.stderrExcerpt) ?? "Run exited with an error.";
-}
-
-function approvalStatusLabel(status: Approval["status"]): string {
-  return status.replaceAll("_", " ");
+  return firstNonEmptyLine(run.error) ?? firstNonEmptyLine(run.stderrExcerpt) ?? inboxUi.failedRunFallbackMessage;
 }
 
 function readIssueIdFromRun(run: HeartbeatRun): string | null {
@@ -209,7 +205,9 @@ export function formatJoinRequestInboxLabel(
   },
 ) {
   if (joinRequest.requestType !== "human") {
-    return `Agent join request${joinRequest.agentName ? `: ${joinRequest.agentName}` : ""}`;
+    return joinRequest.agentName
+      ? inboxUi.joinRequestAgentNamed(joinRequest.agentName)
+      : inboxUi.joinRequestAgentBare;
   }
 
   const requesterName = nonEmptyLabel(joinRequest.requesterUser?.name);
@@ -222,7 +220,7 @@ export function formatJoinRequestInboxLabel(
   if (requesterEmail) return requesterEmail;
   if (requesterName) return requesterName;
   if (requesterId) return requesterId;
-  return "Human join request";
+  return inboxUi.joinRequestHumanFallback;
 }
 
 
@@ -279,7 +277,7 @@ export function FailedRunInboxRow({
                   "inline-flex h-4 w-4 items-center justify-center rounded-full transition-colors",
                   "hover:bg-blue-500/20",
                 )}
-                aria-label="Mark as read"
+                aria-label={inboxUi.markAsReadAria}
               >
                 <span className={cn(
                   "block h-2 w-2 rounded-full transition-opacity duration-300",
@@ -293,7 +291,7 @@ export function FailedRunInboxRow({
                 onClick={onArchive}
                 disabled={archiveDisabled}
                 className="inline-flex h-4 w-4 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-30"
-                aria-label="Dismiss from inbox"
+                aria-label={inboxUi.dismissFromInboxAria}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -324,7 +322,10 @@ export function FailedRunInboxRow({
                   {issue.title}
                 </>
               ) : (
-                <>Failed run{linkedAgentName ? ` — ${linkedAgentName}` : ""}</>
+                <>
+                  {inboxUi.failedRunUntitledIssue}
+                  {linkedAgentName ? `${inboxUi.failedRunWithAgentSep}${linkedAgentName}` : ""}
+                </>
               )}
             </span>
             <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
@@ -345,14 +346,14 @@ export function FailedRunInboxRow({
             disabled={isRetrying}
           >
             <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-            {isRetrying ? "Retrying…" : "Retry"}
+            {isRetrying ? inboxUi.retrying : inboxUi.retry}
           </Button>
           {!showUnreadSlot && (
             <button
               type="button"
               onClick={onDismiss}
               className="rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
-              aria-label="Dismiss"
+              aria-label={inboxUi.dismissAria}
             >
               <X className="h-4 w-4" />
             </button>
@@ -369,14 +370,14 @@ export function FailedRunInboxRow({
           disabled={isRetrying}
         >
           <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-          {isRetrying ? "Retrying…" : "Retry"}
+          {isRetrying ? inboxUi.retrying : inboxUi.retry}
         </Button>
         {!showUnreadSlot && (
           <button
             type="button"
             onClick={onDismiss}
             className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-            aria-label="Dismiss"
+            aria-label={inboxUi.dismissAria}
           >
             <X className="h-4 w-4" />
           </button>
@@ -435,7 +436,7 @@ function ApprovalInboxRow({
                   "inline-flex h-4 w-4 items-center justify-center rounded-full transition-colors",
                   "hover:bg-blue-500/20",
                 )}
-                aria-label="Mark as read"
+                aria-label={inboxUi.markAsReadAria}
               >
                 <span className={cn(
                   "block h-2 w-2 rounded-full transition-opacity duration-300",
@@ -449,7 +450,7 @@ function ApprovalInboxRow({
                 onClick={onArchive}
                 disabled={archiveDisabled}
                 className="inline-flex h-4 w-4 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-30"
-                aria-label="Dismiss from inbox"
+                aria-label={inboxUi.dismissFromInboxAria}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -475,9 +476,9 @@ function ApprovalInboxRow({
               {label}
             </span>
             <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-              <span className="capitalize">{approvalStatusLabel(approval.status)}</span>
-              {requesterName ? <span>requested by {requesterName}</span> : null}
-              <span>updated {timeAgo(approval.updatedAt)}</span>
+              <span>{formatInboxApprovalStatus(approval.status)}</span>
+              {requesterName ? <span>{inboxUi.approvalRequestedByLine(requesterName)}</span> : null}
+              <span>{inboxUi.activityUpdated(timeAgo(approval.updatedAt))}</span>
             </span>
           </span>
         </Link>
@@ -489,7 +490,7 @@ function ApprovalInboxRow({
               onClick={onApprove}
               disabled={isPending}
             >
-              Approve
+              {inboxUi.approve}
             </Button>
             <Button
               variant="destructive"
@@ -498,7 +499,7 @@ function ApprovalInboxRow({
               onClick={onReject}
               disabled={isPending}
             >
-              Reject
+              {inboxUi.reject}
             </Button>
           </div>
         ) : null}
@@ -511,7 +512,7 @@ function ApprovalInboxRow({
             onClick={onApprove}
             disabled={isPending}
           >
-            Approve
+            {inboxUi.approve}
           </Button>
           <Button
             variant="destructive"
@@ -520,7 +521,7 @@ function ApprovalInboxRow({
             onClick={onReject}
             disabled={isPending}
           >
-            Reject
+            {inboxUi.reject}
           </Button>
         </div>
       ) : null}
@@ -571,7 +572,7 @@ function JoinRequestInboxRow({
                   "inline-flex h-4 w-4 items-center justify-center rounded-full transition-colors",
                   "hover:bg-blue-500/20",
                 )}
-                aria-label="Mark as read"
+                aria-label={inboxUi.markAsReadAria}
               >
                 <span className={cn(
                   "block h-2 w-2 rounded-full transition-opacity duration-300",
@@ -585,7 +586,7 @@ function JoinRequestInboxRow({
                 onClick={onArchive}
                 disabled={archiveDisabled}
                 className="inline-flex h-4 w-4 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-30"
-                aria-label="Dismiss from inbox"
+                aria-label={inboxUi.dismissFromInboxAria}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -605,8 +606,8 @@ function JoinRequestInboxRow({
               {label}
             </span>
             <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-              <span>requested {timeAgo(joinRequest.createdAt)} from IP {joinRequest.requestIp}</span>
-              {joinRequest.adapterType && <span>adapter: {joinRequest.adapterType}</span>}
+              <span>{inboxUi.joinRequestIpLine(timeAgo(joinRequest.createdAt), joinRequest.requestIp)}</span>
+              {joinRequest.adapterType && <span>{inboxUi.joinRequestAdapterPrefix}{joinRequest.adapterType}</span>}
             </span>
           </span>
         </div>
@@ -617,7 +618,7 @@ function JoinRequestInboxRow({
             onClick={onApprove}
             disabled={isPending}
           >
-            Approve
+            {inboxUi.approve}
           </Button>
           <Button
             variant="destructive"
@@ -626,7 +627,7 @@ function JoinRequestInboxRow({
             onClick={onReject}
             disabled={isPending}
           >
-            Reject
+            {inboxUi.reject}
           </Button>
         </div>
       </div>
@@ -637,7 +638,7 @@ function JoinRequestInboxRow({
           onClick={onApprove}
           disabled={isPending}
         >
-          Approve
+          {inboxUi.approve}
         </Button>
         <Button
           variant="destructive"
@@ -646,7 +647,7 @@ function JoinRequestInboxRow({
           onClick={onReject}
           disabled={isPending}
         >
-          Reject
+          {inboxUi.reject}
         </Button>
       </div>
     </div>
@@ -728,7 +729,7 @@ export function Inbox() {
   });
 
   useEffect(() => {
-    setBreadcrumbs([{ label: "Inbox" }]);
+    setBreadcrumbs([{ label: issueBreadcrumb.inbox }]);
   }, [setBreadcrumbs]);
 
   useEffect(() => {
@@ -870,9 +871,11 @@ export function Inbox() {
     if (currentUserId) {
       options.set(`user:${currentUserId}`, {
         id: `user:${currentUserId}`,
-        label: currentUserId === "local-board" ? "Board" : "Me",
+        label: currentUserId === "local-board" ? inboxUi.creatorQuickLabelBoard : inboxUi.creatorQuickLabelSelf,
         kind: "user",
-        searchText: currentUserId === "local-board" ? "board me human local-board" : `me board human ${currentUserId}`,
+        searchText: currentUserId === "local-board"
+          ? `board me human local-board ${inboxUi.creatorQuickLabelBoard}`
+          : `me board human ${currentUserId} ${inboxUi.creatorQuickLabelSelf}`,
       });
     }
 
@@ -1354,7 +1357,7 @@ export function Inbox() {
       navigate(`/approvals/${id}?resolved=approved`);
     },
     onError: (err) => {
-      setActionError(err instanceof Error ? err.message : "Failed to approve");
+      setActionError(err instanceof Error ? err.message : inboxUi.errApprove);
     },
   });
 
@@ -1365,7 +1368,7 @@ export function Inbox() {
       queryClient.invalidateQueries({ queryKey: queryKeys.approvals.list(selectedCompanyId!) });
     },
     onError: (err) => {
-      setActionError(err instanceof Error ? err.message : "Failed to reject");
+      setActionError(err instanceof Error ? err.message : inboxUi.errReject);
     },
   });
 
@@ -1380,7 +1383,7 @@ export function Inbox() {
       queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
     },
     onError: (err) => {
-      setActionError(err instanceof Error ? err.message : "Failed to approve join request");
+      setActionError(err instanceof Error ? err.message : inboxUi.errApproveJoin);
     },
   });
 
@@ -1393,7 +1396,7 @@ export function Inbox() {
       queryClient.invalidateQueries({ queryKey: queryKeys.sidebarBadges(selectedCompanyId!) });
     },
     onError: (err) => {
-      setActionError(err instanceof Error ? err.message : "Failed to reject join request");
+      setActionError(err instanceof Error ? err.message : inboxUi.errRejectJoin);
     },
   });
 
@@ -1415,7 +1418,7 @@ export function Inbox() {
         payload,
       });
       if (!("id" in result)) {
-        throw new Error(result.message ?? "Retry was skipped.");
+        throw new Error(result.message ?? inboxUi.errRetrySkipped);
       }
       return { newRun: result, originalRun: run };
     },
@@ -1483,7 +1486,7 @@ export function Inbox() {
       return { previousData };
     },
     onError: (err, id, context) => {
-      setActionError(err instanceof Error ? err.message : "Failed to archive issue");
+      setActionError(err instanceof Error ? err.message : inboxUi.errArchiveIssue);
       setArchivingIssueIds((prev) => {
         const next = new Set(prev);
         next.delete(id);
@@ -1517,7 +1520,7 @@ export function Inbox() {
       setUnarchivingIssueIds((prev) => new Set(prev).add(id));
     },
     onError: (err) => {
-      setActionError(err instanceof Error ? err.message : "Failed to undo inbox archive");
+      setActionError(err instanceof Error ? err.message : inboxUi.errUndoArchive);
     },
     onSuccess: (_data, id) => {
       setUndoableArchiveIssueIds((prev) => {
@@ -1854,7 +1857,7 @@ export function Inbox() {
   }, [selectedIndex]);
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={InboxIcon} message="Select a company to view inbox." />;
+    return <EmptyState icon={InboxIcon} message={inboxUi.selectCompanyMessage} />;
   }
 
   const hasRunFailures = failedRuns.length > 0;
@@ -1911,7 +1914,7 @@ export function Inbox() {
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search inbox…"
+            placeholder={inboxUi.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -1941,14 +1944,14 @@ export function Inbox() {
             items={[
               {
                 value: "mine",
-                label: "Mine",
+                label: inboxUi.tabs.mine,
               },
               {
                 value: "recent",
-                label: "Recent",
+                label: inboxUi.tabs.recent,
               },
-              { value: "unread", label: "Unread" },
-              { value: "all", label: "All" },
+              { value: "unread", label: inboxUi.tabs.unread },
+              { value: "all", label: inboxUi.tabs.all },
             ]}
           />
         </Tabs>
@@ -1958,7 +1961,7 @@ export function Inbox() {
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search inbox…"
+              placeholder={inboxUi.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -1988,7 +1991,7 @@ export function Inbox() {
             size="icon"
             className={cn("hidden h-8 w-8 shrink-0 sm:inline-flex", nestingEnabled && "bg-accent")}
             onClick={toggleNesting}
-            title={nestingEnabled ? "Disable parent-child nesting" : "Enable parent-child nesting"}
+            title={nestingEnabled ? inboxUi.nestingDisableTitle : inboxUi.nestingEnableTitle}
           >
             <ListTree className="h-3.5 w-3.5" />
           </Button>
@@ -2013,7 +2016,7 @@ export function Inbox() {
                 variant="outline"
                 size="icon"
                 className={cn("h-8 w-8 shrink-0", groupBy !== "none" && "bg-accent")}
-                title="Group"
+                title={inboxUi.groupByTitle}
               >
                 <Layers className="h-3.5 w-3.5" />
               </Button>
@@ -2021,11 +2024,11 @@ export function Inbox() {
             <PopoverContent align="end" className="w-40 p-2">
               <div className="space-y-0.5">
                 {([
-                  ["none", "None"],
-                  ["type", "Type"],
-                  ["assignee", "Assignee"],
-                  ["project", "Project"],
-                  ...(isolatedWorkspacesEnabled ? ([["workspace", "Workspace"]] as const) : []),
+                  ["none", inboxUi.groupByNone],
+                  ["type", inboxUi.groupByType],
+                  ["assignee", inboxUi.groupByAssignee],
+                  ["project", inboxUi.groupByProject],
+                  ...(isolatedWorkspacesEnabled ? ([["workspace", inboxUi.groupByWorkspace]] as const) : []),
                 ] as const).map(([value, label]) => (
                   <button
                     key={value}
@@ -2048,7 +2051,7 @@ export function Inbox() {
             visibleColumnSet={visibleIssueColumnSet}
             onToggleColumn={toggleIssueColumn}
             onResetColumns={() => setIssueColumns(DEFAULT_INBOX_ISSUE_COLUMNS)}
-            title="Choose which inbox columns stay visible"
+            title={inboxUi.issueColumnPickerDefaultTitle}
             iconOnly
           />
           {canMarkAllRead && (
@@ -2061,19 +2064,21 @@ export function Inbox() {
                 onClick={() => setShowMarkAllReadConfirm(true)}
                 disabled={markAllReadMutation.isPending}
               >
-                {markAllReadMutation.isPending ? "Marking…" : "Mark all as read"}
+                {markAllReadMutation.isPending ? inboxUi.markingEllipsis : inboxUi.markAllRead}
               </Button>
               <Dialog open={showMarkAllReadConfirm} onOpenChange={setShowMarkAllReadConfirm}>
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Mark all as read?</DialogTitle>
+                    <DialogTitle>{inboxUi.markAllReadConfirmTitle}</DialogTitle>
                     <DialogDescription>
-                      This will mark {unreadIssueIds.length} unread {unreadIssueIds.length === 1 ? "item" : "items"} as read.
+                      {unreadIssueIds.length === 1
+                        ? inboxUi.markAllReadConfirmBodyOne
+                        : inboxUi.markAllReadConfirmBodyMany(unreadIssueIds.length)}
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setShowMarkAllReadConfirm(false)}>
-                      Cancel
+                      {inboxUi.cancel}
                     </Button>
                     <Button
                       onClick={() => {
@@ -2081,7 +2086,7 @@ export function Inbox() {
                         markAllReadMutation.mutate(unreadIssueIds);
                       }}
                     >
-                      Mark all as read
+                      {inboxUi.markAllRead}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -2099,15 +2104,15 @@ export function Inbox() {
             onValueChange={(value) => updateAllCategoryFilter(value as InboxCategoryFilter)}
           >
             <SelectTrigger className="h-8 w-[170px] text-xs">
-              <SelectValue placeholder="Category" />
+              <SelectValue placeholder={inboxUi.categoryPlaceholder} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="everything">All categories</SelectItem>
-              <SelectItem value="issues_i_touched">My recent issues</SelectItem>
-              <SelectItem value="join_requests">Join requests</SelectItem>
-              <SelectItem value="approvals">Approvals</SelectItem>
-              <SelectItem value="failed_runs">Failed runs</SelectItem>
-              <SelectItem value="alerts">Alerts</SelectItem>
+              <SelectItem value="everything">{inboxUi.categoryEverything}</SelectItem>
+              <SelectItem value="issues_i_touched">{inboxUi.categoryRecentIssues}</SelectItem>
+              <SelectItem value="join_requests">{inboxUi.categoryJoinRequests}</SelectItem>
+              <SelectItem value="approvals">{inboxUi.categoryApprovals}</SelectItem>
+              <SelectItem value="failed_runs">{inboxUi.categoryFailedRuns}</SelectItem>
+              <SelectItem value="alerts">{inboxUi.categoryAlerts}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -2117,12 +2122,12 @@ export function Inbox() {
               onValueChange={(value) => updateAllApprovalFilter(value as InboxApprovalFilter)}
             >
               <SelectTrigger className="h-8 w-[170px] text-xs">
-                <SelectValue placeholder="Approval status" />
+                <SelectValue placeholder={inboxUi.approvalStatusPlaceholder} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All approval statuses</SelectItem>
-                <SelectItem value="actionable">Needs action</SelectItem>
-                <SelectItem value="resolved">Resolved</SelectItem>
+                <SelectItem value="all">{inboxUi.approvalFilterAllStatuses}</SelectItem>
+                <SelectItem value="actionable">{inboxUi.approvalFilterActionable}</SelectItem>
+                <SelectItem value="resolved">{inboxUi.approvalFilterResolved}</SelectItem>
               </SelectContent>
             </Select>
           )}
@@ -2141,14 +2146,14 @@ export function Inbox() {
           icon={searchQuery.trim() ? Search : InboxIcon}
           message={
             searchQuery.trim()
-              ? "No inbox items match your search."
+              ? inboxUi.emptySearch
               : tab === "mine"
-              ? "Inbox zero."
+              ? inboxUi.emptyMine
               : tab === "unread"
-              ? "No new inbox items."
+              ? inboxUi.emptyUnread
               : tab === "recent"
-                ? "No recent inbox items."
-                : "No inbox items match these filters."
+                ? inboxUi.emptyRecent
+                : inboxUi.emptyFiltered
           }
         />
       )}
@@ -2226,10 +2231,10 @@ export function Inbox() {
                       }
                       titleSuffix={hasChildren && !isExpanded && depth === 0 ? (
                         <span className="ml-1.5 text-xs text-muted-foreground">
-                          ({childCount} sub-task{childCount !== 1 ? "s" : ""})
+                          {childCount === 1 ? inboxUi.subTasksOne : inboxUi.subTasksMany(childCount)}
                         </span>
                       ) : undefined}
-                      mobileMeta={issueActivityText(issue).toLowerCase()}
+                      mobileMeta={issueActivityText(issue)}
                       mobileLeading={
                         depth === 0 && hasChildren && collapseParentId ? (
                           <button
@@ -2292,7 +2297,7 @@ export function Inbox() {
                       >
                         <div className="h-px flex-1 bg-border/80" />
                         <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          {group.searchSection === "archived" ? "Archived" : "Other results"}
+                          {group.searchSection === "archived" ? inboxUi.searchArchivedDivider : inboxUi.searchOtherDivider}
                         </span>
                         <div className="h-px flex-1 bg-border/80" />
                       </div>,
@@ -2325,8 +2330,8 @@ export function Inbox() {
                               variant="ghost"
                               size="icon-xs"
                               className="-mr-2 text-muted-foreground"
-                              title={`New issue in ${group.label}`}
-                              aria-label={`New issue in ${group.label}`}
+                              title={inboxUi.newIssueInGroupTitle(group.label)}
+                              aria-label={inboxUi.newIssueInGroupAria(group.label)}
                               onClick={(event) => {
                                 event.stopPropagation();
                                 openCreateIssueForGroup(group);
@@ -2366,7 +2371,7 @@ export function Inbox() {
                         <div key={`today-divider-${group.key}-${index}`} className="my-2 flex items-center gap-3 px-4">
                           <div className="flex-1 border-t border-zinc-600" />
                           <span className="shrink-0 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-                            Earlier
+                            {inboxUi.timeDividerEarlier}
                           </span>
                         </div>,
                       );
@@ -2576,7 +2581,7 @@ export function Inbox() {
           {showSeparatorBefore("alerts") && <Separator />}
           <div>
             <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Alerts
+              {inboxUi.alertsSectionTitle}
             </h3>
             <div className="divide-y divide-border border border-border">
               {showAggregateAgentError && (
@@ -2587,15 +2592,14 @@ export function Inbox() {
                   >
                     <AlertTriangle className="h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
                     <span className="text-sm">
-                      <span className="font-medium">{dashboard!.agents.error}</span>{" "}
-                      {dashboard!.agents.error === 1 ? "agent has" : "agents have"} errors
+                      {inboxUi.agentsErrorSummary(dashboard!.agents.error)}
                     </span>
                   </Link>
                   <button
                     type="button"
                     onClick={() => dismissAlert("alert:agent-errors")}
                     className="rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover/alert:opacity-100"
-                    aria-label="Dismiss"
+                    aria-label={inboxUi.dismissAria}
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -2609,16 +2613,14 @@ export function Inbox() {
                   >
                     <AlertTriangle className="h-4 w-4 shrink-0 text-yellow-400" />
                     <span className="text-sm">
-                      Budget at{" "}
-                      <span className="font-medium">{dashboard!.costs.monthUtilizationPercent}%</span>{" "}
-                      utilization this month
+                      {inboxUi.budgetMonthUtilSummary(dashboard!.costs.monthUtilizationPercent)}
                     </span>
                   </Link>
                   <button
                     type="button"
                     onClick={() => dismissAlert("alert:budget")}
                     className="rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover/alert:opacity-100"
-                    aria-label="Dismiss"
+                    aria-label={inboxUi.dismissAria}
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>

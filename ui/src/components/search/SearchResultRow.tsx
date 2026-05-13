@@ -2,7 +2,7 @@ import { memo, type ComponentType, type SVGProps } from "react";
 import { Bot, FileText, Hexagon, MessageSquare, Quote } from "lucide-react";
 import type { Agent, CompanySearchResult } from "@paperclipai/shared";
 import { Link } from "@/lib/router";
-import { cn } from "@/lib/utils";
+import { cn, relativeTime } from "@/lib/utils";
 import { StatusIcon } from "../StatusIcon";
 import { Identity } from "../Identity";
 import { HighlightedText, type HighlightedTextProps } from "./HighlightedText";
@@ -26,21 +26,7 @@ function formatRelativeTime(input: string | null): string {
   if (!input) return "";
   const value = new Date(input);
   if (Number.isNaN(value.getTime())) return "";
-  const diffMs = Date.now() - value.getTime();
-  const seconds = Math.round(diffMs / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.round(hours / 24);
-  if (days < 7) return `${days}d`;
-  const weeks = Math.round(days / 7);
-  if (weeks < 5) return `${weeks}w`;
-  const months = Math.round(days / 30);
-  if (months < 12) return `${months}mo`;
-  const years = Math.round(days / 365);
-  return `${years}y`;
+  return relativeTime(value);
 }
 
 export interface SearchResultRowProps {
