@@ -44,7 +44,7 @@ import {
   DEFAULT_PAPERCLIP_AGENT_PROMPT_TEMPLATE,
   joinPromptSections,
 } from "@paperclipai/adapter-utils/server-utils";
-import { DEFAULT_CURSOR_LOCAL_MODEL, SANDBOX_INSTALL_COMMAND } from "../adapter-constants.js";
+import { DEFAULT_CURSOR_LOCAL_MODEL, SANDBOX_INSTALL_COMMAND } from "../index.js";
 import { parseCursorJsonl, isCursorUnknownSessionError } from "./parse.js";
 import { prepareCursorSandboxCommand } from "./remote-command.js";
 import { normalizeCursorStreamLine } from "../shared/stream.js";
@@ -208,6 +208,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   let command = asString(config.command, "agent");
   const model = asString(config.model, DEFAULT_CURSOR_LOCAL_MODEL).trim();
   const mode = normalizeMode(asString(config.mode, ""));
+  const maxTurnsPerRun = asNumber(config.maxTurnsPerRun, 0);
 
   const workspaceContext = parseObject(context.paperclipWorkspace);
   const workspaceCwd = asString(workspaceContext.cwd, "");
@@ -587,6 +588,16 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     return args;
   };
 
+  // maxTurnsPerRun fuse state
+  let childPid: number | null = null;
+  let turnCount = 0;
+  let maxTurnsExhausted = false;
+
+  const wrappedOnSpawn = async (info: { pid: number }) => {
+    childPid = info.pid;
+    if (onSpawn) await onSpawn(info);
+  };
+
   const runAttempt = async (resumeSessionId: string | null) => {
     const args = buildArgs(resumeSessionId);
     if (onMeta) {
@@ -616,6 +627,33 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
       for (const line of lines) {
         await emitNormalizedStdoutLine(line);
+        // Turn counting: detect tool_call started events in stream-json
+        if (
+          maxTurnsPerRun > 0 &&
+          !maxTurnsExhausted &&
+          line.includes('"type":"tool_call"') &&
+          line.includes('"subtype":"started"')
+        ) {
+          turnCount++;
+          if (turnCount >= maxTurnsPerRun && childPid !== null) {
+            maxTurnsExhausted = true;
+            try {
+              process.kill(childPid, "SIGTERM");
+            } catch {
+              try {
+                process.kill(childPid, "SIGKILL");
+              } catch {
+                // SIGKILL not supported on all platforms (e.g., Windows);
+                // fall back to default kill signal
+                try {
+                  process.kill(childPid);
+                } catch {
+                  // already dead
+                }
+              }
+            }
+          }
+        }
       }
 
       if (finalize) {
@@ -627,13 +665,16 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       }
     };
 
+    turnCount = 0;
+    maxTurnsExhausted = false;
+
     const proc = await runAdapterExecutionTargetProcess(runId, runtimeExecutionTarget, command, args, {
       cwd,
       env,
       timeoutSec,
       graceSec,
       stdin: prompt,
-      onSpawn,
+      onSpawn: wrappedOnSpawn,
       onLog: async (stream, chunk) => {
         if (stream !== "stdout") {
           await onLog(stream, chunk);
@@ -665,6 +706,18 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     },
     clearSessionOnMissingSession = false,
   ): AdapterExecutionResult => {
+    if (maxTurnsExhausted) {
+      return {
+        exitCode: attempt.proc.exitCode,
+        signal: attempt.proc.signal,
+        timedOut: false,
+        errorCode: "max_turns_exhausted",
+        errorMessage: `Max turns per run (${maxTurnsPerRun}) exhausted`,
+        clearSession: true,
+        usage: attempt.parsed.usage,
+      };
+    }
+
     if (attempt.proc.timedOut) {
       return {
         exitCode: attempt.proc.exitCode,
