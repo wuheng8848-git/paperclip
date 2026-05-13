@@ -195,7 +195,7 @@ This is a fork of `paperclipai/paperclip` with QoL patches and an **external-onl
 
 - Fork runs on port 3101+ (auto-detects if 3100 is taken by upstream instance)
 - `npx vite build` hangs on NTFS — use `node node_modules/vite/bin/vite.js build` instead
-- Server startup from NTFS takes 30-60s — don't assume failure immediately
+- `pnpm dev` deadlocks on NTFS — `tsx watch` (chokidar) hangs indefinitely due to `fs.watch` instability. Use `pnpm dev:once` instead (skips file watching, same server, no auto-restart on changes)
 - Kill ALL paperclip processes before starting: `pkill -f "paperclip"; pkill -f "tsx.*index.ts"`
 - Vite cache survives `rm -rf dist` — delete both: `rm -rf ui/dist ui/node_modules/.vite`
 

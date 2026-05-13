@@ -4,6 +4,8 @@ import {
   execute,
   sessionCodec,
   testEnvironment,
+  listCodebuddySkills,
+  syncCodebuddySkills,
 } from "./server/index.js";
 
 export const type = "codebuddy_local";
@@ -84,9 +86,11 @@ export function createServerAdapter(): ServerAdapterModule {
     models,
     modelProfiles,
     agentConfigurationDoc,
+    listSkills: listCodebuddySkills,
+    syncSkills: syncCodebuddySkills,
     supportsLocalAgentJwt: true,
     supportsInstructionsBundle: true,
     instructionsPathKey: "instructionsFilePath",
-    requiresMaterializedRuntimeSkills: false,
+    requiresMaterializedRuntimeSkills: true,
   };
 }
