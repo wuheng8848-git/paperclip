@@ -641,9 +641,15 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
               process.kill(childPid, "SIGTERM");
             } catch {
               try {
-                process.kill(childPid);
+                process.kill(childPid, "SIGKILL");
               } catch {
-                // already dead
+                // SIGKILL not supported on all platforms (e.g., Windows);
+                // fall back to default kill signal
+                try {
+                  process.kill(childPid);
+                } catch {
+                  // already dead
+                }
               }
             }
           }
