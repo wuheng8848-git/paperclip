@@ -1,36 +1,36 @@
 ---
-title: External Adapters
-summary: Build, package, and distribute adapters as plugins without modifying Paperclip source
+title: 外部适配器
+summary: 以插件形式构建、打包与分发适配器，无需修改 Paperclip 源码
 ---
 
-Paperclip supports external adapter plugins that can be installed from npm packages or local directories. External adapters work exactly like built-in adapters — they execute agents, parse output, and render transcripts — but they live in their own package and don't require changes to Paperclip's source code.
+Paperclip 支持外部适配器插件，可从 npm 包或本地目录安装。外部适配器与内置适配器行为一致——执行智能体、解析输出、渲染运行记录——但位于独立包中，无需改动 Paperclip 源码。
 
-## Built-in vs External
+## 内置与外部对比
 
-| | Built-in | External |
+| | 内置 | 外部 |
 |---|---|---|
-| Source location | Inside `paperclip-fork/packages/adapters/` | Separate npm package or local directory |
-| Registration | Hardcoded in three registries | Loaded at startup via plugin system |
-| UI parser | Static import at build time | Dynamically loaded from API (see [UI Parser](/adapters/adapter-ui-parser)) |
-| Distribution | Ships with Paperclip | Published to npm or linked via `file:` |
-| Updates | Requires Paperclip release | Independent versioning |
+| 源码位置 | `paperclip-fork/packages/adapters/` 内 | 独立 npm 包或本地目录 |
+| 注册 | 三处注册表硬编码 | 启动时由插件系统加载 |
+| UI 解析器 | 构建时静态导入 | 通过 API 动态加载（见 [UI 解析器](/adapters/适配器%20UI%20解析器%20adapter-ui-parser)） |
+| 分发 | 随 Paperclip 发布 | 发布到 npm 或通过 `file:` 链接 |
+| 更新 | 需 Paperclip 发版 | 可独立发版 |
 
-## Quick Start
+## 快速开始
 
-### Minimal Package Structure
+### 最小包结构
 
 ```
 my-adapter/
   package.json
   tsconfig.json
   src/
-    index.ts            # Shared metadata (type, label, models)
+    index.ts            # 共享元数据（类型、标签、模型）
     server/
-      index.ts          # createServerAdapter() factory
-      execute.ts        # Core execution logic
-      parse.ts          # Output parsing
-      test.ts           # Environment diagnostics
-    ui-parser.ts        # Self-contained UI transcript parser
+      index.ts          # createServerAdapter() 工厂
+      execute.ts        # 核心执行逻辑
+      parse.ts          # 输出解析
+      test.ts           # 环境与配置诊断
+    ui-parser.ts        # 自包含的 UI 运行记录解析器
 ```
 
 ### package.json
@@ -64,14 +64,14 @@ my-adapter/
 }
 ```
 
-Key fields:
+关键字段：
 
-| Field | Purpose |
+| 字段 | 用途 |
 |-------|---------|
-| `exports["."]` | Entry point — must export `createServerAdapter` |
-| `exports["./ui-parser"]` | Self-contained UI parser module (optional but recommended) |
-| `paperclip.adapterUiParser` | Contract version for the UI parser (`"1.0.0"`) |
-| `files` | Limits what gets published — only `dist/` |
+| `exports["."]` | 入口——必须导出 `createServerAdapter` |
+| `exports["./ui-parser"]` | 自包含 UI 解析器模块（可选但推荐） |
+| `paperclip.adapterUiParser` | UI 解析器契约版本（`"1.0.0"`） |
+| `files` | 限制发布内容——通常仅 `dist/` |
 
 ### tsconfig.json
 
@@ -92,14 +92,14 @@ Key fields:
 }
 ```
 
-## Server Module
+## 服务端模块
 
-The plugin loader calls `createServerAdapter()` from your package root. This function must return a `ServerAdapterModule`.
+插件加载器从包根调用 `createServerAdapter()`。该函数必须返回 `ServerAdapterModule`。
 
 ### src/index.ts
 
 ```ts
-export const type = "my_adapter";     // snake_case, globally unique
+export const type = "my_adapter";     // snake_case，全局唯一
 export const label = "My Agent (local)";
 
 export const models = [
@@ -111,7 +111,7 @@ Use when: ...
 Don't use when: ...
 `;
 
-// Required by plugin-loader convention
+// 插件加载器约定所需
 export { createServerAdapter } from "./server/index.js";
 ```
 
@@ -136,7 +136,7 @@ export function createServerAdapter(): ServerAdapterModule {
 
 ### src/server/execute.ts
 
-The core execution function. Receives an `AdapterExecutionContext` and returns an `AdapterExecutionResult`.
+核心执行函数：接收 `AdapterExecutionContext`，返回 `AdapterExecutionResult`。
 
 ```ts
 import type {
@@ -155,15 +155,15 @@ export async function execute(
 ): Promise<AdapterExecutionResult> {
   const { config, agent, runtime, context, onLog, onMeta } = ctx;
 
-  // 1. Read config with safe helpers
+  // 1. 用安全方式读取配置
   const cwd = String(config.cwd ?? "/tmp");
   const command = String(config.command ?? "my-agent");
   const timeoutSec = Number(config.timeoutSec ?? 300);
 
-  // 2. Build environment with Paperclip vars injected
+  // 2. 注入 Paperclip 环境变量
   const env = buildPaperclipEnv(agent);
 
-  // 3. Render prompt template
+  // 3. 渲染提示词模板
   const prompt = config.promptTemplate
     ? renderTemplate(String(config.promptTemplate), {
         agentId: agent.id,
@@ -175,7 +175,7 @@ export async function execute(
       })
     : "Continue your work.";
 
-  // 4. Spawn process
+  // 4. 启动进程
   const result = await runChildProcess(command, {
     args: [prompt],
     cwd,
@@ -186,28 +186,28 @@ export async function execute(
     onStderr: (chunk) => onLog("stderr", chunk),
   });
 
-  // 5. Return structured result
+  // 5. 返回结构化结果
   return {
     exitCode: result.exitCode,
     timedOut: result.timedOut,
-    // Include session state for persistence
+    // 可包含持久化的会话状态
     sessionParams: { /* ... */ },
   };
 }
 ```
 
-#### Available Helpers from `@paperclipai/adapter-utils`
+#### `@paperclipai/adapter-utils` 提供的辅助函数
 
-| Helper | Purpose |
+| 辅助函数 | 用途 |
 |--------|---------|
-| `runChildProcess(command, opts)` | Spawn a child process with timeout, grace period, and streaming callbacks |
-| `buildPaperclipEnv(agent)` | Inject `PAPERCLIP_*` environment variables |
-| `renderTemplate(template, data)` | `{{variable}}` substitution in prompt templates |
-| `asString(v)`, `asNumber(v)`, `asBoolean(v)` | Safe config value extraction |
+| `runChildProcess(command, opts)` | 带超时、宽限期与流式回调的子进程 |
+| `buildPaperclipEnv(agent)` | 注入 `PAPERCLIP_*` 环境变量 |
+| `renderTemplate(template, data)` | 提示词模板中的 `{{variable}}` 替换 |
+| `asString(v)`、`asNumber(v)`、`asBoolean(v)` | 安全配置读取 |
 
 ### src/server/test.ts
 
-Validates the adapter configuration before running. Returns structured diagnostics.
+运行前校验配置，返回结构化诊断。
 
 ```ts
 import type {
@@ -220,14 +220,14 @@ export async function testEnvironment(
 ): Promise<AdapterEnvironmentTestResult> {
   const checks = [];
 
-  // Example: check CLI is installed
+  // 示例：检测 CLI 是否安装
   checks.push({
     level: "info",
     message: "My Agent CLI v1.2.0 detected",
     code: "cli_detected",
   });
 
-  // Example: check working directory
+  // 示例：检查工作目录
   const cwd = String(ctx.config.cwd ?? "");
   if (!cwd.startsWith("/")) {
     checks.push({
@@ -247,30 +247,30 @@ export async function testEnvironment(
 }
 ```
 
-Check levels:
+检查级别：
 
-| Level | Meaning | Effect |
+| 级别 | 含义 | 效果 |
 |-------|---------|--------|
-| `info` | Informational | Shown in test results |
-| `warn` | Non-blocking issue | Shown with yellow indicator |
-| `error` | Blocks execution | Prevents agent from running |
+| `info` | 信息 | 显示在检测结果中 |
+| `warn` | 非阻塞 | 黄色提示 |
+| `error` | 阻断执行 | 阻止智能体运行 |
 
-## Installation
+## 安装
 
-### From npm
+### 从 npm
 
 ```sh
-# Via the Paperclip UI
-# Settings → Adapters → Install from npm → "my-paperclip-adapter"
+# 通过 Paperclip UI
+# 设置 → 适配器 → 从 npm 安装 → "my-paperclip-adapter"
 
-# Or via API
+# 或通过 API
 curl -X POST http://localhost:3102/api/adapters \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"packageName": "my-paperclip-adapter"}'
 ```
 
-### From local directory
+### 从本地目录
 
 ```sh
 curl -X POST http://localhost:3102/api/adapters \
@@ -279,11 +279,11 @@ curl -X POST http://localhost:3102/api/adapters \
   -d '{"localPath": "/home/user/my-adapter"}'
 ```
 
-Local adapters are symlinked into Paperclip's adapter directory. Changes to the source are picked up on server restart.
+本地适配器会符号链接到 Paperclip 的适配器目录，修改源码后需重启服务端生效。
 
-### Via adapter-plugins.json
+### 通过 adapter-plugins.json
 
-For development, you can also edit `~/.paperclip/adapter-plugins.json` directly:
+开发时可编辑 `~/.paperclip/adapter-plugins.json`：
 
 ```json
 [
@@ -296,9 +296,9 @@ For development, you can also edit `~/.paperclip/adapter-plugins.json` directly:
 ]
 ```
 
-## Optional: Session Persistence
+## 可选：会话持久化
 
-If your agent runtime supports sessions (conversation continuity across heartbeats), implement a session codec:
+若运行时支持会话（跨心搏的对话连续性），可实现会话编解码：
 
 ```ts
 import type { AdapterSessionCodec } from "@paperclipai/adapter-utils";
@@ -318,15 +318,15 @@ export const sessionCodec: AdapterSessionCodec = {
 };
 ```
 
-Include it in `createServerAdapter()`:
+在 `createServerAdapter()` 中纳入：
 
 ```ts
 return { type, execute, testEnvironment, sessionCodec, /* ... */ };
 ```
 
-## Optional: Skills Sync
+## 可选：技能同步
 
-If your agent runtime supports skills/plugins, implement `listSkills` and `syncSkills`:
+若运行时支持技能/插件，实现 `listSkills` 与 `syncSkills`：
 
 ```ts
 return {
@@ -344,19 +344,19 @@ return {
     };
   },
   async syncSkills(ctx, desiredSkills) {
-    // Install desired skills into the runtime
-    return { /* same shape as listSkills */ };
+    // 将期望技能安装到运行时
+    return { /* 与 listSkills 相同形状 */ };
   },
 };
 ```
 
-## Optional: Model Detection
+## 可选：模型探测
 
-If your runtime has a local config file that specifies the default model:
+若运行时在本地配置文件中有默认模型：
 
 ```ts
 async function detectModel() {
-  // Read ~/.my-agent/config.yaml or similar
+  // 读取 ~/.my-agent/config.yaml 等
   return {
     model: "anthropic/claude-sonnet-4",
     provider: "anthropic",
@@ -368,25 +368,25 @@ async function detectModel() {
 return { type, execute, testEnvironment, detectModel: () => detectModel() };
 ```
 
-## Publishing
+## 发布
 
 ```sh
 npm run build
 npm publish
 ```
 
-Other Paperclip users can then install your adapter by package name from the UI or API.
+其他 Paperclip 用户即可在 UI 或 API 中按包名安装。
 
-## Security
+## 安全
 
-- Treat agent output as untrusted — parse defensively, never `eval()` agent output
-- Inject secrets via environment variables, not in prompts
-- Configure network access controls if the runtime supports them
-- Always enforce timeout and grace period — don't let agents run forever
-- The UI parser module runs in a browser sandbox — it must have zero runtime imports and no side effects
+- 将智能体输出视为不可信——防御性解析，切勿对输出 `eval()`
+- 通过环境变量注入密钥，不要写进提示词
+- 若运行时支持，配置网络访问控制
+- 始终强制执行超时与宽限期，避免进程无限运行
+- UI 解析器在浏览器沙箱中运行——必须零运行时 import、无副作用
 
-## Next Steps
+## 后续步骤
 
-- [UI Parser Contract](/adapters/adapter-ui-parser) — add a custom run-log parser so the UI renders your adapter's output correctly
-- [Creating an Adapter](/adapters/creating-an-adapter) — full walkthrough of adapter internals
-- [How Agents Work](/guides/agent-developer/how-agents-work) — understand the heartbeat lifecycle your adapter serves
+- [UI 解析器契约](/adapters/适配器%20UI%20解析器%20adapter-ui-parser) — 自定义运行日志解析，让 UI 正确渲染输出
+- [创建适配器](/adapters/创建适配器%20creating-an-adapter) — 适配器内部机制完整梳理
+- [智能体如何工作](/guides/agent-developer/how-agents-work) — 理解适配器所服务的心搏生命周期
