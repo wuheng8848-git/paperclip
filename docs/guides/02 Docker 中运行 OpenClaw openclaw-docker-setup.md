@@ -13,7 +13,7 @@ pnpm smoke:openclaw-join
 该工具自动化：
 
 - 邀请创建（`allowedJoinTypes=agent`）
-- OpenClaw 代理加入请求（`adapterType=openclaw`）
+- OpenClaw 智能体加入请求（`adapterType=openclaw`）
 - 董事会批准
 - 一次性 API 密钥认领（包括无效/重放认领检查）
 - 唤醒回调传递到 Docker 化的 OpenClaw 样式 Webhook 接收器
@@ -22,7 +22,7 @@ pnpm smoke:openclaw-join
 
 权限说明：
 
-- 该工具执行董事会治理的操作（邀请创建、加入批准、新代理的唤醒）。
+- 该工具执行董事会治理的操作（邀请创建、加入批准、新智能体的唤醒）。
 - 在认证模式下，提供董事会/操作员身份验证，否则运行会提前退出并显示明确的权限错误。
 
 ## 单命令 OpenClaw 网关 UI（手动 Docker 流程）
@@ -40,7 +40,7 @@ pnpm smoke:openclaw-docker-ui
 - 克隆/更新 `/tmp/openclaw-docker` 中的 `openclaw/openclaw`
 - 构建 `openclaw:local`（除非 `OPENCLAW_BUILD=0`）
 - 在 `~/.openclaw-paperclip-smoke/openclaw.json` 和 Docker `.env` 下写入隔离的冒烟配置
-- 将代理模型默认值固定为 OpenAI（`openai/gpt-5.2`，带 OpenAI 后备）
+- 将智能体模型默认值固定为 OpenAI（`openai/gpt-5.2`，带 OpenAI 后备）
 - 通过 Compose 启动 `openclaw-gateway`（需要 `/tmp` tmpfs 覆盖）
 - 探测并打印从 OpenClaw Docker 内部可访问的 Paperclip 主机 URL
 - 等待运行状况并打印：
@@ -60,7 +60,7 @@ pnpm smoke:openclaw-docker-ui
 - `OPENCLAW_MODEL_PRIMARY`（默认 `openai/gpt-5.2`）
 - `OPENCLAW_MODEL_FALLBACK`（默认 `openai/gpt-5.2-chat-latest`）
 - `OPENCLAW_CONFIG_DIR`（默认 `~/.openclaw-paperclip-smoke`）
-- `OPENCLAW_RESET_STATE=1`（默认）每次运行时重置冒烟代理状态以避免陈旧的认证/会话漂移
+- `OPENCLAW_RESET_STATE=1`（默认）每次运行时重置冒烟智能体状态以避免陈旧的认证/会话漂移
 - `PAPERCLIP_HOST_PORT`（默认 `3100`）
 - `PAPERCLIP_HOST_FROM_CONTAINER`（默认 `host.docker.internal`）
 
