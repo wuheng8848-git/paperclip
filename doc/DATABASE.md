@@ -1,203 +1,201 @@
-# Database
+# 数据库（Database）
 
-Paperclip uses PostgreSQL via [Drizzle ORM](https://orm.drizzle.team/). There are three ways to run the database, from simplest to most production-ready.
+> **路径（path）**：`doc/DATABASE.md`。连接串、命令与 JSON 保持可执行英文原文。
 
-## 1. Embedded PostgreSQL — zero config
+Paperclip 通过 [Drizzle ORM](https://orm.drizzle.team/) 使用 PostgreSQL。数据库有三种跑法，从简到生产依次为：
 
-If you don't set `DATABASE_URL`, the server automatically starts an embedded PostgreSQL instance and manages a local data directory.
+## 1. 嵌入式 PostgreSQL（Embedded PostgreSQL）——零配置
+
+若**未设置** `DATABASE_URL`，服务器会自动启动嵌入式 PostgreSQL，并管理本地数据目录。
 
 ```sh
 pnpm dev
 ```
 
-That's it. On first start the server:
+首次启动时服务器会：
 
-1. Creates a `~/.paperclip/instances/default/db/` directory for storage
-2. Ensures the `paperclip` database exists
-3. Runs migrations automatically for empty databases
-4. Starts serving requests
+1. 创建 `~/.paperclip/instances/default/db/` 目录存放数据  
+2. 确保 `paperclip` 数据库存在  
+3. 对空库自动执行 **migrations（迁移）**  
+4. 开始处理请求  
 
-Data persists across restarts in `~/.paperclip/instances/default/db/`. To reset local dev data, delete that directory.
+数据持久化在 `~/.paperclip/instances/default/db/`，重启后仍在。若要清空本地开发数据，删除该目录即可。
 
-If you need to apply pending migrations manually, run:
+若需**手动**应用待处理迁移：
 
 ```sh
 pnpm db:migrate
 ```
 
-When `DATABASE_URL` is unset, this command targets the current embedded PostgreSQL instance for your active Paperclip config/instance.
+当 `DATABASE_URL` **未设置**时，该命令作用于当前嵌入式 PostgreSQL 实例（与当前 Paperclip **config / instance** 对应）。
 
-Issue reference mentions follow the normal migration path: the schema migration creates the tracking table, but it does not backfill historical issue titles, descriptions, comments, or documents automatically.
+Issue **reference mentions（引用提及）** 跟踪走正常迁移路径：schema 迁移会建表，但**不会**自动回填历史 issue 标题、描述、评论或文档。
 
-To backfill existing content manually after migrating, run:
+迁移后若要**手工回填**已有内容，运行：
 
 ```sh
 pnpm issue-references:backfill
-# optional: limit to one company
+# 可选：只处理一家公司
 pnpm issue-references:backfill -- --company <company-id>
 ```
 
-Future issue, comment, and document writes sync references automatically without running the backfill command.
+此后新的 issue、评论、文档写入会自动同步引用，无需再跑回填命令。
 
-This mode is ideal for local development and one-command installs.
+该模式适合本地开发与一键安装。
 
-Docker note: the Docker quickstart image also uses embedded PostgreSQL by default. Persist `/paperclip` to keep DB state across container restarts (see `doc/DOCKER.md`).
+Docker 说明：Docker quickstart 镜像默认也用嵌入式 PostgreSQL。持久化 `/paperclip` 以在容器重启间保留 DB 状态（见 `doc/DOCKER.md`）。
 
-## 2. Local PostgreSQL (Docker)
+## 2. 本地 PostgreSQL（Docker）
 
-For a full PostgreSQL server locally, use the included Docker Compose setup:
+若要完整本地 PostgreSQL 服务，可用自带 Docker Compose：
 
 ```sh
 docker compose up -d
 ```
 
-This starts PostgreSQL 17 on `localhost:5432`. Then set the connection string:
+会在 `localhost:5432` 启动 PostgreSQL 17。然后设置连接串：
 
 ```sh
 cp .env.example .env
-# .env already contains:
+# .env 中已含：
 # DATABASE_URL=postgres://paperclip:paperclip@localhost:5432/paperclip
 ```
 
-Run migrations:
+执行迁移：
 
 ```sh
 DATABASE_URL=postgres://paperclip:paperclip@localhost:5432/paperclip \
   pnpm db:migrate
 ```
 
-Start the server:
+启动服务：
 
 ```sh
 pnpm dev
 ```
 
-## 3. Hosted PostgreSQL (Supabase)
+## 3. 托管 PostgreSQL（Supabase）
 
-For production, use a hosted PostgreSQL provider. [Supabase](https://supabase.com/) is a good option with a free tier.
+生产环境可使用托管 PostgreSQL。[Supabase](https://supabase.com/) 提供免费档，较易上手。
 
-### Setup
+### 配置步骤
 
-1. Create a project at [database.new](https://database.new)
-2. Go to **Project Settings > Database > Connection string**
-3. Copy the URI and replace the password placeholder with your database password
+1. 在 [database.new](https://database.new) 创建项目  
+2. 打开 **Project Settings > Database > Connection string**  
+3. 复制 URI，把密码占位符换成你的数据库密码  
 
-### Connection string
+### 连接串（connection string）
 
-Supabase offers two connection modes:
+Supabase 提供两种连接模式：
 
-**Direct connection** (port 5432) — use for migrations and one-off scripts:
+**直连（Direct）**（端口 `5432`）——用于迁移与一次性脚本：
 
 ```
 postgres://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres
 ```
 
-**Connection pooling via Supavisor** (port 6543) — use for the application:
+**连接池 Supavisor**（端口 `6543`）——用于应用运行时：
 
 ```
 postgres://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
 ```
 
-### Configure
+### 配置应用
 
-For the application runtime, use a direct PostgreSQL connection unless the database client has explicit prepared-statement configuration for your pooling mode:
+应用运行时，除非数据库客户端对所用 pooling 模式有明确的 **prepared statement（预编译语句）** 配置，否则应使用**直连** PostgreSQL：
 
 ```sh
 DATABASE_URL=postgres://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres
 ```
 
-If you later run the app with a pooled runtime URL, set `DATABASE_MIGRATION_URL` to the direct connection URL. Paperclip uses it for startup schema checks/migrations and plugin namespace migrations, while the app continues to use `DATABASE_URL` for runtime queries:
+若运行时用**池化** URL，请另设 `DATABASE_MIGRATION_URL` 指向**直连** URL。Paperclip 用它做启动 schema 检查/迁移与插件命名空间迁移；应用查询仍用 `DATABASE_URL`：
 
 ```sh
 DATABASE_URL=postgres://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
 DATABASE_MIGRATION_URL=postgres://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres
 ```
 
-If your hosted database requires transaction-pooling-only connections, use a direct or session-pooled connection for Paperclip until runtime pooling support is documented in this guide. Do not edit database client source files as part of deployment setup.
+若托管库**仅允许 transaction pooling（事务级池化）**连接，在本文档记录 runtime pooling 支持之前，请对 Paperclip 使用直连或 session 池化连接。**不要**为了部署去改数据库客户端源码。
 
-### Push the schema
+### 推送 schema
 
 ```sh
-# Use the direct connection (port 5432) for schema changes
+# schema 变更请用直连（端口 5432）
 DATABASE_URL=postgres://postgres.[PROJECT-REF]:[PASSWORD]@...5432/postgres \
   pnpm db:migrate
 ```
 
-### Free tier limits
+### 免费档限制
 
-- 500 MB database storage
-- 200 concurrent connections
-- Projects pause after 1 week of inactivity
+- 数据库约 500 MB  
+- 约 200 并发连接  
+- 项目约 1 周无活动会暂停  
 
-See [Supabase pricing](https://supabase.com/pricing) for current details.
+当前细则见 [Supabase pricing](https://supabase.com/pricing)。
 
-## Switching between modes
+## 模式切换（Switching between modes）
 
-The database mode is controlled by `DATABASE_URL`:
+由 `DATABASE_URL` 决定模式：
 
-| `DATABASE_URL` | Mode |
+| `DATABASE_URL` | 模式 |
 |---|---|
-| Not set | Embedded PostgreSQL (`~/.paperclip/instances/default/db/`) |
-| `postgres://...localhost...` | Local Docker PostgreSQL |
-| `postgres://...supabase.com...` | Hosted Supabase |
+| 未设置 | 嵌入式 PostgreSQL（`~/.paperclip/instances/default/db/`） |
+| `postgres://...localhost...` | 本地 Docker PostgreSQL |
+| `postgres://...supabase.com...` | 托管 Supabase |
 
-Your Drizzle schema (`packages/db/src/schema/`) stays the same regardless of mode.
+你的 Drizzle schema（`packages/db/src/schema/`）在各模式下保持一致。
 
-## Plugin database namespaces
+## 插件数据库命名空间（Plugin database namespaces）
 
-The plugin runtime tracks plugin-owned database namespaces and migrations in `plugin_database_namespaces` and `plugin_migrations`. Hosted deployments that separate runtime and migration connections should set `DATABASE_MIGRATION_URL`; plugin namespace migration work uses the migration connection when present.
+插件运行时跟踪插件拥有的 DB 命名空间与迁移，表为 `plugin_database_namespaces`、`plugin_migrations`。若托管部署把运行时与迁移连接分开，应设置 `DATABASE_MIGRATION_URL`；存在时，插件命名空间迁移走迁移连接。
 
-## Backups
+## 备份（Backups）
 
-Paperclip supports automatic and manual logical database backups. These dumps include
-non-system database schemas such as `public`, the Drizzle migration journal, and
-plugin-owned database schemas. See `doc/DEVELOPING.md` for the current
-`paperclipai db:backup` / `pnpm db:backup` commands and backup retention
-configuration.
+Paperclip 支持自动与手动**逻辑备份**（logical database backups）。备份包含非系统 schema（如 `public`）、Drizzle 迁移日志以及插件拥有的 schema。当前 `paperclipai db:backup` / `pnpm db:backup` 命令与保留策略见 `doc/DEVELOPING.md`。
 
-Database backups do not include non-database instance files such as local-disk
-uploads, workspace files, or the local encrypted secrets master key. Back those paths
-up separately when you need full instance disaster recovery.
+数据库备份**不包含**非数据库实例文件：本地上传、工作区文件或本地加密 secrets 的 master key 等。需要完整实例灾备时，请**另行**备份这些路径。
 
-## Secret storage
+## 秘钥存储（Secret storage）
 
-Paperclip stores secret metadata and versions in:
+Paperclip 在下列表中存放秘钥元数据与版本：
 
-- `company_secrets`
-- `company_secret_versions`
+- `company_secrets`  
+- `company_secret_versions`  
 
-For local/default installs, the active provider is `local_encrypted`:
+本地/默认安装下，激活的 provider 为 `local_encrypted`：
 
-- Secret material is encrypted at rest with a local master key.
-- Default key file: `~/.paperclip/instances/default/secrets/master.key` (auto-created if missing).
-- CLI config location: `~/.paperclip/instances/default/config.json` under `secrets.localEncrypted.keyFilePath`.
-- Backup/restore requires both the database metadata and the local master key file; either artifact alone is insufficient.
-- The server best-effort enforces `0600` key file permissions and provider health reports permission warnings.
+- 秘钥材料使用本地 **master key（主密钥）** 静态加密。  
+- 默认密钥文件：`~/.paperclip/instances/default/secrets/master.key`（缺失时可自动创建）。  
+- CLI 配置位置：`~/.paperclip/instances/default/config.json` 内 `secrets.localEncrypted.keyFilePath`。  
+- 备份/恢复需同时有数据库元数据与本地 master key 文件；单独任一都不足以恢复。  
+- 服务器会尽力强制密钥文件权限 `0600`；provider 健康检查会报告权限告警。  
 
-Optional overrides:
+可选覆盖：
 
-- `PAPERCLIP_SECRETS_MASTER_KEY` (32-byte key as base64, hex, or raw 32-char string)
-- `PAPERCLIP_SECRETS_MASTER_KEY_FILE` (custom key file path)
+- `PAPERCLIP_SECRETS_MASTER_KEY`（32 字节密钥，base64 / hex / 原始 32 字符）  
+- `PAPERCLIP_SECRETS_MASTER_KEY_FILE`（自定义密钥文件路径）  
 
-Strict mode to block new inline sensitive env values:
+阻止新的内联敏感环境值的 **strict mode（严格模式）**：
 
 ```sh
 PAPERCLIP_SECRETS_STRICT_MODE=true
 ```
 
-You can set strict mode and provider defaults via:
+可通过：
 
 ```sh
 pnpm paperclipai configure --section secrets
 ```
 
-Inline secret migration command:
+设置严格模式与 provider 默认值。
+
+内联秘钥迁移命令：
 
 ```sh
 pnpm paperclipai secrets migrate-inline-env --company-id <company-id> --apply
 
-# direct database maintenance fallback
+# 直接维护数据库时的兜底
 pnpm secrets:migrate-inline-env --apply
 ```
 
-Hosted AWS provider notes live in [SECRETS-AWS-PROVIDER.md](./SECRETS-AWS-PROVIDER.md).
+托管 AWS provider 的补充说明见 [`SECRETS-AWS-PROVIDER.md`](./SECRETS-AWS-PROVIDER.md)。

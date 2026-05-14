@@ -1,152 +1,154 @@
-# Developing
+# 开发指南（Developing）
 
-This project can run fully in local dev without setting up PostgreSQL manually.
+> **路径（path）**：`doc/DEVELOPING.md`。命令、端口、环境变量、JSON 与路径示例保持英文，便于复制执行。
 
-## Deployment Modes
+本地开发可**完全不手工安装 PostgreSQL** 而完整运行本项目。
 
-For mode definitions and intended CLI behavior, see `doc/DEPLOYMENT-MODES.md`.
+## 部署模式（Deployment Modes）
 
-Current implementation status:
+模式定义与预期 CLI 行为见 `doc/DEPLOYMENT-MODES.md`。
 
-- canonical model: `local_trusted` and `authenticated` (with `private/public` exposure)
+当前实现状态：
 
-## Prerequisites
+- 规范模型：`local_trusted` 与 `authenticated`（配合 `private` / `public` **曝光 exposure**）
 
-- Node.js 20+
-- pnpm 9+
+## 前置要求（Prerequisites）
 
-## Dependency Lockfile Policy
+- Node.js 20+  
+- pnpm 9+  
 
-GitHub Actions owns `pnpm-lock.yaml`.
+## 依赖锁文件策略（Dependency Lockfile Policy）
 
-- Do not commit `pnpm-lock.yaml` in pull requests.
-- Pull request CI validates dependency resolution when manifests change.
-- Pushes to `master` regenerate `pnpm-lock.yaml` with `pnpm install --lockfile-only --no-frozen-lockfile`, commit it back if needed, and then run verification with `--frozen-lockfile`.
+`pnpm-lock.yaml` 由 GitHub Actions **拥有/维护**。
 
-## Start Dev
+- **不要**在 pull request 里提交 `pnpm-lock.yaml`。  
+- 当 manifest 变更时，PR CI 会校验依赖解析。  
+- 推送到 `master` 会用 `pnpm install --lockfile-only --no-frozen-lockfile` 重新生成 `pnpm-lock.yaml`，必要时提交回去，再用 `--frozen-lockfile` 跑校验。  
 
-From repo root:
+## 启动开发（Start Dev）
+
+在仓库根目录：
 
 ```sh
 pnpm install
 pnpm dev
 ```
 
-This starts:
+将启动：
 
-- API server: `http://localhost:3100`
-- UI: served by the API server in dev middleware mode (same origin as API)
+- API：`http://localhost:3100`  
+- UI：由 API 在 dev **middleware（中间件）** 模式同机提供（与 API 同源）  
 
-`pnpm dev` runs the server in watch mode and restarts on changes from workspace packages (including adapter packages). Use `pnpm dev:once` to run without file watching.
+`pnpm dev` 以 watch 模式运行，仓库包（含 adapter 包）变更会重启。若不要文件监听，用 `pnpm dev:once`。
 
-`pnpm dev:once` auto-applies pending local migrations by default before starting the dev server.
+`pnpm dev:once` 默认在启动开发服务器**前**自动应用待处理本地迁移。
 
-`pnpm dev` and `pnpm dev:once` are now idempotent for the current repo and instance: if the matching Paperclip dev runner is already alive, Paperclip reports the existing process instead of starting a duplicate.
+对应当前仓库与实例，`pnpm dev` / `pnpm dev:once` 具**幂等**：若匹配的 Paperclip dev runner 已在运行，会报告已有进程而不是再起一份。
 
-Issue execution may also use project execution workspace policies and workspace runtime services for per-project worktrees, preview servers, and managed dev commands. Configure those through the project workspace/runtime surfaces rather than starting long-running unmanaged processes when a task needs a reusable service.
+Issue 执行亦可使用项目的 **execution workspace（执行工作区）** 策略与 **workspace runtime services（工作区运行时服务）**（每项目 worktree、预览服、受管 dev 命令）。应在项目 workspace/runtime 界面配置，而不是在任务需要可复用服务时再手工起长期无人看管进程。
 
-## Storybook
+## Storybook（Storybook）
 
-The board UI Storybook keeps stories and Storybook config under `ui/storybook/` so component review files stay out of the app source routes.
+Board UI 的 Storybook 将 stories 与配置放在 `ui/storybook/`，以免评审用例混进应用路由源码。
 
 ```sh
 pnpm storybook
 pnpm build-storybook
 ```
 
-These run the `@paperclipai/ui` Storybook on port `6006` and build the static output to `ui/storybook-static/`.
+会在端口 `6006` 跑 `@paperclipai/ui` 的 Storybook，并把静态产物输出到 `ui/storybook-static/`。
 
-Inspect or stop the current repo's managed dev runner:
+查看或停止当前仓库受管的 dev runner：
 
 ```sh
 pnpm dev:list
 pnpm dev:stop
 ```
 
-### Stop dev services (graceful + verify)
+### 停止开发服务（优雅停止 + 验证）
 
-1. **Foreground terminal** — If you started `pnpm dev` / `pnpm dev:once` in that same window, press **Ctrl+C** once and wait for the process to exit.
-2. **Managed runner (any terminal, repo root)** — Run `pnpm dev:list`, then `pnpm dev:stop`. That stops processes **registered for this repo** (for example `paperclip-dev-watch`, `paperclip-dev-once`) and clears the local registry entry.
-3. **Orphan API still on port 3100** — `pnpm dev:stop` only sees registered runners. If `pnpm dev:list` is empty but `http://127.0.0.1:3100/api/health` still responds or a new start fails with **address in use**, another `node`/`tsx` may be serving `server/src/index.ts` without registration (for example started from a different shell). Find the owning PID for port **3100**, inspect its command line, and end only the Paperclip server process you intend to remove. On Windows PowerShell:
+1. **前台终端** — 若在同一窗口起的 `pnpm dev` / `pnpm dev:once`，按一次 **Ctrl+C** 并等待进程退出。  
+2. **受管 runner（任意终端，仓库根）** — 运行 `pnpm dev:list`，再 `pnpm dev:stop`。会停止**为本仓库注册**的进程（如 `paperclip-dev-watch`、`paperclip-dev-once`）并清除本地注册表项。  
+3. **孤儿 API 仍占用 3100** — `pnpm dev:stop` 只认识已注册 runner。若 `pnpm dev:list` 为空但 `http://127.0.0.1:3100/api/health` 仍响应，或新启动报 **address in use**，可能是别处起的 `node`/`tsx` 在跑 `server/src/index.ts` 却未注册。请查端口 **3100** 的 owning PID，看命令行，只结束你确认要关的 Paperclip 服务。Windows PowerShell 示例：
 
    ```powershell
    Get-NetTCPConnection -LocalPort 3100 -ErrorAction SilentlyContinue | Select-Object OwningProcess
    (Get-CimInstance Win32_Process -Filter 'ProcessId=<PID>').CommandLine
    ```
 
-4. **Embedded Postgres** — Stopping dev does not always tear down the embedded `postgres` child immediately; if you hit `postmaster.pid` / port **54329** issues, follow the database cleanup notes in this file and in `doc/运维-回形针本地.md` (Chinese ops cheat sheet).
+4. **嵌入式 Postgres（Embedded Postgres）** — 停止 dev 未必立刻拆掉内嵌 `postgres` 子进程；若遇 `postmaster.pid` / 端口 **54329** 问题，见本文数据库清理说明及中文运维摘要 **`docs/00-project/运维-回形针本地.md`**。  
 
-`pnpm dev:once` now tracks backend-relevant file changes and pending migrations. When the current boot is stale, the board UI shows a `Restart required` banner. You can also enable guarded auto-restart in `Instance Settings > Experimental`, which waits for queued/running local agent runs to finish before restarting the dev server.
+`pnpm dev:once` 会跟踪后端相关文件变更与待处理迁移。当前启动已过期时，Board UI 会显示 **`Restart required`（需要重启）** 横幅。也可在 `Instance Settings > Experimental` 开启**有保护的自动重启**，会等队列中/运行中的本地 agent run 结束后再重启 dev 服务。
 
-Tailscale/private-auth dev mode:
+Tailscale / private-auth 开发模式：
 
 ```sh
 pnpm dev --bind lan
 ```
 
-This runs dev as `authenticated/private` with a private-network bind preset.
+以 `authenticated` / `private` 与私网绑定预设运行 dev。
 
-For Tailscale-only reachability on a detected tailnet address:
+仅在检测到的 tailnet 地址上可达：
 
 ```sh
 pnpm dev --bind tailnet
 ```
 
-Legacy aliases still map to the old broad private-network behavior:
+旧别名仍映射到旧的宽泛私网行为：
 
 ```sh
 pnpm dev --tailscale-auth
 pnpm dev --authenticated-private
 ```
 
-Allow additional private hostnames (for example custom Tailscale hostnames):
+允许额外私网主机名（例如自定义 Tailscale 主机名）：
 
 ```sh
 pnpm paperclipai allowed-hostname dotta-macbook-pro
 ```
 
-## Test Commands
+## 测试命令（Test Commands）
 
-Use the cheap local default unless you are specifically working on browser flows:
+除非你在专门做浏览器流程，否则用默认的廉价本地测试：
 
 ```sh
 pnpm test
 ```
 
-`pnpm test` runs the Vitest suite only. For interactive Vitest watch mode use:
+`pnpm test` 只跑 Vitest。交互式 watch：
 
 ```sh
 pnpm test:watch
 ```
 
-Browser suites stay separate:
+浏览器相关套件单独跑：
 
 ```sh
 pnpm test:e2e
 pnpm test:release-smoke
 ```
 
-These browser suites are intended for targeted local verification and CI, not the default agent/human test command.
+这些面向本地定点验证与 CI，不是默认的 agent/人类日常测试命令。
 
-For normal issue work, start with the smallest targeted check that proves the change. Reserve repo-wide typecheck/build/test runs for PR-ready handoff or changes broad enough that narrow checks do not cover the risk.
+平常改 issue，先用**最小范围**能证明改动的检查。全仓库 typecheck/build/test 留给 PR 交付或改动面大到窄检查不够覆盖时。
 
-## One-Command Local Run
+## 一键本地运行（One-Command Local Run）
 
-For a first-time local install, you can bootstrap and run in one command:
+首次本地安装可一条命令启动：
 
 ```sh
 pnpm paperclipai run
 ```
 
-`paperclipai run` does:
+`paperclipai run` 会：
 
-1. auto-onboard if config is missing
-2. `paperclipai doctor` with repair enabled
-3. starts the server when checks pass
+1. 若缺配置则自动 **onboard（入驻引导）**  
+2. 带修复地跑 `paperclipai doctor`  
+3. 检查通过后启动服务器  
 
-## Docker Quickstart (No local Node install)
+## Docker 快速开始（无本机 Node）
 
-Build and run Paperclip in Docker:
+构建并运行 Paperclip：
 
 ```sh
 docker build -t paperclip-local .
@@ -158,21 +160,21 @@ docker run --name paperclip \
   paperclip-local
 ```
 
-Or use Compose:
+或用 Compose：
 
 ```sh
 docker compose -f docker/docker-compose.quickstart.yml up --build
 ```
 
-See `doc/DOCKER.md` for API key wiring (`OPENAI_API_KEY` / `ANTHROPIC_API_KEY`) and persistence details.
+API key 与环境变量持久化等见 `doc/DOCKER.md`（`OPENAI_API_KEY` / `ANTHROPIC_API_KEY` 等）。
 
-## Docker For Untrusted PR Review
+## 不可信 PR 评审用 Docker（Docker For Untrusted PR Review）
 
-For a separate review-oriented container that keeps `codex`/`claude` login state in Docker volumes and checks out PRs into an isolated scratch workspace, see `doc/UNTRUSTED-PR-REVIEW.md`.
+需要单独评审容器、把 `codex`/`claude` 登录态放在 Docker volume、并把 PR checkout 到隔离 scratch 工作区时，见 `doc/UNTRUSTED-PR-REVIEW.md`。
 
-## Local Instance Layout
+## 本地实例目录（Local Instance Layout）
 
-Every local install keeps runtime state directly under the selected instance root:
+每个本地安装把运行时状态放在所选 **instance root（实例根）**下：
 
 ```text
 ~/.paperclip/instances/default/                  # instance root
@@ -189,122 +191,120 @@ Every local install keeps runtime state directly under the selected instance roo
   companies/<company-id>/codex-home/             # per-company codex_local home
 ```
 
-`PAPERCLIP_HOME` and `PAPERCLIP_INSTANCE_ID` override the home root and instance id respectively. `paperclipai onboard` echoes the resolved values in its banner (`Local home: <home> | instance: <id> | config: <path>`) so you can confirm where state will land before continuing.
+`PAPERCLIP_HOME` 与 `PAPERCLIP_INSTANCE_ID` 覆盖 home 根与 instance id。`paperclipai onboard` 会在横幅里打印解析结果（`Local home: <home> | instance: <id> | config: <path>`），便于确认状态将落盘何处。
 
-## Database in Dev (Auto-Handled)
+## 开发中的数据库（自动处理）
 
-For local development, leave `DATABASE_URL` unset.
-The server will automatically use embedded PostgreSQL and persist data at:
+本地开发请**不要设置** `DATABASE_URL`。  
+服务器会自动使用嵌入式 PostgreSQL，数据在：
 
 - `~/.paperclip/instances/default/db`
 
-Override home or instance:
+覆盖 home 或 instance：
 
 ```sh
 PAPERCLIP_HOME=/custom/path PAPERCLIP_INSTANCE_ID=dev pnpm paperclipai run
 ```
 
-No Docker or external database is required for this mode.
+该模式不需要 Docker 或外部数据库。
 
-## Storage in Dev (Auto-Handled)
+## 开发中的存储（自动处理）
 
-For local development, the default storage provider is `local_disk`, which persists uploaded images/attachments at:
+本地默认存储 provider 为 `local_disk`，上传的图片/附件在：
 
 - `~/.paperclip/instances/default/data/storage`
 
-Configure storage provider/settings:
+配置存储 provider：
 
 ```sh
 pnpm paperclipai configure --section storage
 ```
 
-## Default Agent Workspaces
+## 默认 Agent 工作区（Default Agent Workspaces）
 
-When a local agent run has no resolved project/session workspace, Paperclip falls back to an agent home workspace under the instance root:
+本地 agent run 若未解析到 project/session workspace，Paperclip 回退到实例根下的 agent home：
 
 - `~/.paperclip/instances/default/workspaces/<agent-id>`
 
-This path honors `PAPERCLIP_HOME` and `PAPERCLIP_INSTANCE_ID` in non-default setups.
+该路径在非默认 setup 下也尊重 `PAPERCLIP_HOME` / `PAPERCLIP_INSTANCE_ID`。
 
-For `codex_local`, Paperclip also manages a per-company Codex home under the instance root and seeds it from the shared Codex login/config home (`$CODEX_HOME` or `~/.codex`):
+对 `codex_local`，Paperclip 还在实例根下按 **company** 管理 Codex home，并从共享 Codex 登录/配置 home（`$CODEX_HOME` 或 `~/.codex`）做种子：
 
 - `~/.paperclip/instances/default/companies/<company-id>/codex-home`
 
-If the `codex` CLI is not installed or not on `PATH`, `codex_local` agent runs fail at execution time with a clear adapter error. Quota polling uses a short-lived `codex app-server` subprocess: when `codex` cannot be spawned, that provider reports `ok: false` in aggregated quota results and the API server keeps running (it must not exit on a missing binary).
+若未安装 `codex` 或不在 `PATH`，`codex_local` 会在执行时报清晰的 adapter 错误。**Quota（配额）**轮询会起短生命周期 `codex app-server` 子进程：无法 spawn `codex` 时，该 provider 在聚合配额结果里报告 `ok: false`，API 服务器**不得**因此退出。
 
-Local adapters require their corresponding CLI/session setup on the machine running Paperclip. External adapters are installed through the adapter/plugin flow and should not require hardcoded imports in `server/` or `ui/`.
+本地适配器需要本机装好对应 CLI/会话。外部适配器经 adapter/plugin 流程安装，不应在 `server/` 或 `ui/` 硬编码 import。
 
-## Worktree-local Instances
+## Worktree 本地实例（Worktree-local Instances）
 
-When developing from multiple git worktrees, do not point two Paperclip servers at the same embedded PostgreSQL data directory.
+多个 git worktree 开发时，**不要**让两个 Paperclip 服务器指向同一嵌入式 PostgreSQL 数据目录。
 
-Instead, create a repo-local Paperclip config plus an isolated instance for the worktree:
+应创建**仓库内** Paperclip 配置 + 为 worktree **隔离**的 instance：
 
 ```sh
 paperclipai worktree init
-# or create the git worktree and initialize it in one step:
+# 或一步创建 git worktree 并初始化：
 pnpm paperclipai worktree:make paperclip-pr-432
 ```
 
-This command:
+该命令会：
 
-- writes repo-local files at `.paperclip/config.json` and `.paperclip/.env`
-- creates an isolated instance under `~/.paperclip-worktrees/instances/<worktree-id>/`
-- when run inside a linked git worktree, mirrors the effective git hooks into that worktree's private git dir
-- picks a free app port and embedded PostgreSQL port
-- by default seeds the isolated DB in `minimal` mode from the current effective Paperclip instance/config (repo-local worktree config when present, otherwise the default instance) via a logical SQL snapshot
+- 写入仓库内 `.paperclip/config.json` 与 `.paperclip/.env`  
+- 在 `~/.paperclip-worktrees/instances/<worktree-id>/` 下创建隔离 instance  
+- 若在已链接的 git worktree 内运行，会把有效 git hooks 镜像到该 worktree 的私有 git 目录  
+- 挑选空闲 app 端口与嵌入式 PostgreSQL 端口  
+- 默认以 `minimal` 模式从当前有效 Paperclip instance/config（优先仓库内 worktree 配置，否则 default）通过**逻辑 SQL 快照**做 DB **seed（播种/复制）**  
 
-Seed modes:
+**Seed 模式（Seed modes）**：
 
-- `minimal` keeps core app state like companies, projects, issues, comments, approvals, and auth state, preserves schema for all tables, but omits row data from heavy operational history such as heartbeat runs, wake requests, activity logs, runtime services, and agent session state
-- `full` makes a full logical clone of the source instance
-- `--no-seed` creates an empty isolated instance
+- `minimal`：保留 company、project、issue、评论、审批、auth 等核心应用状态，所有表 schema 保留，但省略重运营历史行（如 heartbeat runs、wake requests、activity logs、runtime services、agent session state 等）  
+- `full`：对源 instance 做完整逻辑克隆  
+- `--no-seed`：创建空隔离 instance  
 
-Seeded worktree instances quarantine copied live execution by default for both `minimal` and `full` seeds. During restore, Paperclip disables copied agent timer heartbeats, resets copied `running` agents to `idle`, blocks and unassigns copied agent-owned `in_progress` issues, and unassigns copied agent-owned `todo`/`in_review` issues. This keeps a freshly booted worktree from starting agents for work already owned by the source instance. Pass `--preserve-live-work` only when you intentionally want the isolated worktree to resume copied assignments.
+播种后的 worktree instance 默认会**隔离**复制来的「仍在执行」的状态：`minimal` 与 `full` 都会在恢复流程里关掉复制的 agent 定时 heartbeat、把复制时 `running` 的 agent 重置为 `idle`、阻塞并取消复制来的 agent 持有的 `in_progress` issue、并取消复制来的 agent 持有的 `todo`/`in_review` 指派。这样新 worktree 启动后不会替源实例继续跑 agent。只有在你**有意**让隔离 worktree 接续复制指派时，才传 `--preserve-live-work`。
 
-After `worktree init`, both the server and the CLI auto-load the repo-local `.paperclip/.env` when run inside that worktree, so normal commands like `pnpm dev`, `paperclipai doctor`, and `paperclipai db:backup` stay scoped to the worktree instance.
+`worktree init` 之后，在该 worktree 内起服务器与 CLI 会自动加载仓库内 `.paperclip/.env`，因此 `pnpm dev`、`paperclipai doctor`、`paperclipai db:backup` 等都 scoped 到该 worktree instance。
 
-`pnpm dev` now fails fast in a linked git worktree when `.paperclip/.env` is missing, instead of silently booting against the default instance/port. If that happens, run `paperclipai worktree init` in the worktree first.
+`pnpm dev` 在已链接的 git worktree 若缺少 `.paperclip/.env` 会 **fail fast**，而不是悄悄用 default instance/端口。若发生，请先在 worktree 内运行 `paperclipai worktree init`。
 
-Provisioned git worktrees also pause seeded routines that still have enabled schedule triggers in the isolated worktree database by default. This prevents copied daily/cron routines from firing unexpectedly inside the new workspace instance during development without disabling webhook/API-only routines.
+已 provision 的 git worktree 默认还会**暂停**隔离 worktree 数据库里仍带启用调度 trigger 的 **routines（例行任务）**，避免复制的每日/cron routine 在新 workspace instance 里意外触发；不会默认关掉仅 webhook/API 的 routine。
 
-That repo-local env also sets:
+该仓库内 `.env` 还设置：
 
-- `PAPERCLIP_IN_WORKTREE=true`
-- `PAPERCLIP_WORKTREE_NAME=<worktree-name>`
-- `PAPERCLIP_WORKTREE_COLOR=<hex-color>`
+- `PAPERCLIP_IN_WORKTREE=true`  
+- `PAPERCLIP_WORKTREE_NAME=<worktree-name>`  
+- `PAPERCLIP_WORKTREE_COLOR=<hex-color>`  
 
-The server/UI use those values for worktree-specific branding such as the top banner and dynamically colored favicon.
-Authenticated worktree servers also use the `PAPERCLIP_INSTANCE_ID` value to scope Better Auth cookie names.
-Browser cookies are shared by host rather than port, so this prevents logging into one `127.0.0.1:<port>` worktree from replacing another worktree server's session cookie.
+服务器/UI 用这些做 worktree 品牌（顶栏横幅、动态 favicon 等）。**authenticated** 的 worktree 服务器还用 `PAPERCLIP_INSTANCE_ID` 限定 Better Auth 的 cookie 名。浏览器 cookie 按 host 共享而非端口，因此可避免登录 `127.0.0.1:<port>` 的一个 worktree 覆盖另一个 worktree 的 session cookie。
 
-Print shell exports explicitly when needed:
+需要显式打印 shell export 时：
 
 ```sh
 paperclipai worktree env
-# or:
+# 或：
 eval "$(paperclipai worktree env)"
 ```
 
-### Worktree CLI Reference
+### Worktree CLI 参考（Worktree CLI Reference）
 
-**`pnpm paperclipai worktree init [options]`** — Create repo-local config/env and an isolated instance for the current worktree.
+**`pnpm paperclipai worktree init [options]`** — 为当前 worktree 写仓库内 config/env，并创建隔离 instance。
 
-| Option | Description |
+| 选项 | 说明 |
 |---|---|
-| `--name <name>` | Display name used to derive the instance id |
-| `--instance <id>` | Explicit isolated instance id |
-| `--home <path>` | Home root for worktree instances (default: `~/.paperclip-worktrees`) |
-| `--from-config <path>` | Source config.json to seed from |
-| `--from-data-dir <path>` | Source PAPERCLIP_HOME used when deriving the source config |
-| `--from-instance <id>` | Source instance id (default: `default`) |
-| `--server-port <port>` | Preferred server port |
-| `--db-port <port>` | Preferred embedded Postgres port |
-| `--seed-mode <mode>` | Seed profile: `minimal` or `full` (default: `minimal`) |
-| `--no-seed` | Skip database seeding from the source instance |
-| `--force` | Replace existing repo-local config and isolated instance data |
+| `--name <name>` | 显示名，用于推导 instance id |
+| `--instance <id>` | 显式指定隔离 instance id |
+| `--home <path>` | worktree instance 的 home 根（默认：`~/.paperclip-worktrees`） |
+| `--from-config <path>` | 播种来源 `config.json` |
+| `--from-data-dir <path>` | 推导来源 config 时用的来源 `PAPERCLIP_HOME` |
+| `--from-instance <id>` | 来源 instance id（默认：`default`） |
+| `--server-port <port>` | 首选服务端口 |
+| `--db-port <port>` | 首选嵌入式 Postgres 端口 |
+| `--seed-mode <mode>` | 播种配置：`minimal` 或 `full`（默认：`minimal`） |
+| `--no-seed` | 跳过从来源 instance 播种数据库 |
+| `--force` | 覆盖已有仓库内 config 与隔离 instance 数据 |
 
-Examples:
+示例：
 
 ```sh
 paperclipai worktree init --no-seed
@@ -314,7 +314,7 @@ paperclipai worktree init --from-data-dir ~/.paperclip
 paperclipai worktree init --force
 ```
 
-Repair an already-created repo-managed worktree and reseed its isolated instance from the main default install. Point `--from-config` at the instance config:
+修复已创建的、由 repo 管理的 worktree，并从主 default 安装重新播种其隔离 instance。`--from-config` 指向 instance 配置：
 
 ```sh
 cd /path/to/paperclip/.paperclip/worktrees/PAP-884-ai-commits-component
@@ -323,54 +323,54 @@ pnpm paperclipai worktree init --force --seed-mode minimal \
   --from-config ~/.paperclip/instances/default/config.json
 ```
 
-That rewrites the worktree-local `.paperclip/config.json` + `.paperclip/.env`, recreates the isolated instance under `~/.paperclip-worktrees/instances/<worktree-id>/`, and preserves the git worktree contents themselves.
+会重写 worktree 本地 `.paperclip/config.json` + `.paperclip/.env`，在 `~/.paperclip-worktrees/instances/<worktree-id>/` 重建隔离 instance，**git worktree 内容本身保留**。
 
-For an already-created worktree where you want the CLI to decide whether to rebuild missing worktree metadata or just reseed the isolated DB, use `worktree repair`.
+若 worktree 已存在，你希望 CLI 判断是重建缺失元数据还是仅重播数据库，用 `worktree repair`。
 
-**`pnpm paperclipai worktree repair [options]`** — Repair the current linked worktree by default, or create/repair a named linked worktree under `.paperclip/worktrees/` when `--branch` is provided. The command never targets the primary checkout unless you explicitly pass `--branch`.
+**`pnpm paperclipai worktree repair [options]`** — 默认修复当前已链接 worktree；传 `--branch` 时创建/修复 `.paperclip/worktrees/` 下命名 worktree。**绝不**指向主 checkout，除非显式传 `--branch`。
 
-| Option | Description |
+| 选项 | 说明 |
 |---|---|
-| `--branch <name>` | Existing branch/worktree selector to repair, or a branch name to create under `.paperclip/worktrees` |
-| `--home <path>` | Home root for worktree instances (default: `~/.paperclip-worktrees`) |
-| `--from-config <path>` | Source config.json to seed from |
-| `--from-data-dir <path>` | Source `PAPERCLIP_HOME` used when deriving the source config |
-| `--from-instance <id>` | Source instance id when deriving the source config (default: `default`) |
-| `--seed-mode <mode>` | Seed profile: `minimal` or `full` (default: `minimal`) |
-| `--no-seed` | Repair metadata only when bootstrapping a missing worktree config |
-| `--allow-live-target` | Override the guard that requires the target worktree DB to be stopped first |
+| `--branch <name>` | 选择已有 branch/worktree 修复，或要在 `.paperclip/worktrees` 下创建的分支名 |
+| `--home <path>` | worktree instance home 根（默认：`~/.paperclip-worktrees`） |
+| `--from-config <path>` | 播种来源 `config.json` |
+| `--from-data-dir <path>` | 推导来源 config 用的来源 `PAPERCLIP_HOME` |
+| `--from-instance <id>` | 推导来源 config 的 source instance id（默认：`default`） |
+| `--seed-mode <mode>` | `minimal` 或 `full`（默认：`minimal`） |
+| `--no-seed` | 仅 bootstrap 缺失 worktree 配置时只修元数据、不播种 |
+| `--allow-live-target` | 覆盖「目标 worktree DB 须先停止」的保护 |
 
-Examples:
+示例：
 
 ```sh
-# From inside a linked worktree, rebuild missing .paperclip metadata and reseed it from the default instance.
+# 在已链接 worktree 内，重建缺失 .paperclip 元数据并从 default instance 播种。
 cd /path/to/paperclip/.paperclip/worktrees/PAP-1132-assistant-ui-pap-1131-make-issues-comments-be-like-a-chat
 pnpm paperclipai worktree repair
 
-# From the primary checkout, create or repair a linked worktree for a branch under .paperclip/worktrees/.
+# 在主 checkout，为某 branch 创建或修复 `.paperclip/worktrees/` 下 worktree。
 cd /path/to/paperclip
 pnpm paperclipai worktree repair --branch PAP-1132-assistant-ui-pap-1131-make-issues-comments-be-like-a-chat
 ```
 
-For an already-created worktree where you want to keep the existing repo-local config/env and only overwrite the isolated database, use `worktree reseed` instead. Stop the target worktree's Paperclip server first so the command can replace the DB safely.
+若只想保留现有仓库内 config/env，**只覆盖**隔离数据库，用 `worktree reseed`。请先停掉目标 worktree 的 Paperclip 服务，以便安全替换 DB。
 
-**`pnpm paperclipai worktree reseed [options]`** — Re-seed an existing worktree-local instance from another Paperclip instance or worktree while preserving the target worktree's current config, ports, and instance identity.
+**`pnpm paperclipai worktree reseed [options]`** — 在保留目标 worktree 当前 config、端口与 instance 身份的前提下，从另一个 Paperclip instance 或 worktree **重新播种**。
 
-| Option | Description |
+| 选项 | 说明 |
 |---|---|
-| `--from <worktree>` | Source worktree path, directory name, branch name, or `current` |
-| `--to <worktree>` | Target worktree path, directory name, branch name, or `current` (defaults to `current`) |
-| `--from-config <path>` | Source config.json to seed from |
-| `--from-data-dir <path>` | Source `PAPERCLIP_HOME` used when deriving the source config |
-| `--from-instance <id>` | Source instance id when deriving the source config |
-| `--seed-mode <mode>` | Seed profile: `minimal` or `full` (default: `full`) |
-| `--yes` | Skip the destructive confirmation prompt |
-| `--allow-live-target` | Override the guard that requires the target worktree DB to be stopped first |
+| `--from <worktree>` | 来源：worktree 路径、目录名、branch 名或 `current` |
+| `--to <worktree>` | 目标：同上（默认 `current`） |
+| `--from-config <path>` | 播种来源 `config.json` |
+| `--from-data-dir <path>` | 来源 `PAPERCLIP_HOME` |
+| `--from-instance <id>` | 来源 instance id |
+| `--seed-mode <mode>` | `minimal` 或 `full`（默认：`full`） |
+| `--yes` | 跳过破坏性确认 |
+| `--allow-live-target` | 覆盖「目标须先停止」保护 |
 
-Examples:
+示例：
 
 ```sh
-# From the main repo, reseed a worktree from the current default/master instance.
+# 在主仓库，把某 worktree 从当前 default/master instance 重播种。
 cd /path/to/paperclip
 pnpm paperclipai worktree reseed \
   --from current \
@@ -378,30 +378,30 @@ pnpm paperclipai worktree reseed \
   --seed-mode full \
   --yes
 
-# From inside a worktree, reseed it from the default instance config.
+# 在 worktree 内，从 default instance 配置重播种。
 cd /path/to/paperclip/.paperclip/worktrees/PAP-1132-assistant-ui-pap-1131-make-issues-comments-be-like-a-chat
 pnpm paperclipai worktree reseed \
   --from-instance default \
   --seed-mode full
 ```
 
-**`pnpm paperclipai worktree:make <name> [options]`** — Create `~/NAME` as a git worktree, then initialize an isolated Paperclip instance inside it. This combines `git worktree add` with `worktree init` in a single step.
+**`pnpm paperclipai worktree:make <name> [options]`** — 创建 `~/NAME` 为 git worktree，并在其中初始化隔离 Paperclip instance。等价 `git worktree add` + `worktree init` 一步。
 
-| Option | Description |
+| 选项 | 说明 |
 |---|---|
-| `--start-point <ref>` | Remote ref to base the new branch on (e.g. `origin/main`) |
-| `--instance <id>` | Explicit isolated instance id |
-| `--home <path>` | Home root for worktree instances (default: `~/.paperclip-worktrees`) |
-| `--from-config <path>` | Source config.json to seed from |
-| `--from-data-dir <path>` | Source PAPERCLIP_HOME used when deriving the source config |
-| `--from-instance <id>` | Source instance id (default: `default`) |
-| `--server-port <port>` | Preferred server port |
-| `--db-port <port>` | Preferred embedded Postgres port |
-| `--seed-mode <mode>` | Seed profile: `minimal` or `full` (default: `minimal`) |
-| `--no-seed` | Skip database seeding from the source instance |
-| `--force` | Replace existing repo-local config and isolated instance data |
+| `--start-point <ref>` | 新 branch 基于的远端 ref（如 `origin/main`） |
+| `--instance <id>` | 显式 instance id |
+| `--home <path>` | worktree instance home 根 |
+| `--from-config <path>` | 播种来源 `config.json` |
+| `--from-data-dir <path>` | 来源 `PAPERCLIP_HOME` |
+| `--from-instance <id>` | 来源 instance id（默认：`default`） |
+| `--server-port <port>` | 首选服务端口 |
+| `--db-port <port>` | 首选嵌入式 Postgres 端口 |
+| `--seed-mode <mode>` | `minimal` 或 `full`（默认：`minimal`） |
+| `--no-seed` | 不播种 |
+| `--force` | 覆盖已有仓库内 config 与隔离数据 |
 
-Examples:
+示例：
 
 ```sh
 pnpm paperclipai worktree:make paperclip-pr-432
@@ -409,142 +409,133 @@ pnpm paperclipai worktree:make my-feature --start-point origin/main
 pnpm paperclipai worktree:make experiment --no-seed
 ```
 
-**`pnpm paperclipai worktree env [options]`** — Print shell exports for the current worktree-local Paperclip instance.
+**`pnpm paperclipai worktree env [options]`** — 打印当前 worktree 本地 instance 的 shell export。
 
-| Option | Description |
+| 选项 | 说明 |
 |---|---|
-| `-c, --config <path>` | Path to config file |
-| `--json` | Print JSON instead of shell exports |
+| `-c, --config <path>` | 配置文件路径 |
+| `--json` | 输出 JSON 而非 shell export |
 
-Examples:
+示例：
 
 ```sh
-pnpm paperclipai worktree env
-pnpm paperclipai worktree env --json
+paperclipai worktree env
+paperclipai worktree env --json
 eval "$(pnpm paperclipai worktree env)"
 ```
 
-For project execution worktrees, Paperclip can also run a project-defined provision command after it creates or reuses an isolated git worktree. Configure this on the project's execution workspace policy (`workspaceStrategy.provisionCommand`). The command runs inside the derived worktree and receives `PAPERCLIP_WORKSPACE_*`, `PAPERCLIP_PROJECT_ID`, `PAPERCLIP_AGENT_ID`, and `PAPERCLIP_ISSUE_*` environment variables so each repo can bootstrap itself however it wants.
+对项目执行用 worktree，Paperclip 也可在创建/复用隔离 git worktree 后运行项目定义的 **provision（预置）** 命令。配置在项目 **execution workspace** 策略的 `workspaceStrategy.provisionCommand`。命令在派生 worktree 内执行，并注入 `PAPERCLIP_WORKSPACE_*`、`PAPERCLIP_PROJECT_ID`、`PAPERCLIP_AGENT_ID`、`PAPERCLIP_ISSUE_*` 等环境变量，便于各仓库自举。
 
-## Quick Health Checks
+## 快速健康检查（Quick Health Checks）
 
-In another terminal:
+另开终端：
 
 ```sh
 curl http://localhost:3100/api/health
 curl http://localhost:3100/api/companies
 ```
 
-Expected:
+预期：
 
-- `/api/health` returns `{"status":"ok"}`
-- `/api/companies` returns a JSON array
+- `/api/health` 返回 `{"status":"ok"}`  
+- `/api/companies` 返回 JSON 数组  
 
-## Reset Local Dev Database
+## 重置本地开发数据库（Reset Local Dev Database）
 
-To wipe local dev data and start fresh:
+清空本地开发数据并重来：
 
 ```sh
 rm -rf ~/.paperclip/instances/default/db
 pnpm dev
 ```
 
-## Optional: Use External Postgres
+## 可选：使用外部 Postgres（Optional: Use External Postgres）
 
-If you set `DATABASE_URL`, the server will use that instead of embedded PostgreSQL.
+若设置 `DATABASE_URL`，服务器会改用该连接，而不用嵌入式 PostgreSQL。
 
-## Automatic DB Backups
+## 自动数据库备份（Automatic DB Backups）
 
-Paperclip can run automatic logical database backups on a timer. These backups cover
-non-system database schemas, including migration history and plugin-owned database
-schemas. Defaults:
+Paperclip 可按定时器跑自动**逻辑数据库备份**，覆盖非系统 schema、迁移历史与插件 schema。默认：
 
-- enabled
-- every 60 minutes
-- retain 30 days
-- backup dir: `~/.paperclip/instances/default/data/backups`
+- 启用  
+- 每 60 分钟  
+- 保留 30 天  
+- 目录：`~/.paperclip/instances/default/data/backups`  
 
-Configure these in:
+配置：
 
 ```sh
 pnpm paperclipai configure --section database
 ```
 
-Run a one-off backup manually:
+手动一次备份：
 
 ```sh
 pnpm paperclipai db:backup
-# or:
+# 或：
 pnpm db:backup
 ```
 
-Environment overrides:
+环境变量覆盖：
 
-- `PAPERCLIP_DB_BACKUP_ENABLED=true|false`
-- `PAPERCLIP_DB_BACKUP_INTERVAL_MINUTES=<minutes>`
-- `PAPERCLIP_DB_BACKUP_RETENTION_DAYS=<days>`
-- `PAPERCLIP_DB_BACKUP_DIR=/absolute/or/~/path`
+- `PAPERCLIP_DB_BACKUP_ENABLED=true|false`  
+- `PAPERCLIP_DB_BACKUP_INTERVAL_MINUTES=<minutes>`  
+- `PAPERCLIP_DB_BACKUP_RETENTION_DAYS=<days>`  
+- `PAPERCLIP_DB_BACKUP_DIR=/absolute/or/~/path`  
 
-DB backups are not full instance filesystem backups. For full local disaster
-recovery, also back up local storage files and the local encrypted secrets key if
-those providers are enabled.
+DB 备份**不是**完整实例文件系统备份。完整本地灾备还需备份本地存储文件与本地加密 secrets 密钥（若启用相关 provider）。
 
-## Secrets in Dev
+## 开发中的 Secrets（Secrets in Dev）
 
-Agent env vars now support secret references. By default, secret values are stored with local encryption and only secret refs are persisted in agent config.
+Agent 环境变量现支持 **secret references（秘钥引用）**。默认秘钥用本地加密存储，持久化的 agent 配置里只留引用。
 
-- Default local key path: `~/.paperclip/instances/default/secrets/master.key`
-- Override key material directly: `PAPERCLIP_SECRETS_MASTER_KEY`
-- Override key file path: `PAPERCLIP_SECRETS_MASTER_KEY_FILE`
-- Back up the key file and database together; either one alone is not enough to restore local encrypted secrets.
+- 默认本地密钥：`~/.paperclip/instances/default/secrets/master.key`  
+- 直接覆盖密钥材料：`PAPERCLIP_SECRETS_MASTER_KEY`  
+- 覆盖密钥文件路径：`PAPERCLIP_SECRETS_MASTER_KEY_FILE`  
+- 备份需同时备份密钥文件与数据库，缺一不可恢复本地加密 secrets。  
 
-Strict mode (recommended outside local trusted machines):
+**strict mode（严格模式）**（本地受信机以外推荐）：
 
 ```sh
 PAPERCLIP_SECRETS_STRICT_MODE=true
 ```
 
-When strict mode is enabled, sensitive env keys (for example `*_API_KEY`, `*_TOKEN`, `*_SECRET`) must use secret references instead of inline plain values.
-Authenticated deployments default strict mode on unless explicitly overridden.
+开启后，敏感 env 键（如 `*_API_KEY`、`*_TOKEN`、`*_SECRET`）须用秘钥引用，不能直接内联明文。authenticated 部署默认开启 strict，除非显式覆盖。
 
-CLI configuration support:
+CLI 支持：
 
-- `pnpm paperclipai onboard` writes a default `secrets` config section (`local_encrypted`, strict mode off, key file path set) and creates a local key file when needed.
-- `pnpm paperclipai configure --section secrets` lets you update provider/strict mode/key path and creates the local key file when needed.
-- `pnpm paperclipai doctor` validates secrets adapter configuration, can create a missing local key file with `--repair`, and reports missing AWS Secrets Manager bootstrap env when that provider is selected.
-- Provider health is available at `GET /api/companies/:companyId/secret-providers/health` and reports local key permission warnings plus backup guidance.
+- `pnpm paperclipai onboard` 写默认 `secrets` 段（`local_encrypted`、strict 关闭、密钥路径），需要时创建密钥文件。  
+- `pnpm paperclipai configure --section secrets` 更新 provider/strict/密钥路径并创建密钥文件。  
+- `pnpm paperclipai doctor` 校验 secrets adapter，可用 `--repair` 创建缺失本地密钥文件；选 AWS Secrets Manager 时报告缺失的 bootstrap 环境变量。  
+- Provider 健康：`GET /api/companies/:companyId/secret-providers/health`，含本地密钥权限告警与备份提示。  
 
-Per-company provider vaults are configured in the board UI under
-`Company Settings → Secrets → Provider vaults`, backed by
-`/api/companies/{companyId}/secret-provider-configs`. The CLI does not own
-vault lifecycle today. See `docs/deploy/secrets.md` (`Provider Vaults` section)
-for the operator model.
+各公司的 provider vault 在 Board `Company Settings → Secrets → Provider vaults` 配置，对应 `/api/companies/{companyId}/secret-provider-configs`。CLI 目前不拥有 vault 生命周期；运维模型见 `docs/deploy/secrets.md` 的 `Provider Vaults` 一节。
 
-Migration helper for existing inline env secrets:
+内联 env 秘钥迁移辅助：
 
 ```sh
 pnpm secrets:migrate-inline-env         # dry run
-pnpm secrets:migrate-inline-env --apply # apply migration
+pnpm secrets:migrate-inline-env --apply # 应用迁移
 ```
 
-## Company Deletion Toggle
+## 公司删除开关（Company Deletion Toggle）
 
-Company deletion is intended as a dev/debug capability and can be disabled at runtime:
+删除 **company** 面向 dev/debug，可在运行时关闭：
 
 ```sh
 PAPERCLIP_ENABLE_COMPANY_DELETION=false
 ```
 
-Default behavior:
+默认：
 
-- `local_trusted`: enabled
-- `authenticated`: disabled
+- `local_trusted`：启用  
+- `authenticated`：禁用  
 
-## CLI Client Operations
+## CLI 控制面操作（CLI Client Operations）
 
-Paperclip CLI now includes client-side control-plane commands in addition to setup commands.
+Paperclip CLI 除 setup 命令外，还包含客户端 **control plane（控制面）** 命令。
 
-Quick examples:
+快速示例：
 
 ```sh
 pnpm paperclipai issue list --company-id <company-id>
@@ -552,82 +543,82 @@ pnpm paperclipai issue create --company-id <company-id> --title "Investigate che
 pnpm paperclipai issue update <issue-id> --status in_progress --comment "Started triage"
 ```
 
-Set defaults once with context profiles:
+用 **context profile** 设默认上下文，避免重复传 flag：
 
 ```sh
 pnpm paperclipai context set --api-base http://localhost:3100 --company-id <company-id>
 ```
 
-Then run commands without repeating flags:
+之后可直接：
 
 ```sh
 pnpm paperclipai issue list
 pnpm paperclipai dashboard get
 ```
 
-See full command reference in `doc/CLI.md`.
+完整命令表见 `doc/CLI.md`。
 
-## OpenClaw Invite Onboarding Endpoints
+## OpenClaw 邀请入驻端点（OpenClaw Invite Onboarding Endpoints）
 
-Agent-oriented invite onboarding now exposes machine-readable API docs:
+面向 agent 的邀请入驻暴露机器可读 API：
 
-- `GET /api/invites/:token` returns invite summary plus onboarding and skills index links.
-- `GET /api/invites/:token/onboarding` returns onboarding manifest details (registration endpoint, claim endpoint template, skill install hints).
-- `GET /api/invites/:token/onboarding.txt` returns a plain-text onboarding doc intended for both human operators and agents (llm.txt-style handoff), including optional inviter message and suggested network host candidates.
-- `GET /api/skills/index` lists available skill documents.
-- `GET /api/skills/paperclip` returns the Paperclip heartbeat skill markdown.
+- `GET /api/invites/:token` — 摘要 + onboarding 与 skills 索引链接  
+- `GET /api/invites/:token/onboarding` — onboarding manifest（注册端点、claim 模板、skill 安装提示）  
+- `GET /api/invites/:token/onboarding.txt` — 纯文本 onboarding，给人与 agent（llm.txt 风格），含可选邀请者消息与建议的 network host 候选  
+- `GET /api/skills/index` — 可用 skill 文档列表  
+- `GET /api/skills/paperclip` — Paperclip heartbeat skill 的 Markdown  
 
-## OpenClaw Join Smoke Test
+## OpenClaw Join 冒烟测试（OpenClaw Join Smoke Test）
 
-Run the end-to-end OpenClaw join smoke harness:
+端到端 OpenClaw join 冒烟：
 
 ```sh
 pnpm smoke:openclaw-join
 ```
 
-What it validates:
+验证内容：
 
-- invite creation for agent-only join
-- agent join request using `adapterType=openclaw`
-- board approval + one-time API key claim semantics
-- callback delivery on wakeup to a dockerized OpenClaw-style webhook receiver
+- 创建仅 agent 加入用 invite  
+- 使用 `adapterType=openclaw` 的 agent join 请求  
+- board 审批 + 一次性 API key claim 语义  
+- 向 docker 化 OpenClaw 风格 webhook 接收器投递 wakeup **callback（回调）**  
 
-Required permissions:
+权限要求：
 
-- This script performs board-governed actions (create invite, approve join, wakeup another agent).
-- In authenticated mode, run with board auth via `PAPERCLIP_AUTH_HEADER` or `PAPERCLIP_COOKIE`.
+- 脚本执行受 board 治理的动作（创建 invite、批准 join、唤醒另一 agent）。  
+- authenticated 模式下通过 `PAPERCLIP_AUTH_HEADER` 或 `PAPERCLIP_COOKIE` 传 board 身份。  
 
-Optional auth flags (for authenticated mode):
+可选鉴权 flag（authenticated）：
 
-- `PAPERCLIP_AUTH_HEADER` (for example `Bearer ...`)
-- `PAPERCLIP_COOKIE` (session cookie header value)
+- `PAPERCLIP_AUTH_HEADER`（如 `Bearer ...`）  
+- `PAPERCLIP_COOKIE`（session cookie header 值）  
 
-## OpenClaw Docker UI One-Command Script
+## OpenClaw Docker UI 一键脚本（OpenClaw Docker UI One-Command Script）
 
-To boot OpenClaw in Docker and print a host-browser dashboard URL in one command:
+Docker 启动 OpenClaw 并打印主机浏览器 dashboard URL：
 
 ```sh
 pnpm smoke:openclaw-docker-ui
 ```
 
-This script lives at `scripts/smoke/openclaw-docker-ui.sh` and automates clone/build/config/start for Compose-based local OpenClaw UI testing.
+脚本在 `scripts/smoke/openclaw-docker-ui.sh`，自动化基于 Compose 的本地 OpenClaw UI 测试。
 
-Pairing behavior for this smoke script:
+该冒烟脚本的配对行为：
 
-- default `OPENCLAW_DISABLE_DEVICE_AUTH=1` (no Control UI pairing prompt for local smoke; no extra pairing env vars required)
-- set `OPENCLAW_DISABLE_DEVICE_AUTH=0` to require standard device pairing
+- 默认 `OPENCLAW_DISABLE_DEVICE_AUTH=1`（本地 smoke 无需 Control UI 配对提示）  
+- 设 `OPENCLAW_DISABLE_DEVICE_AUTH=0` 则要求标准设备配对  
 
-Model behavior for this smoke script:
+模型行为：
 
-- defaults to OpenAI models (`openai/gpt-5.2` + OpenAI fallback) so it does not require Anthropic auth by default
+- 默认 OpenAI 模型（`openai/gpt-5.2` + OpenAI 回退），默认不要求 Anthropic 认证  
 
-State behavior for this smoke script:
+状态行为：
 
-- defaults to isolated config dir `~/.openclaw-paperclip-smoke`
-- resets smoke agent state each run by default (`OPENCLAW_RESET_STATE=1`) to avoid stale provider/auth drift
+- 默认隔离配置目录 `~/.openclaw-paperclip-smoke`  
+- 默认每轮重置 smoke agent 状态（`OPENCLAW_RESET_STATE=1`）  
 
-Networking behavior for this smoke script:
+网络行为：
 
-- auto-detects and prints a Paperclip host URL reachable from inside OpenClaw Docker
-- default container-side host alias is `host.docker.internal` (override with `PAPERCLIP_HOST_FROM_CONTAINER` / `PAPERCLIP_HOST_PORT`)
-- if Paperclip rejects container hostnames in authenticated/private mode, allow `host.docker.internal` via `pnpm paperclipai allowed-hostname host.docker.internal` and restart Paperclip
+- 自动检测并打印 OpenClaw 容器内可达的 Paperclip host URL  
+- 容器侧默认 host 别名为 `host.docker.internal`（可用 `PAPERCLIP_HOST_FROM_CONTAINER` / `PAPERCLIP_HOST_PORT` 覆盖）  
+- 若 authenticated/private 模式拒绝容器主机名，可 `pnpm paperclipai allowed-hostname host.docker.internal` 并重启 Paperclip  
