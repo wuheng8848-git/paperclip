@@ -1,0 +1,38 @@
+# 实践：工单、心跳 run、僵尸 run 排障
+
+把 **`执行/`** 里分散的「怎么收尾、怎么取证」收成一页；个案数据与长表仍在 **探查/**。
+
+**来源任务单**：[017 僵尸 run](../执行/017-僵尸run清理.md) · [022 ROU-21 反复唤醒](../执行/022-已完成任务反复唤醒agent-ROU21.md) · [010 派单与裸唤醒](../执行/010-解决agent任务执行的派单和回收问题.md) · [020 ROU-19 活动](../执行/020-活动日志异常探查-ROU19.md)
+
+---
+
+## 1. 僵尸 run（工单已完，run 仍 `running` / `queued`）
+
+1. **拉 live**：`GET /api/companies/{companyId}/live-runs`（探查时**不要**带 `minCount`，避免把已结束的 run 混进「仍在跑」）。
+2. **取消**：对卡住的 run **`POST /api/heartbeat-runs/{id}/cancel`**，直到 live 列表里不再出现目标 agent/issue。
+3. 活动里若出现成簇的 **`heartbeat.cancelled`**，可与「人工清理僵尸」对账；示例结论见 [`探查/探查-活动日志异常汇总.md`](../探查/探查-活动日志异常汇总.md) §1。
+
+---
+
+## 2. 「关单后仍像在打」— 反复唤醒 / `issue_assigned`
+
+1. **先区分**：多张单 **`contextSnapshot.issueId` 不同**（多为依赖/父单级联） vs **同一 issueId 高密度重复**（同一原因误唤醒）。
+2. **推荐 API 顺序（可照抄）**：  
+   `GET .../issues/{ref}/activity` → `GET .../companies/{id}/activity?agentId=`（可加 `entityType`/`entityId`）→ `GET .../issues/{ref}/runs` → **`GET .../companies/{id}/heartbeat-runs?agentId=`（核心表）** → `GET .../heartbeat-runs/{runId}` → 再看 `live-runs`。  
+   Cookie / Bearer 与 `BASE` 写法见 [`探查/探查-ROU-21-完成后反复唤醒.md`](../探查/探查-ROU-21-完成后反复唤醒.md) §「探查活动实践方案」。
+3. **判读速查表**：同探查文 §「判读速查」。
+4. **脚本聚合**：仓库根 `pnpm issue:forensics -- --company <uuid> --issue <ref> ...`；**`--base` 默认 `http://127.0.0.1:3100`，不要写成带 `/api` 的根**，否则会打成 `/api/api/...`。全文命令表见 [实践-工单运行记录API取证路径.md](实践-工单运行记录API取证路径.md)。
+
+---
+
+## 3. 活动日志里 cancel / 恢复 / 计费（汇总入口）
+
+- 一次性对照多条异常信号：**[`探查/探查-活动日志异常汇总.md`](../探查/探查-活动日志异常汇总.md)**（ROU-19 全量取样；对应执行单 **020**）。
+
+---
+
+## 4. 重复派单、裸 on_demand wake（长期；执行单 010）
+
+- **症状**：同一标题双 issue；`on_demand` run **无 `issueId`** 只有 `wakeReason` 文案。
+- **优先读的代码路径**（任务单已钉）：`server/src/services/heartbeat.ts`，`issue-assignment-wakeup.ts`，`routes/agents.ts`（on_demand），`run-liveness.ts`，`packages/adapters/<adapter>/.../execute.ts`。
+- 本文不替代 **010** 的产品修复；只保证「从哪查」不因执行单变长而丢。
