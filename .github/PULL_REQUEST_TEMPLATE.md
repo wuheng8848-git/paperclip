@@ -1,68 +1,66 @@
-## Thinking Path
+## 思考路径
 
 <!--
-  Required. Trace your reasoning from the top of the project down to this
-  specific change. Start with what Paperclip is, then narrow through the
-  subsystem, the problem, and why this PR exists. Use blockquote style.
-  Aim for 5–8 steps. See CONTRIBUTING.md for full examples.
+  必填。追溯你的推理过程，从项目顶层到本次具体变更。
+  从 Paperclip 是什么开始，逐步缩小到子系统、问题本身以及为什么需要这个 PR。
+  使用引用块样式，5–8 步。完整示例见 CONTRIBUTING.md。
 -->
 
-> - Paperclip orchestrates AI agents for zero-human companies
-> - [Which subsystem or capability is involved]
-> - [What problem or gap exists]
-> - [Why it needs to be addressed]
-> - This pull request ...
-> - The benefit is ...
+> - Paperclip 为零人工公司编排 AI 代理
+> - [涉及哪个子系统或能力]
+> - [存在什么问题或差距]
+> - [为什么需要解决]
+> - 本次拉取请求……
+> - 带来的好处是……
 
-## What Changed
+## 变更内容
 
-<!-- Bullet list of concrete changes. One bullet per logical unit. -->
+<!-- 具体变更的要点列表，每个逻辑单元一条。 -->
 
 -
 
-## Verification
+## 验证方式
 
 <!--
-  How can a reviewer confirm this works? Include test commands, manual
-  steps, or both. For UI changes, include before/after screenshots.
--->
-
--
-
-## Risks
-
-<!--
-  What could go wrong? Mention migration safety, breaking changes,
-  behavioral shifts, or "Low risk" if genuinely minor.
+  审查者如何确认此更改有效？包括测试命令、手动步骤或两者兼有。
+  对于 UI 变更，请附上变更前后的截图。
 -->
 
 -
 
-> For core feature work, check [`ROADMAP.md`](ROADMAP.md) first and discuss it in `#dev` before opening the PR. Feature PRs that overlap with planned core work may need to be redirected — check the roadmap first. See `CONTRIBUTING.md`.
-
-## Model Used
+## 风险
 
 <!--
-  Required. Specify which AI model was used to produce or assist with
-  this change. Be as descriptive as possible — include:
-    • Provider and model name (e.g., Claude, GPT, Gemini, Codex)
-    • Exact model ID or version (e.g., claude-opus-4-6, gpt-4-turbo-2024-04-09)
-    • Context window size if relevant (e.g., 1M context)
-    • Reasoning/thinking mode if applicable (e.g., extended thinking, chain-of-thought)
-    • Any other relevant capability details (e.g., tool use, code execution)
-  If no AI model was used, write "None — human-authored".
+  可能出什么问题？提及迁移安全性、破坏性变更、行为变化；
+  如果确实很小，写"低风险"。
 -->
 
 -
 
-## Checklist
+> 对于核心功能开发，请先查看 [`ROADMAP.md`](ROADMAP.md) 并在 `#dev` 中讨论后再提交 PR。与计划中的核心工作重叠的功能 PR 可能需要调整方向——请先查看路线图。详见 `CONTRIBUTING.md`。
 
-- [ ] I have included a thinking path that traces from project context to this change
-- [ ] I have specified the model used (with version and capability details)
-- [ ] I have checked ROADMAP.md and confirmed this PR does not duplicate planned core work
-- [ ] I have run tests locally and they pass
-- [ ] I have added or updated tests where applicable
-- [ ] If this change affects the UI, I have included before/after screenshots
-- [ ] I have updated relevant documentation to reflect my changes
-- [ ] I have considered and documented any risks above
-- [ ] I will address all Greptile and reviewer comments before requesting merge
+## 使用的模型
+
+<!--
+  必填。说明使用了哪个 AI 模型来生成或辅助本次变更。请尽可能详细，包括：
+    • 供应商和模型名称（如 Claude、GPT、Gemini、Codex）
+    • 精确的模型 ID 或版本（如 claude-opus-4-6、gpt-4-turbo-2024-04-09）
+    • 上下文窗口大小（如适用，例如 1M context）
+    • 推理/思考模式（如适用，例如 extended thinking、chain-of-thought）
+    • 其他相关能力细节（如工具使用、代码执行）
+  如果未使用 AI 模型，写"None — 人工编写"。
+-->
+
+-
+
+## 检查清单
+
+- [ ] 我已包含从项目上下文到本次变更的思考路径
+- [ ] 我已注明使用的模型（含版本和能力细节）
+- [ ] 我已查看 ROADMAP.md 并确认此 PR 不会重复已计划的核心工作
+- [ ] 我已在本地运行测试并通过
+- [ ] 我已在适当的地方添加或更新了测试
+- [ ] 如果此变更影响 UI，我已附上变更前后的截图
+- [ ] 我已更新相关文档以反映我的更改
+- [ ] 我已在上方考虑并记录了相关风险
+- [ ] 我会在请求合并前处理所有 Greptile 和审查者的评论

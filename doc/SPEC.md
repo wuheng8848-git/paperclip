@@ -1,531 +1,531 @@
-# Paperclip Specification
+# Paperclip 规范
 
-Target specification for the Paperclip control plane. Living document — updated incrementally during spec interviews.
+Paperclip 控制面（Control Plane）的目标规范。活文档——在规范访谈中逐步更新。
 
 ---
 
-## 1. Company Model [DRAFT]
+## 1. 公司模型 [DRAFT]
 
-A Company is a first-order object. One Paperclip instance runs multiple Companies. A Company does not have a standalone "goal" field — its direction is defined by its set of Initiatives (see Task Hierarchy Mapping).
+公司（Company）是一阶对象。一个 Paperclip 实例可以运行多个公司。公司没有独立的"目标"字段——其方向由一组倡议（Initiative）定义（参见任务层级映射）。
 
-### Fields (Draft)
+### 字段（草案）
 
-| Field       | Type          | Notes                             |
+| 字段        | 类型          | 说明                              |
 | ----------- | ------------- | --------------------------------- |
-| `id`        | uuid          | Primary key                       |
-| `name`      | string        | Company name                      |
+| `id`        | uuid          | 主键                              |
+| `name`      | string        | 公司名称                          |
 | `createdAt` | timestamp     |                                   |
 | `updatedAt` | timestamp     |                                   |
 
-### Board Governance [DRAFT]
+### 董事会治理 [DRAFT]
 
-Every Company has a **Board** that governs high-impact decisions. The Board is the human oversight layer.
+每个公司都有一个**董事会（Board）**来管控高影响决策。董事会是人类监督层。
 
-**V1: Single human Board.** One human operator.
+**V1：单人董事会。** 一名人类操作员。
 
-#### Board Approval Gates (V1)
+#### 董事会审批关卡（V1）
 
-- New Agent hires (creating new Agents)
-- CEO's initial strategic breakdown (CEO proposes, Board approves before execution begins)
-- [TBD: other governance-gated actions — goal changes, firing Agents?]
+- 新增 Agent 招聘（创建新 Agent）
+- CEO 的初始战略分解（CEO 提出方案，董事会在执行开始前审批）
+- [待定：其他治理关卡操作——目标变更、解雇 Agent？]
 
-#### Board Powers (Always Available)
+#### 董事会权力（始终可用）
 
-The Board has **unrestricted access** to the entire system at all times:
+董事会在任何时候都拥有对整个系统的**无限制访问权限**：
 
-- **Set and modify Company budgets** — the Board sets top-level token/LLM cost budgets
-- **Pause/resume any Agent** — stop an Agent's heartbeat immediately
-- **Pause/resume any work item** — pause a task, project, subtask tree, milestone. Paused items are not picked up by Agents.
-- **Full project management access** — create, edit, comment on, modify, delete, reassign any task/project/milestone through the UI
-- **Override any Agent decision** — reassign tasks, change priorities, modify descriptions
-- **Manually change any budget** at any level
+- **设置和修改公司预算** — 董事会设定顶层 token/LLM 成本预算
+- **暂停/恢复任何 Agent** — 立即停止 Agent 的心跳
+- **暂停/恢复任何工作项** — 暂停任务、项目、子任务树、里程碑。被暂停的项目不会被 Agent 领取。
+- **完整的项目管理访问权限** — 通过 UI 创建、编辑、评论、修改、删除、重新分配任何任务/项目/里程碑
+- **覆盖任何 Agent 决策** — 重新分配任务、更改优先级、修改描述
+- **在任何层级手动更改预算**
 
-The Board is not just an approval gate — it's a live control surface. The human can intervene at any level at any time.
+董事会不仅仅是一个审批关卡——它是一个实时控制面。人类可以在任何时候、任何层级进行干预。
 
-#### Budget Delegation
+#### 预算委派
 
-The Board sets Company-level budgets. The CEO can set budgets for Agents below them, and every manager Agent can do the same for their reports. How this cascading budget delegation works in practice is TBD, but the permission structure supports it. The Board can manually override any budget at any level.
+董事会设定公司级预算。CEO 可以为其下属 Agent 设定预算，每个管理者 Agent 也可以为其下属做同样的事。这种级联预算委派在实践中如何运作尚待确定（TBD），但权限结构已支持此功能。董事会可以在任何时候手动覆盖任何层级的预算。
 
-**Future governance models** (not V1):
+**未来治理模型**（非 V1）：
 
-- Hiring budgets (auto-approve hires within $X/month)
-- Multi-member boards
-- Delegated authority (CEO can hire within limits)
+- 招聘预算（自动批准每月 $X 以内的招聘）
+- 多成员董事会
+- 委派授权（CEO 可以在限额内招聘）
 
-### Open Questions
+### 开放问题
 
-- External revenue/expense tracking — future plugin. Token/LLM cost budgeting is core.
-- Company-level settings and configuration?
-- Company lifecycle (pause, archive, delete)?
-- What governance-gated actions exist beyond hiring and CEO strategy approval?
-
----
-
-## 2. Agent Model [DRAFT]
-
-Every employee is an agent. Agents are the workforce.
-
-### Agent Identity (Adapter-Level)
-
-Concepts like SOUL.md (identity/mission) and HEARTBEAT.md (loop definition) are **not part of the Paperclip protocol**. They are adapter-specific configurations. For example, an OpenClaw adapter might use SOUL.md and HEARTBEAT.md files. A Claude Code adapter might use CLAUDE.md. A bare Python script might use command-line args.
-
-Paperclip doesn't prescribe how an agent defines its identity or behavior. It provides the control plane; the adapter defines the agent's inner workings.
-
-### Agent Configuration [DRAFT]
-
-Each agent has an **adapter type** and an **adapter-specific configuration blob**. The adapter defines what config fields exist.
-
-#### Paperclip Protocol (What Paperclip Knows)
-
-At the protocol level, Paperclip tracks:
-
-- Agent identity (id, name, role, title)
-- Org position (who they report to, who reports to them)
-- Adapter type + adapter config
-- Status (active, paused, terminated)
-- Cost tracking data (if the agent reports it)
-
-#### Adapter Configuration (Agent-Specific)
-
-Each adapter type defines its own config schema. Examples:
-
-- **OpenClaw adapter**: SOUL.md content, HEARTBEAT.md content, OpenClaw-specific settings
-- **Process adapter**: command to run, environment variables, working directory
-- **HTTP adapter**: endpoint URL, auth headers, payload template
-
-#### Exportable Org Configs
-
-A key goal: **the entire org's agent configurations are exportable.** You can export a company's complete agent setup — every agent, their adapter configs, org structure — as a portable artifact. This enables:
-
-- Sharing company templates ("here's a pre-built marketing agency org")
-- Version controlling your company configuration
-- Duplicating/forking companies
-
-#### Context Delivery
-
-Configurable per agent. Two ends of the spectrum:
-
-- **Fat payload** — Paperclip bundles relevant context (current tasks, messages, company state, metrics) into the heartbeat invocation. Suited for simple/stateless agents that can't call back to Paperclip.
-- **Thin ping** — Heartbeat is just a wake-up signal. Agent calls Paperclip's API to fetch whatever context it needs. Suited for sophisticated agents that manage their own state.
-
-#### Minimum Contract
-
-The minimum requirement to be a Paperclip agent: **be callable.** That's it. Paperclip can invoke you via command or webhook. No requirement to report back — Paperclip infers basic status from process liveness when it can.
-
-#### Integration Levels
-
-Beyond the minimum, Paperclip provides progressively richer integration:
-
-1. **Callable** (minimum) — Paperclip can start you. That's the only contract.
-2. **Status reporting** — Agent reports back success/failure/in-progress after execution.
-3. **Fully instrumented** — Agent reports status, cost/token usage, task updates, and logs. Bidirectional integration with the control plane.
-
-Paperclip ships **default agents** that demonstrate full integration: progress tracking, cost instrumentation, and a **Paperclip skill** (a Claude Code skill for interacting with the Paperclip API) for task management. These serve as both useful defaults and reference implementations for adapter authors.
-
-#### Export Formats
-
-Two export modes:
-
-1. **Template export** (default) — structure only: agent definitions, org chart, adapter configs, role descriptions. Optionally includes a few seed tasks to help get started. This is the blueprint for spinning up a new company.
-2. **Snapshot export** — full state: structure + current tasks, progress, agent status. A complete picture you could restore or fork.
-
-The usual workflow: export a template, create a new company from it, add a couple initial tasks, go.
+- 外部收入/支出跟踪——未来插件。Token/LLM 成本预算是核心。
+- 公司级设置和配置？
+- 公司生命周期（暂停、归档、删除）？
+- 除招聘和 CEO 战略审批外，还有哪些治理关卡操作？
 
 ---
 
-## 3. Org Structure [DRAFT]
+## 2. Agent 模型 [DRAFT]
 
-Hierarchical reporting structure. CEO at top, reports cascade down.
+每个员工都是一个 Agent。Agent 是劳动力。
 
-### Agent Visibility
+### Agent 身份（适配器层）
 
-**Full visibility across the org.** Every agent can see the entire org chart, all tasks, all agents. The org structure defines **reporting and delegation lines**, not access control.
+SOUL.md（身份/使命）和 HEARTBEAT.md（循环定义）等概念**不属于 Paperclip 协议的一部分**。它们是适配器（Adapter）特定的配置。例如，OpenClaw 适配器可能使用 SOUL.md 和 HEARTBEAT.md 文件。Claude Code 适配器可能使用 CLAUDE.md。一个简单的 Python 脚本可能使用命令行参数。
 
-Each agent publishes a short description of their responsibilities and capabilities — almost like skills ("when I'm relevant"). This lets other agents discover who can help with what.
+Paperclip 不规定 Agent 如何定义其身份或行为。它提供控制面；适配器定义 Agent 的内部运作。
 
-### Cross-Team Work
+### Agent 配置 [DRAFT]
 
-Agents can create tasks and assign them to agents outside their reporting line. This is the mechanism for cross-team collaboration. These rules are primarily encoded in the Paperclip SKILL.md which is recommended for all agents. Paperclip the app enforces the tooling and some light governance, but the cross-team rules below are mainly implemented by agent decisions.
+每个 Agent 都有一个**适配器类型**和一个**适配器特定的配置块**。适配器定义了哪些配置字段存在。
 
-#### Task Acceptance Rules
+#### Paperclip 协议（Paperclip 知道什么）
 
-When an agent receives a task from outside their team:
+在协议层面，Paperclip 跟踪：
 
-1. **Agrees it's appropriate + can do it** → complete it directly
-2. **Agrees it's appropriate + can't do it** → mark as blocked
-3. **Questions whether it's worth doing** → **cannot cancel it themselves.** Must reassign to their own manager, explain the situation. Manager decides whether to accept, reassign, or escalate.
+- Agent 身份（id、名称、角色、头衔）
+- 组织位置（向谁汇报、谁向其汇报）
+- 适配器类型 + 适配器配置
+- 状态（活跃、暂停、已终止）
+- 成本跟踪数据（如果 Agent 报告的话）
 
-#### Manager Escalation Protocol
+#### 适配器配置（Agent 特定）
 
-It's any manager's responsibility to understand why their subordinates are blocked and resolve it:
+每种适配器类型定义自己的配置模式（Schema）。示例：
 
-0. **Decide** — as a manager, is this work worth doing?
-1. **Delegate down** — ask someone under them to help unblock
-2. **Escalate up** — ask the manager above them for help
+- **OpenClaw 适配器**：SOUL.md 内容、HEARTBEAT.md 内容、OpenClaw 特定设置
+- **进程适配器（Process Adapter）**：要运行的命令、环境变量、工作目录
+- **HTTP 适配器**：端点 URL、认证头、载荷模板
 
-#### Request Depth Tracking
+#### 可导出的组织配置
 
-When a task originates from a cross-team request, track the **depth** as an integer — how many delegation hops from the original requester. This provides visibility into how far work cascades through the org.
+一个关键目标：**整个组织的 Agent 配置是可导出的。** 你可以导出一个公司的完整 Agent 设置——每个 Agent、他们的适配器配置、组织结构——作为一个可移植的制品。这使得：
 
-#### Billing Codes
+- 共享公司模板（"这是一个预构建的营销代理公司"）
+- 对公司配置进行版本控制
+- 复制/分叉公司
 
-Tasks carry a **billing code** so that token spend during execution can be attributed upstream to the requesting task/agent. When Agent A asks Agent B to do work, the cost of B's work is tracked against A's request. This enables cost attribution across the org.
+#### 上下文传递
 
-### Open Questions
+可按 Agent 配置。两个极端：
 
-- Is this a strict tree or can agents report to multiple managers?
-- Can org structure change at runtime? (agents reassigned, teams restructured)
-- Do agents inherit any configuration from their manager?
-- Billing code format — simple string? Hierarchical?
+- **胖载荷（Fat Payload）** — Paperclip 将相关上下文（当前任务、消息、公司状态、指标）打包到心跳调用中。适用于无法回调 Paperclip 的简单/无状态 Agent。
+- **轻量通知（Thin Ping）** — 心跳仅是一个唤醒信号。Agent 调用 Paperclip 的 API 来获取所需的上下文。适用于管理自身状态的高级 Agent。
+
+#### 最低契约
+
+成为 Paperclip Agent 的最低要求：**可被调用。** 就这样。Paperclip 可以通过命令或 webhook 调用你。不要求回报——Paperclip 在可能的情况下从进程存活性推断基本状态。
+
+#### 集成级别
+
+在最低要求之上，Paperclip 提供逐步更丰富的集成：
+
+1. **可调用（Callable）**（最低要求）— Paperclip 可以启动你。这是唯一的契约。
+2. **状态报告（Status Reporting）** — Agent 在执行后回报成功/失败/进行中。
+3. **完全仪表化（Fully Instrumented）** — Agent 报告状态、成本/token 使用量、任务更新和日志。与控制面的双向集成。
+
+Paperclip 附带**默认 Agent**，展示了完整集成：进度跟踪、成本仪表化，以及一个用于任务管理的 **Paperclip 技能**（一个用于与 Paperclip API 交互的 Claude Code 技能）。这些既是有用的默认实现，也是适配器作者的参考实现。
+
+#### 导出格式
+
+两种导出模式：
+
+1. **模板导出**（默认）— 仅结构：Agent 定义、组织架构图、适配器配置、角色描述。可选择包含一些种子任务以帮助入门。这是启动新公司的蓝图。
+2. **快照导出** — 完整状态：结构 + 当前任务、进度、Agent 状态。一个完整的画面，可以恢复或分叉。
+
+通常的工作流程：导出模板，从中创建新公司，添加几个初始任务，开始运行。
 
 ---
 
-## 4. Heartbeat System [DRAFT]
+## 3. 组织结构 [DRAFT]
 
-The heartbeat is a protocol, not a runtime. Paperclip defines how to initiate an agent's cycle. What the agent does with that cycle — how long it runs, whether it's task-scoped or continuous — is entirely up to the agent.
+层级汇报结构。CEO 在顶部，汇报线级联向下。
 
-### Execution Adapters
+### Agent 可见性
 
-Agent configuration includes an **adapter** that defines how Paperclip invokes the agent. Built-in adapters include:
+**全组织范围的完全可见性。** 每个 Agent 都可以看到整个组织架构图、所有任务、所有 Agent。组织结构定义的是**汇报和委派线路**，而非访问控制。
 
-| Adapter | Mechanism | Example |
+每个 Agent 发布一份关于其职责和能力的简短描述——几乎像是技能（"我何时相关"）。这让其他 Agent 可以发现谁能帮助处理什么。
+
+### 跨团队协作
+
+Agent 可以创建任务并分配给汇报线之外的 Agent。这是跨团队协作的机制。这些规则主要编码在推荐给所有 Agent 的 Paperclip SKILL.md 中。Paperclip 应用层强制执行工具层面和一些轻量级治理，但下面的跨团队规则主要由 Agent 的决策来实现。
+
+#### 任务接受规则
+
+当 Agent 收到来自团队外的任务时：
+
+1. **认为合适且能完成** → 直接完成
+2. **认为合适但无法完成** → 标记为阻塞
+3. **质疑是否值得做** → **不能自行取消。** 必须重新分配给自己的管理者，说明情况。管理者决定是接受、重新分配还是上报。
+
+#### 管理者上报协议
+
+每位管理者有责任了解其下属为何被阻塞并解决它：
+
+0. **判断** — 作为管理者，这项工作是否值得做？
+1. **向下委派** — 要求其下属帮助解除阻塞
+2. **向上上报** — 请求上级管理者帮助
+
+#### 请求深度追踪
+
+当任务源自跨团队请求时，追踪其**深度**（整数）——距原始请求者的委派跳数。这提供了工作在组织中级联多远的可见性。
+
+#### 计费代码
+
+任务携带**计费代码（Billing Code）**，以便执行期间的 token 消耗可以向上归因到请求任务/Agent。当 Agent A 要求 Agent B 执行工作时，B 的成本会被追踪到 A 的请求上。这实现了跨组织的成本归因。
+
+### 开放问题
+
+- 这是严格的树形结构，还是 Agent 可以向多个管理者汇报？
+- 组织结构能否在运行时变更？（Agent 重新分配、团队重组）
+- Agent 是否从其管理者继承任何配置？
+- 计费代码格式——简单字符串？层级式？
+
+---
+
+## 4. 心跳系统 [DRAFT]
+
+心跳（Heartbeat）是一个协议，不是运行时。Paperclip 定义如何启动 Agent 的循环。Agent 在该循环中做什么——运行多长时间、是任务范围的还是持续运行的——完全由 Agent 决定。
+
+### 执行适配器
+
+Agent 配置包含一个**适配器（Adapter）**，定义 Paperclip 如何调用 Agent。内置适配器包括：
+
+| 适配器      | 机制                          | 示例                                                |
 | ---------------- | -------------------------- | -------------------------------------------------- |
-| `process` | Execute a child process | `python run_agent.py --agent-id {id}` |
-| `http` | Send an HTTP request | `POST https://openclaw.example.com/hook/{id}` |
-| `claude_local` | Local Claude Code process | Claude Code heartbeat worker |
-| `codex_local` | Local Codex process | Codex CLI heartbeat worker |
-| `opencode_local` | Local OpenCode process | OpenCode heartbeat worker |
-| `pi_local` | Local Pi process | Pi CLI heartbeat worker |
-| `cursor` | Cursor API/CLI bridge | Cursor-integrated heartbeat worker |
-| `openclaw_gateway` | OpenClaw gateway API | Managed OpenClaw agent via gateway |
-| `hermes_local` | Local Hermes process | Hermes agent heartbeat worker |
+| `process`        | 执行子进程                   | `python run_agent.py --agent-id {id}`              |
+| `http`           | 发送 HTTP 请求               | `POST https://openclaw.example.com/hook/{id}`      |
+| `claude_local`   | 本地 Claude Code 进程        | Claude Code 心跳工作器                               |
+| `codex_local`    | 本地 Codex 进程              | Codex CLI 心跳工作器                                 |
+| `opencode_local` | 本地 OpenCode 进程           | OpenCode 心跳工作器                                  |
+| `pi_local`       | 本地 Pi 进程                 | Pi CLI 心跳工作器                                    |
+| `cursor`         | Cursor API/CLI 桥接          | Cursor 集成心跳工作器                                 |
+| `openclaw_gateway` | OpenClaw 网关 API          | 通过网关管理的 OpenClaw Agent                         |
+| `hermes_local`   | 本地 Hermes 进程             | Hermes Agent 心跳工作器                               |
 
-The `process` and `http` adapters ship as generic defaults. Additional built-in adapters cover common local coding runtimes (see list above), and new adapter types can be registered via the plugin system (see Plugin / Extension Architecture).
+`process` 和 `http` 适配器作为通用默认值附带。其他内置适配器覆盖常见的本地编码运行时（见上表），新的适配器类型可以通过插件系统注册（参见插件/扩展架构）。
 
-### Adapter Interface
+### 适配器接口
 
-Every adapter implements three methods:
+每个适配器实现三个方法：
 
 ```
-invoke(agentConfig, context?) → void     // Start the agent's cycle
-status(agentConfig) → AgentStatus        // Is it running? finished? errored?
-cancel(agentConfig) → void               // Graceful stop signal (for pause/resume)
+invoke(agentConfig, context?) → void     // 启动 Agent 的循环
+status(agentConfig) → AgentStatus        // 是否正在运行？已完成？出错？
+cancel(agentConfig) → void               // 优雅停止信号（用于暂停/恢复）
 ```
 
-This is the full adapter contract. `invoke` starts the agent, `status` lets Paperclip check on it, `cancel` enables the board's pause functionality. Everything else (cost reporting, task updates) is optional and flows through the Paperclip REST API.
+这是完整的适配器契约。`invoke` 启动 Agent，`status` 让 Paperclip 检查其状态，`cancel` 启用董事会的暂停功能。其他所有内容（成本报告、任务更新）都是可选的，通过 Paperclip REST API 传输。
 
-### What Paperclip Controls
+### Paperclip 控制什么
 
-- **When** to fire the heartbeat (schedule/frequency, per-agent)
-- **How** to fire it (adapter selection + config)
-- **What context** to include (thin ping vs. fat payload, per-agent)
+- **何时**触发心跳（调度/频率，按 Agent 配置）
+- **如何**触发（适配器选择 + 配置）
+- **包含什么上下文**（轻量通知 vs. 胖载荷，按 Agent 配置）
 
-### What Paperclip Does NOT Control
+### Paperclip 不控制什么
 
-- How long the agent runs
-- What the agent does during its cycle
-- Whether the agent is task-scoped, time-windowed, or continuous
+- Agent 运行多长时间
+- Agent 在循环期间做什么
+- Agent 是任务范围的、时间窗口的还是持续运行的
 
-### Pause Behavior
+### 暂停行为
 
-When the board (or system) pauses an agent:
+当董事会（或系统）暂停一个 Agent 时：
 
-1. **Signal the current execution** — send a graceful termination signal to the running process/session
-2. **Grace period** — give the agent time to wrap up, save state, report final status
-3. **Force-kill after timeout** — if the agent doesn't stop within the grace period, terminate
-4. **Stop future heartbeats** — no new heartbeat cycles will fire until the agent is resumed
+1. **向当前执行发送信号** — 向正在运行的进程/会话发送优雅终止信号
+2. **宽限期** — 给 Agent 时间收尾、保存状态、报告最终状态
+3. **超时后强制终止** — 如果 Agent 在宽限期内未停止，则终止
+4. **停止未来心跳** — 在 Agent 恢复之前，不会触发新的心跳循环
 
-This is "graceful signal + stop future heartbeats." The current run gets a chance to land cleanly.
+这是"优雅信号 + 停止未来心跳"。当前运行有机会干净地落地。
 
-### Open Questions
+### 开放问题
 
-- Heartbeat frequency — who controls it? Fixed? Per-agent? Cron-like?
-- What happens when a heartbeat invocation fails? (process crashes, HTTP 500)
-- Health monitoring — how does Paperclip distinguish "stuck" from "working on a long task"?
-- Can agents self-trigger their next heartbeat? ("I'm done, wake me again in 5 min")
-- Grace period duration — fixed? configurable per agent?
-
----
-
-## 5. Inter-Agent Communication [DRAFT]
-
-All agent communication flows through the **task system**.
-
-### Model: Tasks + Comments
-
-- **Delegation** = creating a task and assigning it to another agent
-- **Coordination** = commenting on tasks
-- **Status updates** = updating task status and fields
-
-There is no separate messaging or chat system. Tasks are the communication channel. This keeps all context attached to the work it relates to and creates a natural audit trail.
-
-### Implications
-
-- An agent's "inbox" is: tasks assigned to them + comments on tasks they're involved in
-- The CEO delegates by creating tasks assigned to the CTO
-- The CTO breaks those down into sub-tasks assigned to engineers
-- Discussion happens in task comments, not a side channel
-- If an agent needs to escalate, they comment on the parent task or reassign
-
-### Task Hierarchy Mapping
-
-Full hierarchy: **Initiative** (company goal) → Projects → Milestones → Issues → Sub-issues. Everything traces back to an initiative, and the "company goal" is just the first/primary initiative.
+- 心跳频率——谁控制？固定？按 Agent 配置？类似 Cron？
+- 心跳调用失败时会发生什么？（进程崩溃、HTTP 500）
+- 健康监控——Paperclip 如何区分"卡住"和"正在处理长任务"？
+- Agent 能否自行触发下一次心跳？（"我完成了，5 分钟后再唤醒我"）
+- 宽限期时长——固定？按 Agent 可配置？
 
 ---
 
-## 6. Cost Tracking [DRAFT]
+## 5. Agent 间通信 [DRAFT]
 
-Token/LLM cost budgeting is a core part of Paperclip. External revenue and expense tracking is a future plugin.
+所有 Agent 通信都通过**任务系统**流转。
 
-### Cost Reporting
+### 模型：任务 + 评论
 
-Fully-instrumented Agents report token/API usage back to Paperclip. Costs are tracked at every level:
+- **委派** = 创建任务并分配给另一个 Agent
+- **协调** = 在任务上评论
+- **状态更新** = 更新任务状态和字段
 
-- **Per Agent** — how much is this employee costing?
-- **Per task** — how much did this unit of work cost?
-- **Per project** — how much is this deliverable costing?
-- **Per Company** — total burn rate
+没有单独的消息或聊天系统。任务就是通信渠道。这使所有上下文都附着在相关工作上，并创建自然的审计线索。
 
-Costs should be denominated in both **tokens and dollars**.
+### 影响
 
-Billing codes on tasks (see Org Structure) enable cost attribution across teams — when Agent A requests work from Agent B, B's costs roll up to A's request.
+- Agent 的"收件箱"是：分配给他们的任务 + 他们参与的任务上的评论
+- CEO 通过创建分配给 CTO 的任务来委派工作
+- CTO 将其分解为分配给工程师的子任务
+- 讨论发生在任务评论中，而非侧信道
+- 如果 Agent 需要上报，他们评论父任务或重新分配
 
-### Budget Controls
+### 任务层级映射
 
-Three tiers:
-
-1. **Visibility** — dashboards showing spend at every level (Agent, task, project, Company)
-2. **Soft alerts** — configurable thresholds (e.g. warn at 80% of budget)
-3. **Hard ceiling** — auto-pause the Agent when budget is hit. Board notified. Board can override/raise the limit.
-
-Budgets can be set to **unlimited** (no ceiling).
-
-### Open Questions
-
-- Cost reporting API — what's the schema for an agent to report costs?
-- Dashboard design — what metrics matter most at each level?
-- Budget period — per-day? per-week? per-month? rolling?
+完整层级：**倡议（Initiative）**（公司目标）→ 项目（Project）→ 里程碑（Milestone）→ 问题（Issue）→ 子问题（Sub-issue）。一切都追溯到一个倡议，"公司目标"就是第一个/主要的倡议。
 
 ---
 
-## 7. Default Agents & Bootstrap Flow [DRAFT]
+## 6. 成本跟踪 [DRAFT]
 
-### Bootstrap Sequence
+Token/LLM 成本预算是 Paperclip 的核心部分。外部收入和支出跟踪是未来的插件。
 
-How a Company goes from "created" to "running":
+### 成本报告
 
-1. Human creates a Company and its initial Initiatives
-2. Human defines initial top-level tasks
-3. Human creates the CEO Agent (using the default CEO template or custom)
-4. CEO's first heartbeat: reviews the Initiatives and tasks, proposes a strategic breakdown (org structure, sub-tasks, hiring plan)
-5. **Board approves** the CEO's strategic plan
-6. CEO begins execution — creating tasks, proposing hires (Board-approved), delegating
+完全仪表化的 Agent 向 Paperclip 报告 token/API 使用情况。成本在每个层级都被跟踪：
 
-### Default Agents
+- **按 Agent** — 这个员工花了多少？
+- **按任务** — 这个工作单元花了多少？
+- **按项目** — 这个交付物花了多少？
+- **按公司** — 总消耗率
 
-Paperclip ships default Agent templates:
+成本应同时以 **token 和美元**计价。
 
-- **Default Agent** — a basic Claude Code or Codex loop. Knows the **Paperclip Skill** (SKILL.md) so it can interact with the task system, read Company context, report status.
-- **Default CEO** — extends the Default Agent with CEO-specific behavior: strategic planning, delegation to reports, progress review, Board communication.
+任务上的计费代码（参见组织结构）实现了跨团队的成本归因——当 Agent A 请求 Agent B 执行工作时，B 的成本会归入 A 的请求。
 
-These are starting points. Users can customize or replace them entirely.
+### 预算控制
 
-### Default Agent Behavior
+三个层级：
 
-The default agent's loop is **config-driven**. The adapter config contains the instructions that define what the agent does on each heartbeat cycle. There is no hardcoded standard loop — each agent's config determines its behavior.
+1. **可见性** — 仪表盘展示各层级（Agent、任务、项目、公司）的支出
+2. **软告警** — 可配置的阈值（例如，预算的 80% 时告警）
+3. **硬上限** — 预算用尽时自动暂停 Agent。通知董事会。董事会可以覆盖/提高限额。
 
-This means the default CEO config tells the CEO to review strategy, check on reports, etc. The default engineer config tells the engineer to check assigned tasks, pick the highest priority, and work it. But these are config choices, not protocol requirements.
+预算可以设置为**无限制**（无上限）。
 
-### Paperclip Skill (SKILL.md)
+### 开放问题
 
-A skill definition that teaches agents how to interact with Paperclip. Provides:
-
-- Task CRUD (create, read, update, complete tasks)
-- Status reporting (check in, report progress)
-- Company context (read goal, org chart, current state)
-- Cost reporting (log token/API usage)
-- Inter-agent communication rules
-
-This skill is adapter-agnostic — it can be loaded into Claude Code, injected into prompts, or used as API documentation for custom agents.
+- 成本报告 API——Agent 报告成本的模式是什么？
+- 仪表盘设计——每个层级最重要的指标是什么？
+- 预算周期——每天？每周？每月？滚动？
 
 ---
 
-## 8. Architecture & Deployment [DRAFT]
+## 7. 默认 Agent 与引导流程 [DRAFT]
 
-### Deployment Model
+### 引导序列
 
-**Single-tenant, self-hostable.** Not a SaaS. One instance = one operator's companies.
+一个公司如何从"已创建"变为"运行中"：
 
-#### Development Path (Progressive Deployment)
+1. 人类创建公司及其初始倡议
+2. 人类定义初始顶层任务
+3. 人类创建 CEO Agent（使用默认 CEO 模板或自定义）
+4. CEO 的第一次心跳：审查倡议和任务，提出战略分解（组织结构、子任务、招聘计划）
+5. **董事会审批** CEO 的战略计划
+6. CEO 开始执行——创建任务、提出招聘（需董事会审批）、委派工作
 
-1. **Local dev** — One command to install and run. Embedded Postgres. Everything on your machine. Agents run locally.
-2. **Hosted** — Deploy to Vercel/Supabase/AWS/anywhere. Remote agents connect to your server with a shared database. The UI is accessible via the web.
-3. **Open company** — Optionally make parts public (e.g. a job board visible to the public for open companies).
+### 默认 Agent
 
-The key constraint: it must be trivial to go from "I'm trying this on my machine" to "my agents are running on remote servers talking to my Paperclip instance."
+Paperclip 附带默认 Agent 模板：
 
-#### Agent Authentication
+- **默认 Agent** — 基本的 Claude Code 或 Codex 循环。了解 **Paperclip 技能**（SKILL.md），因此可以与任务系统交互、读取公司上下文、报告状态。
+- **默认 CEO** — 在默认 Agent 基础上扩展了 CEO 特定行为：战略规划、委派给下属、进度审查、董事会沟通。
 
-When a user creates an Agent, Paperclip generates a **connection string** containing: the server URL, an API key, and instructions for how to authenticate. The Agent is assumed to be capable of figuring out how to call the API with its token/key from there.
+这些是起点。用户可以自定义或完全替换它们。
 
-Flow:
+### 默认 Agent 行为
 
-1. Human creates an Agent in the UI
-2. Paperclip generates a connection string (URL + key + instructions)
-3. Human provides this string to the Agent (e.g. in its adapter config, environment, etc.)
-4. Agent uses the key to authenticate API calls to the control plane
+默认 Agent 的循环是**配置驱动的**。适配器配置包含定义 Agent 在每个心跳循环中做什么的指令。没有硬编码的标准循环——每个 Agent 的配置决定其行为。
 
-### Tech Stack
+这意味着默认 CEO 配置告诉 CEO 审查战略、检查下属等。默认工程师配置告诉工程师检查分配的任务、选择最高优先级的任务并执行。但这些都是配置选择，而非协议要求。
 
-| Layer    | Technology                                                   |
+### Paperclip 技能（SKILL.md）
+
+一个教 Agent 如何与 Paperclip 交互的技能定义。提供：
+
+- 任务 CRUD（创建、读取、更新、完成任务）
+- 状态报告（签到、报告进度）
+- 公司上下文（读取目标、组织架构图、当前状态）
+- 成本报告（记录 token/API 使用情况）
+- Agent 间通信规则
+
+此技能与适配器无关——它可以加载到 Claude Code 中、注入到提示词中，或作为自定义 Agent 的 API 文档使用。
+
+---
+
+## 8. 架构与部署 [DRAFT]
+
+### 部署模型
+
+**单租户、可自托管。** 不是 SaaS。一个实例 = 一个操作者的公司。
+
+#### 开发路径（渐进式部署）
+
+1. **本地开发** — 一条命令安装并运行。嵌入式 PostgreSQL。一切在你的机器上。Agent 本地运行。
+2. **托管** — 部署到 Vercel/Supabase/AWS/任何地方。远程 Agent 通过共享数据库连接到你的服务器。UI 通过 Web 访问。
+3. **开放公司** — 可选择公开部分内容（例如，开放公司的公开职位看板）。
+
+关键约束：从"我在机器上试用"到"我的 Agent 在远程服务器上运行并与我的 Paperclip 实例通信"必须是极其简单的。
+
+#### Agent 认证
+
+当用户创建 Agent 时，Paperclip 生成一个**连接字符串（Connection String）**，包含：服务器 URL、API 密钥，以及如何认证的说明。假定 Agent 有能力从中弄清楚如何使用其 token/密钥调用 API。
+
+流程：
+
+1. 人类在 UI 中创建 Agent
+2. Paperclip 生成连接字符串（URL + 密钥 + 说明）
+3. 人类将此字符串提供给 Agent（例如，在其适配器配置、环境变量等中）
+4. Agent 使用密钥对控制面的 API 调用进行认证
+
+### 技术栈
+
+| 层级     | 技术                                                         |
 | -------- | ------------------------------------------------------------ |
-| Frontend | React + Vite                                                 |
-| Backend  | TypeScript + Express (REST API, not tRPC — need non-TS clients) |
-| Database | PostgreSQL (see [doc/DATABASE.md](./doc/DATABASE.md) for details — PGlite embedded for dev, Docker or hosted Supabase for production) |
-| Auth     | [Better Auth](https://www.better-auth.com/)                  |
+| 前端     | React + Vite                                                 |
+| 后端     | TypeScript + Express（REST API，非 tRPC——需要非 TS 客户端）    |
+| 数据库   | PostgreSQL（详见 [doc/DATABASE.md](./doc/DATABASE.md)——开发环境使用嵌入式 PGlite，生产环境使用 Docker 或托管 Supabase） |
+| 认证     | [Better Auth](https://www.better-auth.com/)                  |
 
-### Concurrency Model: Atomic Task Checkout
+### 并发模型：原子任务签出
 
-Tasks use **single assignment** (one agent per task) with **atomic checkout**:
+任务使用**单一分配**（每个任务一个 Agent）加**原子签出（Atomic Checkout）**：
 
-1. Agent attempts to set a task to `in_progress` (claiming it)
-2. The API/database enforces this atomically — if another agent already claimed it, the request fails with an error identifying which agent has it
-3. If the task is already assigned to the requesting agent from a previous session, they can resume
+1. Agent 尝试将任务设置为 `in_progress`（认领）
+2. API/数据库原子性地强制执行——如果另一个 Agent 已经认领，请求会失败并返回标识哪个 Agent 持有该任务的错误
+3. 如果任务已在之前的会话中分配给请求 Agent，他们可以恢复
 
-No optimistic locking or CRDTs needed. The single-assignment model + atomic checkout prevents conflicts at the design level.
+不需要乐观锁或 CRDT。单一分配模型 + 原子签出在设计层面防止了冲突。
 
-### Human in the Loop
+### 人在环中
 
-Agents can create tasks assigned to humans. The board member (or any human with access) can complete these tasks through the UI.
+Agent 可以创建分配给人类的任务。董事会成员（或任何有访问权限的人类）可以通过 UI 完成这些任务。
 
-When a human completes a task, if the requesting agent's adapter supports **pingbacks** (e.g. OpenClaw hooks), Paperclip sends a notification to wake that agent. This keeps humans rare but possible participants in the workflow.
+当人类完成任务时，如果请求 Agent 的适配器支持**回调通知（Pingback）**（例如 OpenClaw hooks），Paperclip 会发送通知唤醒该 Agent。这使人类成为工作流中罕见但可能的参与者。
 
-The agents are discouraged from assigning tasks to humans in the Paperclip SKILL, but sometimes it's unavoidable.
+在 Paperclip SKILL 中不鼓励 Agent 将任务分配给人类，但有时不可避免。
 
-### API Design
+### API 设计
 
-**Single unified REST API.** The same API serves both the frontend UI and agents. Authentication determines permissions — board auth has full access, agent API keys have scoped access (their own tasks, cost reporting, company context).
+**统一的 REST API。** 同一个 API 同时服务前端 UI 和 Agent。认证决定权限——董事会认证拥有完全访问权限，Agent API 密钥拥有范围访问权限（自己的任务、成本报告、公司上下文）。
 
-No separate "agent API" vs. "board API." Same endpoints, different authorization levels.
+没有单独的"Agent API"与"董事会 API"。相同的端点，不同的授权级别。
 
-### Work Artifacts
+### 工作制品
 
-Paperclip manages task-linked work artifacts: issue documents (rich-text plans, specs, notes attached to issues) and file attachments. Agents read and write these through the API as part of normal task execution. Full delivery infrastructure (code repos, deployments, production runtime) remains the agent's domain — Paperclip orchestrates the work, not the build pipeline.
+Paperclip 管理任务关联的工作制品（Work Artifact）：问题文档（富文本计划、规范、附加到问题的笔记）和文件附件。Agent 通过 API 在正常任务执行中读写这些内容。完整的交付基础设施（代码仓库、部署、生产运行时）仍在 Agent 的领域——Paperclip 编排工作，而非构建流水线。
 
-### Open Questions
+### 开放问题
 
-- Real-time updates to the UI — WebSocket? SSE? Polling?
-- Agent API key scoping — what exactly can an Agent access? Only their own tasks? Their team's? The whole Company?
+- UI 的实时更新——WebSocket？SSE？轮询？
+- Agent API 密钥范围——Agent 到底能访问什么？仅自己的任务？团队的？整个公司？
 
-### Crash Recovery: Manual, Not Automatic
+### 崩溃恢复：手动，非自动
 
-When an agent crashes or disappears mid-task, Paperclip does **not** auto-reassign or auto-release the task. Instead:
+当 Agent 在任务中途崩溃或消失时，Paperclip **不会**自动重新分配或释放任务。取而代之的是：
 
-- Paperclip surfaces stale tasks (tasks in `in_progress` with no recent activity) through dashboards and reporting
-- Paperclip does not fail silently — the auditing and visibility tools make problems obvious
-- Recovery is handled by humans or by emergent processes (e.g. a project manager agent whose job is to monitor for stale work and surface it)
+- Paperclip 通过仪表盘和报告展示陈旧任务（处于 `in_progress` 但无近期活动的任务）
+- Paperclip 不会静默失败——审计和可见性工具使问题显而易见
+- 恢复由人类或新兴流程处理（例如，一个项目经理 Agent 的职责是监控陈旧工作并展示出来）
 
-**Principle: Paperclip reports problems, it doesn't silently fix them.** Automatic recovery hides failures. Good visibility lets the right entity (human or agent) decide what to do.
+**原则：Paperclip 报告问题，不静默修复它们。** 自动恢复隐藏故障。良好的可见性让合适的实体（人类或 Agent）决定如何处理。
 
-### Plugin / Extension Architecture
+### 插件/扩展架构
 
-The core Paperclip system must be extensible. Features like knowledge bases, external revenue tracking, and new Agent Adapters should be addable as **plugins** without modifying core. This means:
+核心 Paperclip 系统必须是可扩展的。知识库、外部收入跟踪和新 Agent 适配器等功能应作为**插件**添加，无需修改核心。这意味着：
 
-- Well-defined API boundaries that plugins can hook into
-- Event system or hooks for reacting to task/Agent lifecycle events
-- **Agent Adapter plugins** — new Adapter types can be registered via the plugin system
-- Plugin-registrable UI components (future)
+- 插件可以挂载的清晰 API 边界
+- 用于响应任务/Agent 生命周期事件的事件系统或钩子
+- **Agent 适配器插件** — 新适配器类型可以通过插件系统注册
+- 插件可注册的 UI 组件（未来）
 
-The plugin framework has shipped. Plugins can register new adapter types, hook into lifecycle events, and contribute UI components (e.g. global toolbar buttons). A plugin SDK and CLI commands (`paperclipai plugin`) are available for authoring and installing plugins.
-
----
-
-## 9. Frontend / UI [DRAFT]
-
-### Primary Views
-
-Each is a distinct page/route:
-
-1. **Org Chart** — the org tree with live status indicators (running/idle/paused/error) per agent. Real-time activity feed of what agents are doing.
-2. **Task Board** — Task management. Kanban and list views. Filter by team, agent, project, status.
-3. **Dashboard** — high-level metrics: agent count, active tasks, costs, goal progress, burn rate. The "glance" view from GOAL.md.
-4. **Agent Detail** — deep dive on a single agent: their tasks, activity, costs, configuration, status history.
-5. **Project/Initiative Views** — progress tracking against milestones and goals.
-6. **Cost Dashboard** — spend visualization at every level (agent, task, project, company).
-
-### Board Controls (Available Everywhere)
-
-- Pause/resume agents (any view)
-- Pause/resume tasks/projects (any view)
-- Approve/reject pending actions (hiring, strategy proposals)
-- Direct task creation, editing, commenting
+插件框架已经发布。插件可以注册新的适配器类型、挂载生命周期事件、贡献 UI 组件（例如全局工具栏按钮）。插件 SDK 和 CLI 命令（`paperclipai plugin`）可用于编写和安装插件。
 
 ---
 
-## 10. V1 Scope (MVP) [DRAFT]
+## 9. 前端 / UI [DRAFT]
 
-**Full loop with one adapter.** V1 must demonstrate the complete Paperclip cycle end-to-end, even if narrow.
+### 主要视图
 
-### Must Have (V1)
+每个都是独立的页面/路由：
 
-- [ ] **Company CRUD** — create a Company with Initiatives
-- [ ] **Agent CRUD** — create/edit/pause/resume Agents with Adapter config
-- [ ] **Org chart** — define reporting structure, visualize it
-- [ ] **Process adapter** — invoke(), status(), cancel() for local child processes
-- [ ] **Task management** — full lifecycle with hierarchy (tasks trace to company goal)
-- [ ] **Atomic task checkout** — single assignment, in_progress locking
-- [ ] **Board governance** — human approves hires, pauses Agents, sets budgets, full PM access
-- [ ] **Cost tracking** — Agents report token usage, per-Agent/task/Company visibility
-- [ ] **Budget controls** — soft alerts + hard ceiling with auto-pause
-- [ ] **Default agent** — basic Claude Code/Codex loop with Paperclip skill
-- [ ] **Default CEO** — strategic planning, delegation, board communication
-- [ ] **Paperclip skill (SKILL.md)** — teaches agents to interact with the API
-- [ ] **REST API** — full API for agent interaction (Express)
-- [ ] **Web UI** — React/Vite: org chart, task board, dashboard, cost views
-- [ ] **Agent auth** — connection string generation with URL + key + instructions
-- [ ] **One-command dev setup** — embedded PGlite, everything local
-- [ ] **Multiple Adapter types** (HTTP, OpenClaw gateway, and local coding adapters)
+1. **组织架构图** — 带有每个 Agent 实时状态指示器（运行中/空闲/暂停/错误）的组织树。Agent 活动的实时动态流。
+2. **任务看板** — 任务管理。看板和列表视图。按团队、Agent、项目、状态筛选。
+3. **仪表盘** — 高层级指标：Agent 数量、活跃任务、成本、目标进度、消耗率。来自 GOAL.md 的"一览"视图。
+4. **Agent 详情** — 单个 Agent 的深入视图：其任务、活动、成本、配置、状态历史。
+5. **项目/倡议视图** — 针对里程碑和目标的进度跟踪。
+6. **成本仪表盘** — 各层级（Agent、任务、项目、公司）的支出可视化。
 
-### Not V1
+### 董事会控制（随处可用）
 
-- Knowledge base - a future plugin
-- Advanced governance models (hiring budgets, multi-member boards)
-- Revenue/expense tracking beyond token costs - a future plugin
-- Public job board / open company features
+- 暂停/恢复 Agent（任何视图）
+- 暂停/恢复任务/项目（任何视图）
+- 批准/拒绝待处理操作（招聘、战略提案）
+- 直接创建、编辑、评论任务
 
 ---
 
-## 11. Knowledge Base
+## 10. V1 范围（MVP） [DRAFT]
 
-**Anti-goal for core.** The knowledge base is not part of the Paperclip core — it will be a plugin. The task system + comments + agent descriptions provide sufficient shared context.
+**使用一个适配器的完整循环。** V1 必须端到端演示完整的 Paperclip 循环，即使范围较窄。
 
-The architecture must support adding a knowledge base plugin later (clean API boundaries, hookable lifecycle events) but the core system explicitly does not include one.
+### 必须具备（V1）
+
+- [ ] **公司 CRUD** — 创建带有倡议的公司
+- [ ] **Agent CRUD** — 创建/编辑/暂停/恢复带有适配器配置的 Agent
+- [ ] **组织架构图** — 定义汇报结构，可视化展示
+- [ ] **进程适配器** — 本地子进程的 invoke()、status()、cancel()
+- [ ] **任务管理** — 带有层级结构的完整生命周期（任务追溯到公司目标）
+- [ ] **原子任务签出** — 单一分配，in_progress 锁定
+- [ ] **董事会治理** — 人类批准招聘、暂停 Agent、设定预算、完整的项目管理访问权限
+- [ ] **成本跟踪** — Agent 报告 token 使用情况，按 Agent/任务/公司的可见性
+- [ ] **预算控制** — 软告警 + 自动暂停的硬上限
+- [ ] **默认 Agent** — 带有 Paperclip 技能的基本 Claude Code/Codex 循环
+- [ ] **默认 CEO** — 战略规划、委派、董事会沟通
+- [ ] **Paperclip 技能（SKILL.md）** — 教 Agent 与 API 交互
+- [ ] **REST API** — 用于 Agent 交互的完整 API（Express）
+- [ ] **Web UI** — React/Vite：组织架构图、任务看板、仪表盘、成本视图
+- [ ] **Agent 认证** — 生成包含 URL + 密钥 + 说明的连接字符串
+- [ ] **一条命令开发环境** — 嵌入式 PGlite，一切本地运行
+- [ ] **多种适配器类型**（HTTP、OpenClaw 网关和本地编码适配器）
+
+### 非 V1
+
+- 知识库 - 未来插件
+- 高级治理模型（招聘预算、多成员董事会）
+- 超出 token 成本的收入/支出跟踪 - 未来插件
+- 公开职位看板 / 开放公司功能
 
 ---
 
-## 12. Anti-Requirements
+## 11. 知识库
 
-Things Paperclip explicitly does **not** do:
+**核心的反目标。** 知识库不属于 Paperclip 核心——它将成为一个插件。任务系统 + 评论 + Agent 描述提供了足够的共享上下文。
 
-- **Not an Agent runtime** — Paperclip orchestrates, Agents run elsewhere
-- **Not a knowledge base** — core has no wiki/docs/vector-DB (plugin territory)
-- **Not a SaaS** — single-tenant, self-hosted
-- **Not opinionated about Agent implementation** — any language, any framework, any runtime
-- **Not automatically self-healing** — surfaces problems, doesn't silently fix them
-- **Does not manage delivery infrastructure** — no repo management, no deployment, no file systems (but does manage task-linked documents and attachments)
-- **Does not auto-reassign work** — stale tasks are surfaced, not silently redistributed
-- **Does not track external revenue/expenses** — that's a future plugin. Token/LLM cost budgeting is core.
+架构必须支持后续添加知识库插件（清晰的 API 边界、可挂载的生命周期事件），但核心系统明确不包含知识库。
 
 ---
 
-## 13. Principles (Consolidated)
+## 12. 反需求
 
-1. **Unopinionated about how you run your Agents.** Any language, any framework, any runtime. Paperclip is the control plane, not the execution plane.
-2. **Company is the unit of organization.** Everything lives under a Company.
-3. **Tasks are the communication channel.** All Agent communication flows through tasks + comments. No side channels.
-4. **All work traces to the goal.** Hierarchical task management — nothing exists in isolation.
-5. **Board governs.** Humans retain control through the Board. Conservative defaults (human approval required).
-6. **Surface problems, don't hide them.** Good auditing and visibility. No silent auto-recovery.
-7. **Atomic ownership.** Single assignee per task. Atomic checkout prevents conflicts.
-8. **Progressive deployment.** Trivial to start local, straightforward to scale to hosted.
-9. **Extensible core.** Clean boundaries so plugins can add capabilities (Adapters, knowledge base, revenue tracking) without modifying core.
+Paperclip 明确**不**做的事情：
+
+- **不是 Agent 运行时** — Paperclip 编排，Agent 在其他地方运行
+- **不是知识库** — 核心没有 wiki/文档/向量数据库（插件领域）
+- **不是 SaaS** — 单租户、自托管
+- **对 Agent 实现不做限定** — 任何语言、任何框架、任何运行时
+- **不是自动自愈的** — 展示问题，不静默修复
+- **不管理交付基础设施** — 无仓库管理、无部署、无文件系统（但管理任务关联的文档和附件）
+- **不自动重新分配工作** — 陈旧任务被展示出来，而非静默重新分配
+- **不跟踪外部收入/支出** — 那是未来的插件。Token/LLM 成本预算是核心。
+
+---
+
+## 13. 原则（整合版）
+
+1. **对 Agent 运行方式不做限定。** 任何语言、任何框架、任何运行时。Paperclip 是控制面，不是执行面。
+2. **公司是组织单元。** 一切都归属于一个公司。
+3. **任务是通信渠道。** 所有 Agent 通信通过任务 + 评论流转。没有侧信道。
+4. **所有工作追溯到目标。** 层级任务管理——没有孤立存在的事物。
+5. **董事会治理。** 人类通过董事会保留控制权。保守的默认值（需要人类审批）。
+6. **展示问题，不隐藏它们。** 良好的审计和可见性。没有静默自动恢复。
+7. **原子所有权。** 每个任务单一分配者。原子签出防止冲突。
+8. **渐进式部署。** 启动本地极其简单，扩展到托管直接明了。
+9. **可扩展核心。** 清晰的边界使插件可以添加能力（适配器、知识库、收入跟踪）而无需修改核心。

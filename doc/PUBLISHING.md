@@ -1,246 +1,241 @@
-# Publishing to npm
+# 发布到 npm
 
-Low-level reference for how Paperclip packages are prepared and published to npm.
+Paperclip 包如何准备和发布到 npm 的底层参考文档。
 
-For the maintainer workflow, use [doc/RELEASING.md](RELEASING.md). This document focuses on packaging internals.
+维护者工作流请参阅 [doc/RELEASING.md](RELEASING.md)。本文档聚焦于打包内部机制。
 
-## Current Release Entry Points
+## 当前发布入口
 
-Use these scripts:
+使用以下脚本：
 
-- [`scripts/release.sh`](../scripts/release.sh) for canary and stable publish flows
-- [`scripts/create-github-release.sh`](../scripts/create-github-release.sh) after pushing a stable tag
-- [`scripts/rollback-latest.sh`](../scripts/rollback-latest.sh) to repoint `latest`
-- [`scripts/build-npm.sh`](../scripts/build-npm.sh) for the CLI packaging build
+- [`scripts/release.sh`](../scripts/release.sh) 用于金丝雀发布（canary）和稳定发布（stable）流程
+- [`scripts/create-github-release.sh`](../scripts/create-github-release.sh) 在推送稳定标签后使用
+- [`scripts/rollback-latest.sh`](../scripts/rollback-latest.sh) 用于重新指向 `latest`
+- [`scripts/build-npm.sh`](../scripts/build-npm.sh) 用于 CLI 打包构建
 
-Paperclip no longer uses release branches or Changesets for publishing.
+Paperclip 不再使用发布分支（release branches）或 Changesets 进行发布。
 
-## Why the CLI needs special packaging
+## 为什么 CLI 需要特殊打包
 
-The CLI package, `paperclipai`, imports code from workspace packages such as:
+CLI 包 `paperclipai` 引用了来自工作区包（workspace packages）的代码，例如：
 
 - `@paperclipai/server`
 - `@paperclipai/db`
 - `@paperclipai/shared`
-- adapter packages under `packages/adapters/`
+- `packages/adapters/` 下的适配器包（adapter packages）
 
-Those workspace references are valid in development but not in a publishable npm package. The release flow rewrites versions temporarily, then builds a publishable CLI bundle.
+这些工作区引用在开发环境中有效，但在可发布的 npm 包中无效。发布流程会临时重写版本号，然后构建可发布的 CLI 产物包（bundle）。
 
 ## `build-npm.sh`
 
-Run:
+运行：
 
 ```bash
 ./scripts/build-npm.sh
 ```
 
-This script:
+该脚本会：
 
-1. runs the forbidden token check unless `--skip-checks` is supplied
-2. runs `pnpm -r typecheck`
-3. bundles the CLI entrypoint with esbuild into `cli/dist/index.js`
-4. verifies the bundled entrypoint with `node --check`
-5. rewrites `cli/package.json` into a publishable npm manifest and stores the dev copy as `cli/package.dev.json`
-6. copies the repo `README.md` into `cli/README.md` for npm metadata
+1. 运行禁用令牌检查（forbidden token check），除非提供了 `--skip-checks`
+2. 运行 `pnpm -r typecheck`
+3. 使用 esbuild 将 CLI 入口打包到 `cli/dist/index.js`
+4. 使用 `node --check` 验证打包后的入口文件
+5. 将 `cli/package.json` 重写为可发布的 npm 清单（manifest），并将开发副本存储为 `cli/package.dev.json`
+6. 将仓库的 `README.md` 复制到 `cli/README.md` 作为 npm 元数据
 
-After the release script exits, the dev manifest and temporary files are restored automatically.
+发布脚本退出后，开发清单和临时文件会自动恢复。
 
-## Package discovery and versioning
+## 包发现与版本管理
 
-Public packages are discovered from:
+公共包（public packages）从以下目录中发现：
 
 - `packages/`
 - `server/`
 - `ui/`
 - `cli/`
 
-The version rewrite step now uses [`scripts/release-package-map.mjs`](../scripts/release-package-map.mjs), which:
+版本重写步骤现在使用 [`scripts/release-package-map.mjs`](../scripts/release-package-map.mjs)，该脚本会：
 
-- finds all public packages
-- sorts them topologically by internal dependencies
-- rewrites each package version to the target release version
-- rewrites internal `workspace:*` dependency references to the exact target version
-- updates the CLI's displayed version string
+- 查找所有公共包
+- 按内部依赖关系进行拓扑排序（topological sort）
+- 将每个包的版本重写为目标发布版本
+- 将内部 `workspace:*` 依赖引用重写为精确的目标版本
+- 更新 CLI 显示的版本字符串
 
-Those rewrites are temporary. The working tree is restored after publish or dry-run.
+这些重写是临时的。发布或试运行（dry-run）后，工作树会自动恢复。
 
-## `@paperclipai/ui` packaging
+## `@paperclipai/ui` 打包
 
-The UI package publishes prebuilt static assets, not the source workspace.
+UI 包发布的是预构建的静态资源（prebuilt static assets），而非源码工作区。
 
-The `ui` package uses [`scripts/generate-ui-package-json.mjs`](../scripts/generate-ui-package-json.mjs) during `prepack` to swap in a lean publish manifest that:
+`ui` 包在 `prepack` 阶段使用 [`scripts/generate-ui-package-json.mjs`](../scripts/generate-ui-package-json.mjs) 切换为精简的发布清单，该清单会：
 
-- keeps the release-managed `name` and `version`
-- publishes only `dist/`
-- omits the source-only dependency graph from downstream installs
+- 保留由发布流程管理的 `name` 和 `version`
+- 仅发布 `dist/` 目录
+- 从下游安装中省略仅限源码的依赖图
 
-After packing or publishing, `postpack` restores the development manifest automatically.
+打包或发布后，`postpack` 会自动恢复开发清单。
 
-### Manual first publish for `@paperclipai/ui`
+### `@paperclipai/ui` 的首次手动发布
 
-If you need to publish only the UI package once by hand, use the real package name:
+如果你需要手动发布一次 UI 包，请使用真实的包名：
 
 - `@paperclipai/ui`
 
-Recommended flow from the repo root:
+推荐从仓库根目录执行以下流程：
 
 ```bash
-# optional sanity check: this 404s until the first publish exists
+# 可选的完整性检查：首次发布前此处返回 404
 npm view @paperclipai/ui version
 
-# make sure the dist payload is fresh
+# 确保 dist 产物是最新的
 pnpm --filter @paperclipai/ui build
 
-# confirm your local npm auth before the real publish
+# 在正式发布前确认本地 npm 认证状态
 npm whoami
 
-# safe preview of the exact publish payload
+# 安全预览即将发布的完整内容
 cd ui
 pnpm publish --dry-run --no-git-checks --access public
 
-# real publish
+# 正式发布
 pnpm publish --no-git-checks --access public
 ```
 
-Notes:
+注意事项：
 
-- Publish from `ui/`, not the repo root.
-- `prepack` automatically rewrites `ui/package.json` to the lean publish manifest, and `postpack` restores the dev manifest after the command finishes.
-- If `npm view @paperclipai/ui version` already returns the same version that is in [`ui/package.json`](../ui/package.json), do not republish. Bump the version or use the normal repo-wide release flow in [`scripts/release.sh`](../scripts/release.sh).
+- 从 `ui/` 目录发布，而非仓库根目录。
+- `prepack` 会自动将 `ui/package.json` 重写为精简的发布清单，命令完成后 `postpack` 会恢复开发清单。
+- 如果 `npm view @paperclipai/ui version` 已经返回与 [`ui/package.json`](../ui/package.json) 中相同的版本号，请勿重复发布。请升级版本号或使用仓库级别的正常发布流程 [`scripts/release.sh`](../scripts/release.sh)。
 
-If the first real publish returns npm `E404`, check npm-side prerequisites before retrying:
+如果首次正式发布返回 npm `E404` 错误，请在重试前检查 npm 端的先决条件：
 
-- `npm whoami` must succeed first. An expired or missing npm login will block the publish.
-- For an organization-scoped package like `@paperclipai/ui`, the `paperclipai` npm organization must exist and the publisher must be a member with permission to publish to that scope.
-- The initial publish must include `--access public` for a public scoped package.
-- npm also requires either account 2FA for publishing or a granular token that is allowed to bypass 2FA.
+- `npm whoami` 必须先成功。过期或缺失的 npm 登录会阻止发布。
+- 对于组织作用域包（organization-scoped package）如 `@paperclipai/ui`，`paperclipai` npm 组织必须存在，且发布者必须是具有该作用域发布权限的成员。
+- 公共作用域包的首次发布必须包含 `--access public`。
+- npm 还要求发布账户开启双因素认证（2FA），或使用允许绕过 2FA 的细粒度令牌（granular token）。
 
-## Version formats
+## 版本格式
 
-Paperclip uses calendar versions:
+Paperclip 使用日历版本号（calendar versions）：
 
-- stable: `YYYY.MDD.P`
-- canary: `YYYY.MDD.P-canary.N`
+- 稳定版：`YYYY.MDD.P`
+- 金丝雀版：`YYYY.MDD.P-canary.N`
 
-Examples:
+示例：
 
-- stable: `2026.318.0`
-- canary: `2026.318.1-canary.2`
+- 稳定版：`2026.318.0`
+- 金丝雀版：`2026.318.1-canary.2`
 
-## Publish model
+## 发布模型
 
-### Canary
+### 金丝雀发布（Canary）
 
-Canaries publish under the npm dist-tag `canary`.
+金丝雀版本发布到 npm 的 dist-tag `canary`。
 
-Example:
+示例：
 
 - `paperclipai@2026.318.1-canary.2`
 
-This keeps the default install path unchanged while allowing explicit installs with:
+这样可以保持默认安装路径不变，同时允许通过以下方式显式安装：
 
 ```bash
 npx paperclipai@canary onboard
 ```
 
-The release script now verifies two things after a canary publish:
+发布脚本现在会在金丝雀发布后验证两件事：
 
-- the `canary` dist-tag resolves to the version that was just published
-- every published internal `@paperclipai/*` dependency referenced by that manifest exists on npm
+- `canary` dist-tag 解析到刚刚发布的版本
+- 该清单引用的每个已发布的内部 `@paperclipai/*` 依赖都已存在于 npm 上
 
-It also treats `latest -> canary` as a failure by default, because npm metadata can otherwise leave the default install path pointing at an unreleased canary dependency graph. Only pass `./scripts/release.sh canary --allow-canary-latest` when that `latest` behavior is explicitly intended.
+脚本默认将 `latest -> canary` 视为失败，因为 npm 元数据可能会使默认安装路径指向未发布的金丝雀依赖图。只有在明确需要该 `latest` 行为时，才使用 `./scripts/release.sh canary --allow-canary-latest`。
 
-### Stable
+### 稳定发布（Stable）
 
-Stable publishes use the npm dist-tag `latest`.
+稳定发布使用 npm dist-tag `latest`。
 
-Example:
+示例：
 
 - `paperclipai@2026.318.0`
 
-Stable publishes do not create a release commit. Instead:
+稳定发布不会创建发布提交（release commit）。取而代之的是：
 
-- package versions are rewritten temporarily
-- packages are published from the chosen source commit
-- git tag `vYYYY.MDD.P` points at that original commit
+- 包版本被临时重写
+- 从选定的源提交进行发布
+- git 标签 `vYYYY.MDD.P` 指向该原始提交
 
-## Trusted publishing
+## 可信发布（Trusted publishing）
 
-The intended CI model is npm trusted publishing through GitHub OIDC.
+预期的 CI 模型是通过 GitHub OIDC 进行 npm 可信发布。
 
-That means:
+这意味着：
 
-- no long-lived `NPM_TOKEN` in repository secrets
-- GitHub Actions obtains short-lived publish credentials
-- trusted publisher rules are configured per workflow file
+- 仓库密钥中没有长期有效的 `NPM_TOKEN`
+- GitHub Actions 获取短期发布凭证
+- 可信发布者规则按工作流文件配置
 
-See [doc/RELEASE-AUTOMATION-SETUP.md](RELEASE-AUTOMATION-SETUP.md) for the GitHub/npm setup steps.
+设置步骤请参阅 [doc/RELEASE-AUTOMATION-SETUP.md](RELEASE-AUTOMATION-SETUP.md)。
 
-## Release enrollment for new public packages
+## 新公共包的发布注册
 
-Paperclip does not auto-publish every non-private workspace package anymore.
-CI publishing is controlled by [`scripts/release-package-manifest.json`](../scripts/release-package-manifest.json).
+Paperclip 不再自动发布每个非私有工作区包。CI 发布由 [`scripts/release-package-manifest.json`](../scripts/release-package-manifest.json) 控制。
 
-When you add a new public package:
+当你添加新的公共包时：
 
-1. add it to the manifest and decide whether CI should publish it immediately
-2. if CI should publish it, bootstrap the package on npm before merge
-3. if CI should not publish it yet, keep `"publishFromCi": false`
-4. only enable `"publishFromCi": true` after npm trusted publishing is configured for that package
+1. 将其添加到清单中，并决定 CI 是否应立即发布
+2. 如果 CI 应该发布，在合并前在 npm 上引导（bootstrap）该包
+3. 如果 CI 暂时不应发布，保持 `"publishFromCi": false`
+4. 仅为该包配置 npm 可信发布后，才启用 `"publishFromCi": true`
 
-PR CI now checks changed release-enabled package manifests against npm. That catches a missing first-publish bootstrap before the change reaches `master`.
+PR CI 现在会检查已变更的启用发布的包清单与 npm 的匹配情况。这可以在变更到达 `master` 之前捕获缺失的首次发布引导。
 
-### One-time bootstrap sequence for a new package
+### 新包的一次性引导流程
 
-The first publish of a brand-new package still needs one human maintainer with npm write access.
-After that, trusted publishing can take over.
+全新包的首次发布仍然需要一位具有 npm 写入权限的人类维护者完成。之后，可信发布即可接管。
 
-Example for `@paperclipai/adapter-acpx-local` from the repo root:
+从仓库根目录为 `@paperclipai/adapter-acpx-local` 执行的示例：
 
 ```bash
-# safe preview
+# 安全预览
 pnpm run release:bootstrap-package -- @paperclipai/adapter-acpx-local
 
-# one-time first publish from an authenticated maintainer machine
+# 从已认证的维护者机器上进行一次性首次发布
 pnpm run release:bootstrap-package -- @paperclipai/adapter-acpx-local --publish --otp 123456
 ```
 
-The helper script:
+辅助脚本会：
 
-- checks that the package does not already exist on npm
-- builds the target package unless `--skip-build` is passed
-- runs `npm pack --dry-run` in the package directory
-- only runs the real `npm publish --access public` when `--publish --otp <code>` is provided
+- 检查该包是否尚未存在于 npm 上
+- 构建目标包（除非传入 `--skip-build`）
+- 在包目录中运行 `npm pack --dry-run`
+- 仅在提供 `--publish --otp <code>` 时才运行真正的 `npm publish --access public`
 
-For the real `--publish` step, the maintainer machine must already be authenticated to npm.
-If `npm whoami` returns `401`, first run `npm logout --registry=https://registry.npmjs.org/` to clear any stale local auth, then run `npm login` or `npm adduser` locally as an npm org member, and finally rerun the helper.
-That local human auth is fine for the one-time bootstrap publish; we just do not want the same auth model inside CI.
-The helper now requires `--otp <code>` up front for `--publish`, so it fails before the real publish attempt if the one-time password is missing.
+对于真正的 `--publish` 步骤，维护者机器必须已通过 npm 认证。如果 `npm whoami` 返回 `401`，请先运行 `npm logout --registry=https://registry.npmjs.org/` 清除任何过期的本地认证，然后以 npm 组织成员身份在本地运行 `npm login` 或 `npm adduser`，最后重新运行辅助脚本。该本地人工认证仅用于一次性引导发布；我们不希望在 CI 中使用相同的认证模式。辅助脚本现在要求为 `--publish` 预先提供 `--otp <code>`，如果缺少一次性密码，则会在真正发布尝试之前失败。
 
-After that first publish succeeds:
+首次发布成功后：
 
-1. open `https://www.npmjs.com/package/@paperclipai/adapter-acpx-local`
-2. go to `Settings` → `Trusted publishing`
-3. add repository `paperclipai/paperclip`
-4. set workflow filename to `release.yml`
-5. optionally go to `Settings` → `Publishing access` and enable `Require two-factor authentication and disallow tokens`
-6. keep `publishFromCi: true` in [`scripts/release-package-manifest.json`](../scripts/release-package-manifest.json)
+1. 打开 `https://www.npmjs.com/package/@paperclipai/adapter-acpx-local`
+2. 进入 `Settings` → `Trusted publishing`
+3. 添加仓库 `paperclipai/paperclip`
+4. 设置工作流文件名为 `release.yml`
+5. 可选：进入 `Settings` → `Publishing access` 并启用 `Require two-factor authentication and disallow tokens`
+6. 在 [`scripts/release-package-manifest.json`](../scripts/release-package-manifest.json) 中保持 `publishFromCi: true`
 
-Once those steps are done, future canary and stable publishes for that package are automated through GitHub OIDC. The manual step is only the first package creation on npm.
+完成上述步骤后，该包的后续金丝雀和稳定发布将通过 GitHub OIDC 自动化完成。手动步骤仅限于在 npm 上的首次包创建。
 
-## Rollback model
+## 回滚模型（Rollback model）
 
-Rollback does not unpublish anything.
+回滚不会取消发布（unpublish）任何内容。
 
-It repoints the `latest` dist-tag to a prior stable version:
+它会将 `latest` dist-tag 重新指向之前的稳定版本：
 
 ```bash
 ./scripts/rollback-latest.sh 2026.318.0
 ```
 
-This is the fastest way to restore the default install path if a stable release is bad.
+如果稳定版发布出现问题，这是恢复默认安装路径的最快方式。
 
-## Related Files
+## 相关文件
 
 - [`scripts/build-npm.sh`](../scripts/build-npm.sh)
 - [`scripts/generate-npm-package-json.mjs`](../scripts/generate-npm-package-json.mjs)

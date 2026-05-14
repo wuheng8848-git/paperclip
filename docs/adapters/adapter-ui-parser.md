@@ -1,7 +1,7 @@
 ---
-title: Adapter UI Parser Contract
+
+## title: Adapter UI Parser Contract
 summary: Ship a custom run-log parser so the Paperclip UI renders your adapter's output correctly
----
 
 When Paperclip runs an agent, stdout is streamed to the UI in real time. The UI needs a **parser** to convert raw stdout lines into structured transcript entries (tool calls, tool results, assistant messages, system events). Without a custom parser, the UI falls back to a generic shell parser that treats every non-system line as `assistant` output — tool commands leak as plain text, durations are lost, and errors are invisible.
 
@@ -71,11 +71,13 @@ With a parser, the UI renders:
 
 The Paperclip host checks this field. If the major version is unsupported, the host logs a warning and falls back to the generic parser instead of executing potentially incompatible code.
 
-| Host expects | Adapter declares | Result |
-|---|---|---|
-| `1.x` | `1.0.0` | Parser loaded |
-| `1.x` | `2.0.0` | Warning logged, generic parser used |
-| `1.x` | (missing) | Parser loaded (grace period — future versions may require it) |
+
+| Host expects | Adapter declares | Result                                                        |
+| ------------ | ---------------- | ------------------------------------------------------------- |
+| `1.x`        | `1.0.0`          | Parser loaded                                                 |
+| `1.x`        | `2.0.0`          | Warning logged, generic parser used                           |
+| `1.x`        | (missing)        | Parser loaded (grace period — future versions may require it) |
+
 
 ### 2. `exports["./ui-parser"]` — file path
 
@@ -202,37 +204,36 @@ Set `isError: true` on tool results to show a red indicator:
 ## Constraints
 
 1. **Zero runtime imports.** Your file is loaded via `URL.createObjectURL` + dynamic `import()` in the browser. No `import`, no `require`, no top-level `await`.
-
 2. **No DOM / Node.js APIs.** Runs in a browser sandbox. Use only vanilla JS (ES2020+).
-
 3. **No side effects.** Module-level code must not modify globals, access `window`, or perform I/O. Only declare and export functions.
-
 4. **Deterministic.** Given the same `(line, ts)` input, the same output must be produced. This matters for log replay.
-
 5. **Error-tolerant.** Never throw. Return `[{ kind: "stdout", ts, text: line }]` for any line you can't parse, rather than crashing the transcript.
-
 6. **File size.** Keep under 50 KB. This is served per-request and eval'd in the browser.
 
 ## Lifecycle
 
-| Event | What happens |
-|---|---|
-| Server starts | Plugin loader reads `exports["./ui-parser"]`, reads the file, caches in memory |
-| UI opens run | `getUIAdapter(type)` called. If no built-in parser, kicks off async `fetch(/api/:type/ui-parser.js)` |
-| First lines arrive | Generic process parser handles them immediately (no blocking). Dynamic parser loads in background |
-| Parser loads | `registerUIAdapter()` called. All subsequent line parsing uses the real parser |
-| Parser fails (404, eval error) | Warning logged to console. Generic parser continues. Failed type is cached — no retries |
-| Server restart | In-memory cache is repopulated from adapter packages |
+
+| Event                          | What happens                                                                                         |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| Server starts                  | Plugin loader reads `exports["./ui-parser"]`, reads the file, caches in memory                       |
+| UI opens run                   | `getUIAdapter(type)` called. If no built-in parser, kicks off async `fetch(/api/:type/ui-parser.js)` |
+| First lines arrive             | Generic process parser handles them immediately (no blocking). Dynamic parser loads in background    |
+| Parser loads                   | `registerUIAdapter()` called. All subsequent line parsing uses the real parser                       |
+| Parser fails (404, eval error) | Warning logged to console. Generic parser continues. Failed type is cached — no retries              |
+| Server restart                 | In-memory cache is repopulated from adapter packages                                                 |
+
 
 ## Error Behavior
 
-| Failure | What happens |
-|---|---|
-| Module syntax error (import fails) | Caught, logged, falls back to generic parser. No retries. |
-| Returns wrong shape | Individual entries with missing fields are silently ignored by the transcript builder. |
-| Throws at runtime | Caught per-line. That line falls back to generic. Parser stays registered for future lines. |
-| 404 (no ui-parser export) | Type added to failed-loads set. Generic parser from first call onward. |
-| Contract version mismatch | Server logs warning, skips loading. Generic parser used. |
+
+| Failure                            | What happens                                                                                |
+| ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| Module syntax error (import fails) | Caught, logged, falls back to generic parser. No retries.                                   |
+| Returns wrong shape                | Individual entries with missing fields are silently ignored by the transcript builder.      |
+| Throws at runtime                  | Caught per-line. That line falls back to generic. Parser stays registered for future lines. |
+| 404 (no ui-parser export)          | Type added to failed-loads set. Generic parser from first call onward.                      |
+| Contract version mismatch          | Server logs warning, skips loading. Generic parser used.                                    |
+
 
 ## Building
 
@@ -285,3 +286,4 @@ To skip it, simply don't include `exports["./ui-parser"]` in your `package.json`
 
 - [External Adapters](/adapters/external-adapters) — full guide to building adapter packages
 - [Creating an Adapter](/adapters/creating-an-adapter) — adapter internals and built-in integration
+

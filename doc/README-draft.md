@@ -1,78 +1,78 @@
-# Instructions for writing the README.md
+# README.md 编写指南
 
-The readme should be visually interesting, to the point, not too long.
-Use the copy from the website in cases where we need some.
+README 应当视觉上引人注目、切中要点、篇幅适中。
+在需要时可参考官网上的文案（Copy）。
 
-- gives the pitch why, e.g. from the homepage.
+- 给出核心卖点（Pitch），例如来自首页的描述。
 
-## Outline
+## 大纲（Outline）
 
-- image header up top
+- 顶部放置图片头部（Image Header）
 - Paperclip
-- Manage autonomous AI Businesses
-- The open-source AI-agent orchestrator teams of agents that run companies
+- 管理自主 AI 企业（Manage Autonomous AI Businesses）
+- 开源 AI 智能体编排器（AI-Agent Orchestrator），协调智能体团队来运营公司
 
-- a video
+- 一个视频（Video）
 
-# What is it
+# 这是什么
 
-Paperclip is a node server & UI that orchestrates a team of agents to run businesses.
+Paperclip 是一个节点服务器（Node Server）与用户界面（UI），用于编排智能体（Agent）团队来运营企业。
 
-Bring-your-own agents, assign goals, and track your agent's work and costs.
+支持自带智能体（Bring-your-own Agents），为智能体分配目标（Goals），并追踪智能体的工作进展与成本（Costs）。
 
-It looks like a task manager but has specialized skills and agent coordination
+它看起来像一个任务管理器（Task Manager），但具备专业技能与智能体协调能力。
 
-**It's high taste, and feels good to use**
+**它品味出众，使用体验极佳**
 
-# Paperclip is right for you if:
+# 如果你是以下用户，Paperclip 很适合你：
 
-- You want to build autonomous companies
-- You want to coordinate many different types agents (OpenClaw, Codex, Claude, Cursor, etc.) to collaborate towards a common goal
-- You have 20 simultaneous Claude Code terminals open (and lose track of what everyone is working on)
-- You want to let your agents run autonomously 24/7, but still audit their work and chime in when needed
-- You want to monitor costs
-- You want a process for managing your agents that feels like using a task manager
-- You want to manage your autonomous businesses from your phone
+- 你想构建自主企业（Autonomous Companies）
+- 你想协调多种不同类型的智能体（如 OpenClaw、Codex、Claude、Cursor 等）协作完成共同目标
+- 你同时打开了 20 个 Claude Code 终端（并记不清每个人在做什么）
+- 你想让智能体全天候自主运行（24/7），但仍能审核其工作并在需要时介入
+- 你想监控成本（Costs）
+- 你想要一种管理智能体的流程，感觉就像使用任务管理器
+- 你想通过手机管理你的自主企业
 
-# What is not
+# 它不是什么
 
-Paperclip is not:
+Paperclip 不是：
 
-- a code review tool
-- opinionated about what agent you use
+- 代码审查工具（Code Review Tool）
+- 对你使用的智能体类型有偏好
 
-# the problem
+# 问题所在（The Problem）
 
-If you want to be maximally effective with agents, you need to
+如果你想让智能体发挥最大效能，你需要……
 
-# quickstart
+# 快速入门（Quickstart）
 
-# faq
+# 常见问题（FAQ）
 
-# comparison
+# 对比（Comparison）
 
-# contributing
+# 贡献指南（Contributing）
 
-# community
+# 社区（Community）
 
-# license
+# 许可证（License）
 
-# footer
+# 页脚（Footer）
 
-## Examples:
+## 示例参考：
 
-- https://github.com/klawsh/klaw.sh - nice header, nice tables
-  - what is it
-  - the problem
-  - quickstart
-  - faq
-  - comparison
-  - contributing
-  - community
-  - license
-  - footer
-- https://github.com/nearai/ironclaw - nice header
-  - philosophy
-- https://github.com/TinyAGI/tinyclaw - nice header, nice video
-- https://github.com/ryoppippi/ccusage - nice header,
-- https://github.com/can1357/oh-my-pi - a little long
+- https://github.com/klawsh/klaw.sh - 精美的头部，精美的表格
+  - 这是什么
+  - 问题所在
+  - 快速入门
+  - 常见问题
+  - 对比
+  - 贡献指南
+  - 社区
+  - 许可证
+  - 页脚
+- https://github.com/nearai/ironclaw - 精美的头部
+  - 理念（Philosophy）
+- https://github.com/TinyAGI/tinyclaw - 精美的头部，精美的视频
+- https://github.com/ryoppippi/ccusage - 精美的头部
+- https://github.com/can1357/oh-my-pi - 篇幅稍长

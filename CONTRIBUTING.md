@@ -1,109 +1,109 @@
-# Contributing Guide
+# 贡献指南
 
-Thanks for wanting to contribute!
+感谢你愿意做出贡献！
 
-We really appreciate both small fixes and thoughtful larger changes.
+我们非常感谢无论是小修复还是经过深思熟虑的较大变更。
 
-## Two Paths to Get Your Pull Request Accepted
+## 两条让 Pull Request 被接受的路径
 
-### Path 1: Small, Focused Changes (Fastest way to get merged)
+### 路径 1：小而聚焦的变更（最快被合并的方式）
 
-- Pick **one** clear thing to fix/improve
-- Touch the **smallest possible number of files**
-- Make sure the change is very targeted and easy to review
-- All tests pass and CI is green
-- Greptile score is 5/5 with all comments addressed
-- Use the [PR template](.github/PULL_REQUEST_TEMPLATE.md)
+- 选择**一个**明确的事情来修复/改进
+- 触碰**尽可能少的文件**
+- 确保变更非常有针对性且易于审阅
+- 所有测试通过且 CI 为绿色
+- Greptile 评分为 5/5 且所有评论已处理
+- 使用 [PR 模板](.github/PULL_REQUEST_TEMPLATE.md)
 
-These almost always get merged quickly when they're clean.
+当这些变更干净利落时，几乎总是很快被合并。
 
-### Path 2: Bigger or Impactful Changes
+### 路径 2：较大或影响深远的变更
 
-- **First** talk about it in Discord → #dev channel  
-  → Describe what you're trying to solve  
-  → Share rough ideas / approach
-- Once there's rough agreement, build it
-- In your PR include:
-  - Before / After screenshots (or short video if UI/behavior change)
-  - Clear description of what & why
-  - Proof it works (manual testing notes)
-  - All tests passing and CI green
-  - Greptile score 5/5 with all comments addressed
-  - [PR template](.github/PULL_REQUEST_TEMPLATE.md) fully filled out
+- **首先**在 Discord 的 #dev 频道讨论
+  → 描述你试图解决的问题
+  → 分享粗略的想法/方案
+- 达成粗略共识后再开始构建
+- 在你的 PR 中包含：
+  - 前后对比截图（如果是 UI/行为变更则用短视频）
+  - 清晰描述做了什么以及为什么
+  - 证明它有效的证据（手动测试笔记）
+  - 所有测试通过且 CI 为绿色
+  - Greptile 评分为 5/5 且所有评论已处理
+  - [PR 模板](.github/PULL_REQUEST_TEMPLATE.md) 完整填写
 
-PRs that follow this path are **much** more likely to be accepted, even when they're large.
+遵循此路径的 PR 被接受的可能性**大得多**，即使它们规模较大。
 
-## PR Requirements (all PRs)
+## PR 要求（所有 PR）
 
-### Use the PR Template
+### 使用 PR 模板
 
-Every pull request **must** follow the PR template at [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md). If you create a PR via the GitHub API or other tooling that bypasses the template, copy its contents into your PR description manually. The template includes required sections: Thinking Path, What Changed, Verification, Risks, Model Used, and a Checklist.
+每个 Pull Request **必须**遵循 [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md) 中的 PR 模板。如果你通过 GitHub API 或其他绕过模板的工具创建 PR，请手动将其内容复制到你的 PR 描述中。模板包含必需的章节：思考路径、变更内容、验证方式、风险、使用的模型和检查清单。
 
-### Model Used (Required)
+### 使用的模型（必需）
 
-Every PR must include a **Model Used** section specifying which AI model produced or assisted with the change. Include the provider, exact model ID/version, context window size, and any relevant capability details (e.g., reasoning mode, tool use). If no AI was used, write "None — human-authored". This applies to all contributors — human and AI alike.
+每个 PR 必须包含一个**使用的模型**章节，说明哪个 AI 模型产生或辅助了此次变更。包括提供商、精确的模型 ID/版本、上下文窗口大小以及任何相关的能力细节（如推理模式、工具使用）。如果未使用 AI，写"无——人工编写"。这适用于所有贡献者——无论是人类还是 AI。
 
-### Tests Must Pass
+### 测试必须通过
 
-All tests must pass before a PR can be merged. Run them locally first and verify CI is green after pushing.
+所有测试必须在 PR 合并前通过。先在本地运行测试，推送后验证 CI 为绿色。
 
-### Greptile Review
+### Greptile 审阅
 
-We use [Greptile](https://greptile.com) for automated code review. Your PR must achieve a **5/5 Greptile score** with **all Greptile comments addressed** before it can be merged. If Greptile leaves comments, fix or respond to each one and request a re-review.
+我们使用 [Greptile](https://greptile.com) 进行自动化代码审阅。你的 PR 必须达到 **5/5 Greptile 评分**且**所有 Greptile 评论已处理**才能被合并。如果 Greptile 留下了评论，请修复或回复每一条并请求重新审阅。
 
-## Feature Contributions
+## 功能贡献
 
-We actively manage the core Paperclip feature roadmap.
+我们积极管理核心 Paperclip 功能路线图。
 
-Uncoordinated feature PRs against the core product may be closed, even when the implementation is thoughtful and high quality. That is about roadmap ownership, product coherence, and long-term maintenance commitment, not a judgment about the effort.
+未经协调的功能 PR 针对核心产品可能会被关闭，即使实现经过深思熟虑且质量很高。这是关于路线图所有权、产品一致性和长期维护承诺的判断，而非对工作量的评判。
 
-If you want to contribute a feature:
+如果你想贡献一个功能：
 
-- Check [ROADMAP.md](ROADMAP.md) first
-- Start the discussion in Discord -> `#dev` before writing code
-- If the idea fits as an extension, prefer building it with the [plugin system](doc/plugins/PLUGIN_SPEC.md)
-- If you want to show a possible direction, reference implementations are welcome as feedback, but they generally will not be merged directly into core
+- 先查看 [ROADMAP.md](ROADMAP.md)
+- 在 Discord 的 `#dev` 频道开始讨论，然后再编写代码
+- 如果这个想法适合作为扩展，优先使用[插件系统](doc/plugins/PLUGIN_SPEC.md)构建
+- 如果你想展示一个可能的方向，参考实现作为反馈是受欢迎的，但它们通常不会直接合并到核心
 
-Bugs, docs improvements, and small targeted improvements are still the easiest path to getting merged, and we really do appreciate them.
+Bug 修复、文档改进和小型有针对性的改进仍然是最容易被合并的路径，我们确实非常感激它们。
 
-## General Rules (both paths)
+## 通用规则（两条路径）
 
-- Write clear commit messages
-- Keep PR title + description meaningful
-- One PR = one logical change (unless it's a small related group)
-- Run tests locally first
-- Be kind in discussions 😄
+- 编写清晰的提交信息
+- 保持 PR 标题和描述有意义
+- 一个 PR = 一个逻辑变更（除非是小型相关组）
+- 先在本地运行测试
+- 在讨论中保持友善 😄
 
-## Writing a Good PR message
+## 编写好的 PR 消息
 
-Your PR description must follow the [PR template](.github/PULL_REQUEST_TEMPLATE.md). All sections are required. The "thinking path" at the top explains from the top of the project down to what you fixed. E.g.:
+你的 PR 描述必须遵循 [PR 模板](.github/PULL_REQUEST_TEMPLATE.md)。所有章节都是必需的。顶部的"思考路径"从项目顶层解释到你修复的内容。例如：
 
-### Thinking Path Example 1:
+### 思考路径示例 1：
 
-> - Paperclip orchestrates ai-agents for zero-human companies
-> - There are many types of adapters for each LLM model provider
-> - But LLM's have a context limit and not all agents can automatically compact their context
-> - So we need to have an adapter-specific configuration for which adapters can and cannot automatically compact their context
-> - This pull request adds per-adapter configuration of compaction, either auto or paperclip managed
-> - That way we can get optimal performance from any adapter/provider in Paperclip
+> - Paperclip 为零人类公司编排 AI 智能体
+> - 每个 LLM 模型提供商有多种适配器类型
+> - 但 LLM 有上下文限制，不是所有智能体都能自动压缩上下文
+> - 因此我们需要针对适配器的配置来定义哪些适配器可以自动压缩上下文
+> - 此 PR 添加了每适配器的压缩配置，可以是自动的或由 Paperclip 管理的
+> - 这样我们可以从 Paperclip 中的任何适配器/提供商获得最佳性能
 
-### Thinking Path Example 2:
+### 思考路径示例 2：
 
-> - Paperclip orchestrates ai-agents for zero-human companies
-> - But humans want to watch the agents and oversee their work
-> - Human users also operate in teams and so they need their own logins, profiles, views etc.
-> - So we have a multi-user system for humans
-> - But humans want to be able to update their own profile picture and avatar
-> - But the avatar upload form wasn't saving the avatar to the file storage system
-> - So this PR fixes the avatar upload form to use the file storage service
-> - The benefit is we don't have a one-off file storage for just one aspect of the system, which would cause confusion and extra configuration
+> - Paperclip 为零人类公司编排 AI 智能体
+> - 但人类想要观察智能体并监督他们的工作
+> - 人类用户也在团队中运作，因此他们需要自己的登录、个人资料、视图等
+> - 所以我们有一个面向人类的多用户系统
+> - 但人类希望能够更新自己的头像和个人资料图片
+> - 但头像上传表单没有将头像保存到文件存储系统
+> - 因此此 PR 修复了头像上传表单以使用文件存储服务
+> - 好处是我们不会为系统的一个方面单独设置文件存储，那会造成混乱和额外配置
 
-Then have the rest of your normal PR message after the Thinking Path.
+然后在思考路径之后写你正常的 PR 消息。
 
-This should include details about what you did, why you did it, why it matters & the benefits, how we can verify it works, and any risks.
+这应该包括你做了什么、为什么做、为什么重要和好处、我们如何验证它有效以及任何风险的细节。
 
-Please include screenshots if possible if you have a visible change. (use something like the [agent-browser skill](https://github.com/vercel-labs/agent-browser/blob/main/skills/agent-browser/SKILL.md) or similar to take screenshots). Ideally, you include before and after screenshots.
+如果你有可见的变更，请尽可能包含截图。（使用类似 [agent-browser skill](https://github.com/vercel-labs/agent-browser/blob/main/skills/agent-browser/SKILL.md) 或类似工具来截图）。理想情况下，你包含前后对比截图。
 
-Questions? Just ask in #dev — we're happy to help.
+有问题？在 #dev 中提问——我们很乐意帮忙。
 
-Happy hacking!
+祝编码愉快！

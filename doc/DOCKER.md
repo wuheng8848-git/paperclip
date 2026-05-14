@@ -1,30 +1,30 @@
-# Docker Quickstart
+# Docker 快速入门
 
-Run Paperclip in Docker without installing Node or pnpm locally.
+无需在本地安装 Node 或 pnpm，即可在 Docker 中运行 Paperclip。
 
-All commands below assume you are in the **project root** (the directory containing `package.json`), not inside `docker/`.
+以下所有命令均假设你在**项目根目录**（即包含 `package.json` 的目录）下执行，而非 `docker/` 目录内。
 
-## Building the image
+## 构建镜像（Building the image）
 
 ```sh
 docker build -t paperclip-local .
 ```
 
-The Dockerfile installs common agent tools (`git`, `gh`, `curl`, `wget`, `ripgrep`, `python3`) and the Claude, Codex, and OpenCode CLIs.
+Dockerfile 会安装常用的代理工具（`git`、`gh`、`curl`、`wget`、`ripgrep`、`python3`）以及 Claude、Codex 和 OpenCode CLI。
 
-Build arguments:
+构建参数（Build arguments）：
 
-| Arg | Default | Purpose |
-|-----|---------|---------|
-| `USER_UID` | `1000` | UID for the container `node` user (match your host UID to avoid permission issues on bind mounts) |
-| `USER_GID` | `1000` | GID for the container `node` group |
+| 参数 | 默认值 | 用途 |
+|------|--------|------|
+| `USER_UID` | `1000` | 容器内 `node` 用户的 UID（与宿主机 UID 匹配可避免绑定挂载的权限问题） |
+| `USER_GID` | `1000` | 容器内 `node` 用户组的 GID |
 
 ```sh
 docker build -t paperclip-local \
   --build-arg USER_UID=$(id -u) --build-arg USER_GID=$(id -g) .
 ```
 
-## One-liner (build + run)
+## 一键运行（构建 + 启动）
 
 ```sh
 docker build -t paperclip-local . && \
@@ -37,69 +37,69 @@ docker run --name paperclip \
   paperclip-local
 ```
 
-Open: `http://localhost:3100`
+打开：`http://localhost:3100`
 
-Data persistence:
+数据持久化（Data persistence）：
 
-- Embedded PostgreSQL data
-- uploaded assets
-- local secrets key
-- local agent workspace data
+- 内嵌 PostgreSQL（Embedded PostgreSQL）数据
+- 上传的资源文件
+- 本地密钥（secrets key）
+- 本地代理工作区数据
 
-All persisted under your bind mount (`./data/docker-paperclip` in the example above).
+所有数据均持久化在绑定挂载目录下（上例中的 `./data/docker-paperclip`）。
 
 ## Docker Compose
 
-### Quickstart (embedded SQLite)
+### 快速启动（内嵌 SQLite）
 
-Single container, no external database. Data persists via a bind mount.
+单容器，无需外部数据库。数据通过绑定挂载（bind mount）持久化。
 
 ```sh
 BETTER_AUTH_SECRET=$(openssl rand -hex 32) \
   docker compose -f docker/docker-compose.quickstart.yml up --build
 ```
 
-Defaults:
+默认配置：
 
-- host port: `3100`
-- persistent data dir: `./data/docker-paperclip`
+- 宿主机端口：`3100`
+- 持久化数据目录：`./data/docker-paperclip`
 
-Optional overrides:
+可选覆盖：
 
 ```sh
 PAPERCLIP_PORT=3200 PAPERCLIP_DATA_DIR=../data/pc \
   docker compose -f docker/docker-compose.quickstart.yml up --build
 ```
 
-**Note:** `PAPERCLIP_DATA_DIR` is resolved relative to the compose file (`docker/`), so `../data/pc` maps to `data/pc` in the project root.
+**注意：** `PAPERCLIP_DATA_DIR` 相对于 Compose 文件所在目录（`docker/`）解析，因此 `../data/pc` 对应项目根目录下的 `data/pc`。
 
-If you change host port or use a non-local domain, set `PAPERCLIP_PUBLIC_URL` to the external URL you will use in browser/auth flows.
+如果更改了宿主机端口或使用非本地域名，请设置 `PAPERCLIP_PUBLIC_URL` 为浏览器/认证流程中使用的外部 URL。
 
-Pass `OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY` to enable local adapter runs.
+传入 `OPENAI_API_KEY` 和/或 `ANTHROPIC_API_KEY` 可启用本地适配器（adapter）运行。
 
-### Full stack (with PostgreSQL)
+### 完整栈（含 PostgreSQL）
 
-Paperclip server + PostgreSQL 17. The database is health-checked before the server starts.
+Paperclip 服务器 + PostgreSQL 17。数据库会通过健康检查（health check）后才启动服务器。
 
 ```sh
 BETTER_AUTH_SECRET=$(openssl rand -hex 32) \
   docker compose -f docker/docker-compose.yml up --build
 ```
 
-PostgreSQL data persists in a named Docker volume (`pgdata`). Paperclip data persists in `paperclip-data`.
+PostgreSQL 数据持久化在命名 Docker 卷（named volume）`pgdata` 中。Paperclip 数据持久化在 `paperclip-data` 卷中。
 
-### Untrusted PR review
+### 不受信任的 PR 审查（Untrusted PR review）
 
-Isolated container for reviewing untrusted pull requests with Codex or Claude, without exposing your host machine. See `doc/UNTRUSTED-PR-REVIEW.md` for the full workflow.
+用于在隔离容器中审查不受信任的 Pull Request，可使用 Codex 或 Claude 进行审查，无需暴露宿主机。完整工作流程见 `doc/UNTRUSTED-PR-REVIEW.md`。
 
 ```sh
 docker compose -f docker/docker-compose.untrusted-review.yml build
 docker compose -f docker/docker-compose.untrusted-review.yml run --rm --service-ports review
 ```
 
-## Authenticated Compose (Single Public URL)
+## 认证 Compose 部署（单一公共 URL）
 
-For authenticated deployments, set one canonical public URL and let Paperclip derive auth/callback defaults:
+对于认证部署（authenticated deployment），设置一个规范的公共 URL，让 Paperclip 自动派生认证/回调默认值：
 
 ```yaml
 services:
@@ -110,25 +110,25 @@ services:
       PAPERCLIP_PUBLIC_URL: https://desk.koker.net
 ```
 
-`PAPERCLIP_PUBLIC_URL` is used as the primary source for:
+`PAPERCLIP_PUBLIC_URL` 作为以下配置的主要来源：
 
-- auth public base URL
-- Better Auth base URL defaults
-- bootstrap invite URL defaults
-- hostname allowlist defaults (hostname extracted from URL)
+- 认证公共基础 URL（auth public base URL）
+- Better Auth 基础 URL 默认值
+- 引导邀请 URL（bootstrap invite URL）默认值
+- 主机名白名单（hostname allowlist）默认值（从 URL 中提取主机名）
 
-Granular overrides remain available if needed (`PAPERCLIP_AUTH_PUBLIC_BASE_URL`, `BETTER_AUTH_URL`, `BETTER_AUTH_TRUSTED_ORIGINS`, `PAPERCLIP_ALLOWED_HOSTNAMES`).
+如需细粒度覆盖，仍可使用以下变量（`PAPERCLIP_AUTH_PUBLIC_BASE_URL`、`BETTER_AUTH_URL`、`BETTER_AUTH_TRUSTED_ORIGINS`、`PAPERCLIP_ALLOWED_HOSTNAMES`）。
 
-Set `PAPERCLIP_ALLOWED_HOSTNAMES` explicitly only when you need additional hostnames beyond the public URL host (for example Tailscale/LAN aliases or multiple private hostnames).
+仅在需要超出公共 URL 主机名之外的额外主机名时（例如 Tailscale/局域网别名或多个私有主机名），才需显式设置 `PAPERCLIP_ALLOWED_HOSTNAMES`。
 
-## Claude + Codex Local Adapters in Docker
+## Docker 中的 Claude + Codex 本地适配器
 
-The image pre-installs:
+镜像预装了：
 
-- `claude` (Anthropic Claude Code CLI)
-- `codex` (OpenAI Codex CLI)
+- `claude`（Anthropic Claude Code CLI）
+- `codex`（OpenAI Codex CLI）
 
-If you want local adapter runs inside the container, pass API keys when starting the container:
+如果需要在容器内运行本地适配器，请在启动容器时传入 API 密钥：
 
 ```sh
 docker run --name paperclip \
@@ -141,38 +141,38 @@ docker run --name paperclip \
   paperclip-local
 ```
 
-Notes:
+说明：
 
-- Without API keys, the app still runs normally.
-- Adapter environment checks in Paperclip will surface missing auth/CLI prerequisites.
+- 即使不提供 API 密钥，应用仍可正常运行。
+- Paperclip 中的适配器环境检查会提示缺少的认证/CLI 前置条件。
 
-## Podman Quadlet (systemd)
+## Podman Quadlet（systemd）
 
-The `docker/quadlet/` directory contains unit files to run Paperclip + PostgreSQL as systemd services via Podman Quadlet.
+`docker/quadlet/` 目录包含用于通过 Podman Quadlet 将 Paperclip + PostgreSQL 作为 systemd 服务运行的单元文件。
 
-| File | Purpose |
-|------|---------|
-| `docker/quadlet/paperclip.pod` | Pod definition — groups containers into a shared network namespace |
-| `docker/quadlet/paperclip.container` | Paperclip server — joins the pod, connects to Postgres at `127.0.0.1` |
-| `docker/quadlet/paperclip-db.container` | PostgreSQL 17 — joins the pod, health-checked |
+| 文件 | 用途 |
+|------|------|
+| `docker/quadlet/paperclip.pod` | Pod 定义 — 将容器组合到共享网络命名空间 |
+| `docker/quadlet/paperclip.container` | Paperclip 服务器 — 加入 Pod，连接 `127.0.0.1` 上的 PostgreSQL |
+| `docker/quadlet/paperclip-db.container` | PostgreSQL 17 — 加入 Pod，带健康检查 |
 
-### Setup
+### 设置步骤
 
-1. Build the image (see above).
+1. 构建镜像（参见上文）。
 
-2. Copy quadlet files to your systemd directory:
+2. 将 Quadlet 文件复制到 systemd 目录：
 
    ```sh
-   # Rootless (recommended)
+   # 无 root 模式（推荐）
    cp docker/quadlet/*.pod docker/quadlet/*.container \
      ~/.config/containers/systemd/
 
-   # Or rootful
+   # 或 root 模式
    sudo cp docker/quadlet/*.pod docker/quadlet/*.container \
      /etc/containers/systemd/
    ```
 
-3. Create a secrets env file (keep out of version control):
+3. 创建密钥环境文件（请勿纳入版本控制）：
 
    ```sh
    cat > ~/.config/containers/systemd/paperclip.env <<EOL
@@ -186,7 +186,7 @@ The `docker/quadlet/` directory contains unit files to run Paperclip + PostgreSQ
    EOL
    ```
 
-4. Create the data directory and start:
+4. 创建数据目录并启动：
 
    ```sh
    mkdir -p ~/.local/share/paperclip
@@ -194,41 +194,41 @@ The `docker/quadlet/` directory contains unit files to run Paperclip + PostgreSQ
    systemctl --user start paperclip-pod
    ```
 
-### Quadlet management
+### Quadlet 管理
 
 ```sh
-journalctl --user -u paperclip -f        # App logs
-journalctl --user -u paperclip-db -f     # DB logs
-systemctl --user status paperclip-pod    # Pod status
-systemctl --user restart paperclip-pod   # Restart all
-systemctl --user stop paperclip-pod      # Stop all
+journalctl --user -u paperclip -f        # 应用日志
+journalctl --user -u paperclip-db -f     # 数据库日志
+systemctl --user status paperclip-pod    # Pod 状态
+systemctl --user restart paperclip-pod   # 重启全部
+systemctl --user stop paperclip-pod      # 停止全部
 ```
 
-### Quadlet notes
+### Quadlet 注意事项
 
-- **First boot**: Unlike Docker Compose's `condition: service_healthy`, Quadlet's `After=` only waits for the DB unit to *start*, not for PostgreSQL to be ready. On a cold first boot you may see one or two restart attempts in `journalctl --user -u paperclip` while PostgreSQL initialises — this is expected and resolves automatically via `Restart=on-failure`.
-- Containers in a pod share `localhost`, so Paperclip reaches Postgres at `127.0.0.1:5432`.
-- PostgreSQL data persists in the `paperclip-pgdata` named volume.
-- Paperclip data persists at `~/.local/share/paperclip`.
-- For rootful quadlet deployment, remove `%h` prefixes and use absolute paths.
+- **首次启动**：与 Docker Compose 的 `condition: service_healthy` 不同，Quadlet 的 `After=` 仅等待数据库单元*启动*，而非等待 PostgreSQL 就绪。在冷启动时，你可能会在 `journalctl --user -u paperclip` 中看到一两次重启尝试，这是 PostgreSQL 初始化过程中的正常现象，会通过 `Restart=on-failure` 自动恢复。
+- 同一 Pod 内的容器共享 `localhost`，因此 Paperclip 通过 `127.0.0.1:5432` 连接 PostgreSQL。
+- PostgreSQL 数据持久化在 `paperclip-pgdata` 命名卷中。
+- Paperclip 数据持久化在 `~/.local/share/paperclip`。
+- 对于 root 模式的 Quadlet 部署，请移除 `%h` 前缀并使用绝对路径。
 
-## Onboard Smoke Test (Ubuntu + npm only)
+## 入驻冒烟测试（Ubuntu + npm 环境）
 
-Use this when you want to mimic a fresh machine that only has Ubuntu + npm and verify:
+当你想模拟一台仅有 Ubuntu + npm 的全新机器并验证以下内容时使用：
 
-- `npx paperclipai onboard --yes` completes
-- the server binds to `0.0.0.0:3100` so host access works
-- onboard/run banners and startup logs are visible in your terminal
+- `npx paperclipai onboard --yes` 能够完成
+- 服务器绑定到 `0.0.0.0:3100`，宿主机可以访问
+- 入驻/运行横幅和启动日志在终端中可见
 
-Build + run:
+构建 + 运行：
 
 ```sh
 ./scripts/docker-onboard-smoke.sh
 ```
 
-Open: `http://localhost:3131` (default smoke host port)
+打开：`http://localhost:3131`（默认冒烟测试宿主机端口）
 
-Useful overrides:
+常用覆盖参数：
 
 ```sh
 HOST_PORT=3200 PAPERCLIPAI_VERSION=latest ./scripts/docker-onboard-smoke.sh
@@ -236,19 +236,19 @@ PAPERCLIP_DEPLOYMENT_MODE=authenticated PAPERCLIP_DEPLOYMENT_EXPOSURE=private ./
 SMOKE_DETACH=true SMOKE_METADATA_FILE=/tmp/paperclip-smoke.env PAPERCLIPAI_VERSION=latest ./scripts/docker-onboard-smoke.sh
 ```
 
-Notes:
+说明：
 
-- Persistent data is mounted at `./data/docker-onboard-smoke` by default.
-- Container runtime user id defaults to your local `id -u` so the mounted data dir stays writable while avoiding root runtime.
-- Smoke script defaults to `authenticated/private` mode so `HOST=0.0.0.0` can be exposed to the host.
-- Smoke script defaults host port to `3131` to avoid conflicts with local Paperclip on `3100`.
-- Smoke script also defaults `PAPERCLIP_PUBLIC_URL` to `http://localhost:<HOST_PORT>` so bootstrap invite URLs and auth callbacks use the reachable host port instead of the container's internal `3100`.
-- In authenticated mode, the smoke script defaults `SMOKE_AUTO_BOOTSTRAP=true` and drives the real bootstrap path automatically: it signs up a real user, runs `paperclipai auth bootstrap-ceo` inside the container to mint a real bootstrap invite, accepts that invite over HTTP, and verifies board session access.
-- Run the script in the foreground to watch the onboarding flow; stop with `Ctrl+C` after validation.
-- Set `SMOKE_DETACH=true` to leave the container running for automation and optionally write shell-ready metadata to `SMOKE_METADATA_FILE`.
-- The image definition is in `docker/Dockerfile.onboard-smoke`.
+- 持久化数据默认挂载在 `./data/docker-onboard-smoke`。
+- 容器运行时用户 ID 默认为你本地的 `id -u`，以确保挂载的数据目录可写，同时避免以 root 运行。
+- 冒烟脚本默认使用 `authenticated/private` 模式，以便将 `HOST=0.0.0.0` 暴露给宿主机。
+- 冒烟脚本默认宿主机端口为 `3131`，避免与本地 `3100` 端口上的 Paperclip 冲突。
+- 冒烟脚本同时将 `PAPERCLIP_PUBLIC_URL` 默认为 `http://localhost:<HOST_PORT>`，使引导邀请 URL 和认证回调使用可达的宿主机端口，而非容器内部的 `3100`。
+- 在认证模式下，冒烟脚本默认 `SMOKE_AUTO_BOOTSTRAP=true`，自动执行真实的引导流程：注册真实用户、在容器内运行 `paperclipai auth bootstrap-ceo` 生成真实的引导邀请、通过 HTTP 接受该邀请，并验证董事会会话（board session）访问权限。
+- 在前台运行脚本可观察入驻流程；验证完成后使用 `Ctrl+C` 停止。
+- 设置 `SMOKE_DETACH=true` 可让容器持续运行以支持自动化，并可选择将 shell 可用的元数据写入 `SMOKE_METADATA_FILE`。
+- 镜像定义位于 `docker/Dockerfile.onboard-smoke`。
 
-## General Notes
+## 通用说明
 
-- The `docker-entrypoint.sh` adjusts the container `node` user UID/GID at startup to match the values passed via `USER_UID`/`USER_GID`, avoiding permission issues on bind-mounted volumes.
-- Paperclip data persists via Docker volumes/bind mounts (compose) or at `~/.local/share/paperclip` (quadlet).
+- `docker-entrypoint.sh` 会在启动时调整容器内 `node` 用户的 UID/GID，使其与通过 `USER_UID`/`USER_GID` 传入的值匹配，从而避免绑定挂载卷的权限问题。
+- Paperclip 数据通过 Docker 卷/绑定挂载（Compose 模式）或 `~/.local/share/paperclip`（Quadlet 模式）持久化。

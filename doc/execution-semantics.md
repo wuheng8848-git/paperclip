@@ -1,406 +1,406 @@
-# Execution Semantics
+# 执行语义
 
-Status: Current implementation guide
-Date: 2026-04-26
-Audience: Product and engineering
+状态：当前实现指南
+日期：2026-04-26
+受众：产品与工程
 
-This document explains how Paperclip interprets issue assignment, issue status, execution runs, wakeups, parent/sub-issue structure, and blocker relationships.
+本文档说明 Paperclip 如何解释问题分配、问题状态、执行运行、唤醒、父/子问题结构以及阻塞关系。
 
-`doc/SPEC-implementation.md` remains the V1 contract. This document is the detailed execution model behind that contract.
+`doc/SPEC-implementation.md` 仍为 V1 契约。本文档是该契约背后的详细执行模型。
 
-## 1. Core Model
+## 1. 核心模型
 
-Paperclip separates four concepts that are easy to blur together:
+Paperclip 将四个容易混淆的概念分离：
 
-1. structure: parent/sub-issue relationships
-2. dependency: blocker relationships
-3. ownership: who is responsible for the issue now
-4. execution: whether the control plane currently has a live path to move the issue forward
+1. 结构（structure）：父/子问题关系
+2. 依赖（dependency）：阻塞关系
+3. 所有权（ownership）：当前谁负责该问题
+4. 执行（execution）：控制平面当前是否有活跃路径来推进该问题
 
-The system works best when those are kept separate.
+当这些概念保持分离时，系统运作最佳。
 
-## 2. Assignee Semantics
+## 2. 分配语义
 
-An issue has at most one assignee.
+一个问题最多有一个负责人。
 
-- `assigneeAgentId` means the issue is owned by an agent
-- `assigneeUserId` means the issue is owned by a human board user
-- both cannot be set at the same time
+- `assigneeAgentId` 表示该问题由智能体（agent）拥有
+- `assigneeUserId` 表示该问题由人类看板用户拥有
+- 两者不能同时设置
 
-This is a hard invariant. Paperclip is single-assignee by design.
+这是一个硬不变量。Paperclip 设计上采用单负责人模式。
 
-## 3. Status Semantics
+## 3. 状态语义
 
-Paperclip issue statuses are not just UI labels. They imply different expectations about ownership and execution.
+Paperclip 问题状态不仅是 UI 标签。它们暗示了关于所有权和执行的不同期望。
 
 ### `backlog`
 
-The issue is not ready for active work.
+该问题尚未准备好进行活跃工作。
 
-- no execution expectation
-- no pickup expectation
-- safe resting state for future work
+- 无执行期望
+- 无接取期望
+- 未来工作的安全休憩状态
 
 ### `todo`
 
-The issue is actionable but not actively claimed.
+该问题可操作但尚未被主动认领。
 
-- it may be assigned or unassigned
-- no checkout/execution lock is required yet
-- for agent-assigned work, Paperclip may still need a wake path to ensure the assignee actually sees it
+- 可能已分配或未分配
+- 尚不需要签出/执行锁
+- 对于智能体分配的工作，Paperclip 可能仍需要唤醒路径以确保负责人实际看到它
 
 ### `in_progress`
 
-The issue is actively owned work.
+该问题是被主动拥有的工作。
 
-- requires an assignee
-- for agent-owned issues, this is a strict execution-backed state
-- for user-owned issues, this is a human ownership state and is not backed by heartbeat execution
+- 需要一个负责人
+- 对于智能体拥有的问题，这是严格的执行支持状态
+- 对于用户拥有的问题，这是人类所有权状态，不由心跳执行支持
 
-For agent-owned issues, `in_progress` should not be allowed to become a silent dead state.
+对于智能体拥有的问题，`in_progress` 不应被允许成为静默的死状态。
 
 ### `blocked`
 
-The issue cannot proceed until something external changes.
+该问题在外部条件改变之前无法继续。
 
-This is the right state for:
+这是以下情况的正确状态：
 
-- waiting on another issue
-- waiting on a human decision
-- waiting on an external dependency or system when Paperclip does not own a scheduled re-check
-- work that automatic recovery could not safely continue
+- 等待另一个问题
+- 等待人类决策
+- 等待外部依赖或系统，且 Paperclip 不拥有计划的重新检查
+- 自动恢复无法安全继续的工作
 
 ### `in_review`
 
-Execution work is paused because the next move belongs to a reviewer or approver, not the current executor.
+执行工作已暂停，因为下一步动作属于审阅者或批准者，而非当前执行者。
 
-An external review service can also be a valid review path when the issue keeps an agent assignee and has an active one-shot monitor that will wake that assignee to check the service later.
+当问题保持智能体负责人且拥有活跃的一次性监控器（该监控器将唤醒负责人稍后检查服务）时，外部审阅服务也可以是有效的审阅路径。
 
 ### `done`
 
-The work is complete and terminal.
+工作已完成且为终态。
 
 ### `cancelled`
 
-The work will not continue and is terminal.
+工作不会继续且为终态。
 
-## 4. Agent-Owned vs User-Owned Execution
+## 4. 智能体拥有的 vs 用户拥有的执行
 
-The execution model differs depending on assignee type.
+执行模型因负责人类型而异。
 
-### Agent-owned issues
+### 智能体拥有的问题
 
-Agent-owned issues are part of the control plane's execution loop.
+智能体拥有的问题是控制平面执行循环的一部分。
 
-- Paperclip can wake the assignee
-- Paperclip can track runs linked to the issue
-- Paperclip can recover some lost execution state after crashes/restarts
+- Paperclip 可以唤醒负责人
+- Paperclip 可以追踪链接到该问题的运行
+- Paperclip 可以在崩溃/重启后恢复部分丢失的执行状态
 
-### User-owned issues
+### 用户拥有的问题
 
-User-owned issues are not executed by the heartbeat scheduler.
+用户拥有的问题不由心跳调度器执行。
 
-- Paperclip can track the ownership and status
-- Paperclip cannot rely on heartbeat/run semantics to keep them moving
-- stranded-work reconciliation does not apply to them
+- Paperclip 可以追踪所有权和状态
+- Paperclip 不能依赖心跳/运行语义来推进它们
+- 滞留工作协调不适用于它们
 
-This is why `in_progress` can be strict for agents without forcing the same runtime rules onto human-held work.
+这就是为什么 `in_progress` 对智能体可以是严格的，而不会将相同的运行时规则强加于人类持有的工作。
 
-## 5. Checkout and Active Execution
+## 5. 签出与活跃执行
 
-Checkout is the bridge from issue ownership to active agent execution.
+签出（Checkout）是问题所有权到活跃智能体执行的桥梁。
 
-- checkout is required to move an issue into agent-owned `in_progress`
-- `checkoutRunId` represents issue-ownership lock for the current agent run
-- `executionRunId` represents the currently active execution path for the issue
+- 签出是将问题移入智能体拥有的 `in_progress` 所必需的
+- `checkoutRunId` 表示当前智能体运行的问题所有权锁
+- `executionRunId` 表示问题当前活跃的执行路径
 
-These are related but not identical:
+这些相关但不相同：
 
-- `checkoutRunId` answers who currently owns execution rights for the issue
-- `executionRunId` answers which run is actually live right now
+- `checkoutRunId` 回答"谁当前拥有该问题的执行权"
+- `executionRunId` 回答"哪个运行当前实际活跃"
 
-Paperclip already clears stale execution locks and can adopt some stale checkout locks when the original run is gone.
+Paperclip 已经清除过期的执行锁，并且当原始运行消失时可以接管部分过期的签出锁。
 
-## 6. Parent/Sub-Issue vs Blockers
+## 6. 父/子问题 vs 阻塞器
 
-Paperclip uses two different relationships for different jobs.
+Paperclip 使用两种不同的关系来处理不同的工作。
 
-### Parent/Sub-Issue (`parentId`)
+### 父/子问题（`parentId`）
 
-This is structural.
+这是结构性的。
 
-Use it for:
+用于：
 
-- work breakdown
-- rollup context
-- explaining why a child issue exists
-- waking the parent assignee when all direct children become terminal
+- 工作分解
+- 汇总上下文
+- 解释子问题存在的原因
+- 当所有直接子问题变为终态时唤醒父负责人
 
-Do not treat `parentId` as execution dependency by itself.
+不要将 `parentId` 本身视为执行依赖。
 
-### Blockers (`blockedByIssueIds`)
+### 阻塞器（`blockedByIssueIds`）
 
-This is dependency semantics.
+这是依赖语义。
 
-Use it for:
+用于：
 
-- \"this issue cannot continue until that issue changes state\"
-- explicit waiting relationships
-- automatic wakeups when all blockers resolve
+- "该问题在那个问题状态改变之前无法继续"
+- 显式的等待关系
+- 当所有阻塞器解决时自动唤醒
 
-Blocked issues should stay idle while blockers remain unresolved. Paperclip should not create a queued heartbeat run for that issue until the final blocker is done and the `issue_blockers_resolved` wake can start real work.
+阻塞问题在阻塞器未解决期间应保持空闲。Paperclip 不应为该问题创建排队的心跳运行，直到最终阻塞器完成且 `issue_blockers_resolved` 唤醒可以开始真正的工作。
 
-If a parent is truly waiting on a child, model that with blockers. Do not rely on the parent/child relationship alone.
+如果父问题确实在等待子问题，请使用阻塞器建模。不要仅依赖父/子关系。
 
-## 7. Non-Terminal Issue Liveness Contract
+## 7. 非终态问题活性契约
 
-For agent-owned, non-terminal issues, Paperclip should never leave work in a state where nobody is responsible for the next move and nothing will wake or surface it.
+对于智能体拥有的非终态问题，Paperclip 永远不应让工作处于无人负责下一步动作且没有任何事物会唤醒或暴露它的状态。
 
-This is a visibility contract, not an auto-completion contract. If Paperclip cannot safely infer the next action, it should surface the ambiguity with a blocked state, a visible comment, or an explicit recovery issue. It must not silently mark work done from prose comments or guess that a dependency is complete.
+这是一个可见性契约，而非自动完成契约。如果 Paperclip 无法安全推断下一步动作，它应该以阻塞状态、可见评论或显式恢复问题来暴露歧义。它绝不能从散文评论中静默标记工作完成，或猜测依赖已完成。
 
-An issue is healthy when the product can answer "what moves this forward next?" without requiring a human to reconstruct intent from the whole thread. An issue is stalled when it is non-terminal but has no live execution path, no explicit waiting path, and no recovery path.
+当产品能够回答"什么推动它前进？"而不需要人类从整个线程重建意图时，问题是健康的。当问题处于非终态但没有活跃执行路径、没有显式等待路径且没有恢复路径时，问题是停滞的（stalled）。
 
-The valid action-path primitives are:
+有效的动作路径原语包括：
 
-- an active run linked to the issue
-- a queued wake or continuation that can be delivered to the responsible agent
-- a typed execution-policy participant, such as `executionState.currentParticipant`
-- a pending issue-thread interaction or linked approval that is waiting for a specific responder
-- a one-shot issue monitor (`executionPolicy.monitor.nextCheckAt`) that will wake the assignee for a future check
-- a human owner via `assigneeUserId`
-- a first-class blocker chain whose unresolved leaf issues are themselves healthy
-- an open explicit recovery issue that names the owner and action needed to restore liveness
+- 链接到该问题的活跃运行
+- 可以交付给责任智能体的排队唤醒或继续
+- 类型化的执行策略参与者，如 `executionState.currentParticipant`
+- 等待特定响应者的待处理问题线程交互或链接的批准
+- 一次性问题监控器（`executionPolicy.monitor.nextCheckAt`），将唤醒负责人进行未来检查
+- 通过 `assigneeUserId` 的人类所有者
+- 一级阻塞链，其未解决的叶子问题本身是健康的
+- 指定所有者和恢复活性所需动作的开放显式恢复问题
 
-### Agent-assigned `todo`
+### 智能体分配的 `todo`
 
-This is dispatch state: ready to start, not yet actively claimed.
+这是派发状态：准备好开始，尚未被主动认领。
 
-A healthy dispatch state means at least one of these is true:
+健康的派发状态意味着以下至少一项为真：
 
-- the issue already has a queued wake path
-- the issue is intentionally resting in `todo` after a completed agent heartbeat, with no interrupted dispatch evidence
-- the issue has been explicitly surfaced as stranded through a visible blocked/recovery path
+- 问题已有排队的唤醒路径
+- 问题在完成的智能体心跳后有意休憩在 `todo` 中，无中断的派发证据
+- 问题已通过可见的阻塞/恢复路径被显式暴露为滞留
 
-An assigned `todo` issue is stalled when dispatch was interrupted, no wake remains queued or running, and no recovery path has been opened.
+当派发被中断、没有唤醒保持排队或运行、且没有打开恢复路径时，已分配的 `todo` 问题是停滞的。
 
-### Agent-assigned `backlog`
+### 智能体分配的 `backlog`
 
-This is parked state, not dispatch state.
+这是停放状态，而非派发状态。
 
-Assigning an issue normally implies executable intent. When create APIs receive an assignee and no explicit status, Paperclip defaults the issue to `todo` so the assignee has a wake path instead of silently inheriting the unassigned `backlog` default.
+分配问题通常意味着可执行意图。当创建 API 接收到负责人且无显式状态时，Paperclip 将问题默认为 `todo`，以便负责人有唤醒路径，而不是静默继承未分配的 `backlog` 默认值。
 
-An explicit assigned `backlog` issue remains valid when the creator is deliberately parking the work. It must not wake the assignee just because it has an assignee. Paperclip should make that choice visible in activity and UI so operators can distinguish intentional parking from a missed handoff.
+当创建者有意停放工作时，显式的已分配 `backlog` 问题保持有效。它不应仅因为有负责人就唤醒负责人。Paperclip 应在活动和 UI 中使该选择可见，以便操作者区分有意停放和错过的交接。
 
-An assigned `backlog` issue becomes a liveness problem when another issue is blocked on it and there is no explicit waiting path such as a human owner, active run, queued wake, pending interaction or approval, monitor, or open recovery issue. In that case the blocked parent should surface "blocked by parked work" rather than treating the dependency chain as healthy.
+当另一个问题被阻塞且没有显式等待路径（如人类所有者、活跃运行、排队唤醒、待处理交互或批准、监控器或开放恢复问题）时，已分配的 `backlog` 问题成为活性问题。在这种情况下，被阻塞的父问题应暴露"被停放的工作阻塞"，而不是将依赖链视为健康。
 
-### Agent-assigned `in_progress`
+### 智能体分配的 `in_progress`
 
-This is active-work state.
+这是活跃工作状态。
 
-A healthy active-work state means at least one of these is true:
+健康的活跃工作状态意味着以下至少一项为真：
 
-- there is an active run for the issue
-- there is already a queued continuation wake
-- there is an active one-shot monitor that will wake the assignee for a future check
-- there is an open explicit recovery issue for the lost execution path
+- 问题有活跃运行
+- 已有排队的继续唤醒
+- 有活跃的一次性监控器，将唤醒负责人进行未来检查
+- 有针对丢失执行路径的开放显式恢复问题
 
-An agent-owned `in_progress` issue is stalled when it has no active run, no queued continuation, and no explicit recovery surface. A still-running but silent process is not automatically stalled; it is handled by the active-run watchdog contract.
+当智能体拥有的 `in_progress` 问题没有活跃运行、没有排队继续且没有显式恢复表面时，它是停滞的。仍在运行但静默的进程不自动被视为停滞；它由活跃运行看门狗契约处理。
 
 ### `in_review`
 
-This is review/approval state: execution is paused because the next move belongs to a reviewer, approver, board user, or recovery owner.
+这是审阅/批准状态：执行已暂停，因为下一步动作属于审阅者、批准者、看板用户或恢复所有者。
 
-A healthy `in_review` issue has at least one valid action path:
+健康的 `in_review` 问题至少有一个有效的动作路径：
 
-- a typed execution-policy participant who can approve or request changes
-- a pending issue-thread interaction or linked approval waiting for a named responder
-- a human owner via `assigneeUserId`
-- an active run or queued wake that is expected to process the review state
-- an active one-shot monitor for an external service or async review loop that the assignee owns
-- an open explicit recovery issue for an ambiguous review handoff
+- 可以批准或请求更改的类型化执行策略参与者
+- 等待命名响应者的待处理问题线程交互或链接批准
+- 通过 `assigneeUserId` 的人类所有者
+- 期望处理审阅状态的活跃运行或排队唤醒
+- 负责人拥有的外部服务或异步审阅循环的活跃一次性监控器
+- 针对歧义审阅交接的开放显式恢复问题
 
-Agent-assigned `in_review` with no typed participant is only healthy when one of the other paths exists. Assignment to the same agent that produced the handoff is not, by itself, a review path.
+没有类型化参与者的智能体分配 `in_review` 仅在其他路径之一存在时才是健康的。分配给产生交接的同一智能体本身不是审阅路径。
 
-An `in_review` issue is stalled when it has no typed participant, no pending interaction or approval, no user owner, no active monitor, no active run, no queued wake, and no explicit recovery issue. Paperclip should surface that state as recovery work rather than silently completing the issue or leaving blocker chains parked indefinitely.
+当 `in_review` 问题没有类型化参与者、没有待处理交互或批准、没有用户所有者、没有活跃监控器、没有活跃运行、没有排队唤醒且没有显式恢复问题时，它是停滞的。Paperclip 应将该状态暴露为恢复工作，而不是静默完成问题或无限期停放阻塞链。
 
-### Issue monitors
+### 问题监控器
 
-An issue monitor is a one-shot deferred action path for agent-owned issues in `in_progress` or `in_review`.
+问题监控器（Issue Monitor）是 `in_progress` 或 `in_review` 中智能体拥有的问题的一次性延迟动作路径。
 
-Use a monitor when the current assignee owns a future check against an async system or external service. Examples include Greptile review loops, GitHub checks, Vercel deployments, or provider jobs where the agent should come back later and decide what happens next.
+当当前负责人拥有对异步系统或外部服务的未来检查时使用监控器。示例包括 Greptile 审阅循环、GitHub 检查、Vercel 部署或提供者作业，智能体应稍后回来决定下一步。
 
-Monitor policy lives under `executionPolicy.monitor` and includes:
+监控器策略位于 `executionPolicy.monitor` 下，包括：
 
-- `nextCheckAt`: when Paperclip should wake the assignee
-- `notes`: non-secret instructions for what the assignee should check
-- `serviceName`: optional non-secret external-service context
-- `externalRef`: optional external-service reference input; Paperclip treats it as secret-adjacent, redacts it before persistence/visibility, and omits it from activity and wake payloads
-- `timeoutAt`, `maxAttempts`, and `recoveryPolicy`: optional recovery hints for bounded waits
+- `nextCheckAt`：Paperclip 应何时唤醒负责人
+- `notes`：负责人应检查什么的非密指令
+- `serviceName`：可选的非密外部服务上下文
+- `externalRef`：可选的外部服务参考输入；Paperclip 将其视为准密级，在持久化/可见性之前进行脱敏，并从活动和唤醒载荷中省略
+- `timeoutAt`、`maxAttempts` 和 `recoveryPolicy`：可选的有界等待恢复提示
 
-Monitors are not recurring intervals. When a monitor fires, Paperclip clears the scheduled monitor and queues an `issue_monitor_due` wake for the assignee. If the external service is still pending, the assignee must explicitly re-arm the monitor with a new `nextCheckAt`. If the issue moves to `done`, `cancelled`, an invalid status, or a human/unassigned owner, the monitor is cleared.
+监控器不是循环间隔。当监控器触发时，Paperclip 清除计划的监控器并为负责人排队一个 `issue_monitor_due` 唤醒。如果外部服务仍在待处理，负责人必须使用新的 `nextCheckAt` 显式重新装备监控器。如果问题移至 `done`、`cancelled`、无效状态或人类/未分配所有者，监控器将被清除。
 
-Because `serviceName` and `notes` remain visible in issue activity and wake context, operators should keep them short and non-secret. Put enough context for the assignee to know what to inspect, but do not include signed URLs, bearer tokens, customer secrets, tenant-private identifiers, or provider links with embedded credentials.
+由于 `serviceName` 和 `notes` 在问题活动和唤醒上下文中保持可见，操作者应保持其简短且非密。为负责人提供足够的上下文以知道检查什么，但不要包含签名 URL、承载令牌（bearer tokens）、客户密钥、租户私有标识符或带有嵌入凭据的提供者链接。
 
-Monitor bounds are enforced. Paperclip rejects attempts to re-arm a monitor whose `timeoutAt` or `maxAttempts` is already exhausted. When a scheduled monitor reaches an exhausted bound at trigger time, Paperclip clears it and follows `recoveryPolicy`: `wake_owner` queues a bounded recovery wake for the assignee, `create_recovery_issue` opens visible recovery work, and `escalate_to_board` records a board-visible escalation comment/activity.
+监控器边界被强制执行。Paperclip 拒绝尝试重新装备 `timeoutAt` 或 `maxAttempts` 已耗尽的监控器。当计划的监控器在触发时达到耗尽边界，Paperclip 清除它并遵循 `recoveryPolicy`：`wake_owner` 为负责人排队有界恢复唤醒，`create_recovery_issue` 打开可见的恢复工作，`escalate_to_board` 记录看板可见的升级评论/活动。
 
-Use `blocked` instead of a monitor when no Paperclip assignee owns a responsible polling path. In that case, name the external owner/action or create first-class recovery/blocker work.
+当没有 Paperclip 负责人拥有责任轮询路径时，使用 `blocked` 而非监控器。在那种情况下，命名外部所有者/动作或创建一级恢复/阻塞工作。
 
 ### `blocked`
 
-This is explicit waiting state.
+这是显式等待状态。
 
-A healthy `blocked` issue has an explicit waiting path:
+健康的 `blocked` 问题有显式等待路径：
 
-- first-class blockers exist, and each unresolved leaf has a valid action path under this contract
-- the issue is blocked on an explicit recovery issue that itself has a live or waiting path
-- the issue is waiting on a pending interaction, linked approval, human owner, or clearly named external owner/action
+- 一级阻塞器存在，且每个未解决的叶子在此契约下有有效动作路径
+- 问题被阻塞在显式恢复问题上，该问题本身有活跃或等待路径
+- 问题等待待处理交互、链接批准、人类所有者或明确命名的外部所有者/动作
 
-A blocker chain is covered only when its unresolved leaf is live or explicitly waiting. An intermediate `blocked` issue does not make the chain healthy by itself.
+阻塞链仅在其未解决的叶子活跃或显式等待时才被覆盖。中间的 `blocked` 问题本身不能使链健康。
 
-A `blocked` issue is stalled when the unresolved blocker leaf has no active run, queued wake, typed participant, pending interaction or approval, user owner, external owner/action, or recovery issue. In that case the parent should show the first stalled leaf instead of presenting the dependency as calmly covered.
+当未解决的阻塞叶子没有活跃运行、排队唤醒、类型化参与者、待处理交互或批准、用户所有者、外部所有者/动作或恢复问题时，`blocked` 问题是停滞的。在这种情况下，父问题应显示第一个停滞的叶子，而不是将依赖呈现为平静覆盖。
 
-## 8. Crash and Restart Recovery
+## 8. 崩溃与重启恢复
 
-Paperclip now treats crash/restart recovery as a stranded-assigned-work problem, not just a stranded-run problem.
+Paperclip 现在将崩溃/重启恢复视为滞留已分配工作问题，而不仅仅是滞留运行问题。
 
-There are two distinct failure modes.
+有两种不同的失败模式。
 
-### 8.1 Stranded assigned `todo`
+### 8.1 滞留已分配的 `todo`
 
-Example:
+示例：
 
-- issue is assigned to an agent
-- status is `todo`
-- the original wake/run died during or after dispatch
-- after restart there is no queued wake and nothing picks the issue back up
+- 问题已分配给智能体
+- 状态为 `todo`
+- 原始唤醒/运行在派发期间或之后死亡
+- 重启后没有排队的唤醒且没有任何事物重新接取该问题
 
-Recovery rule:
+恢复规则：
 
-- if the latest issue-linked run failed/timed out/cancelled and no live execution path remains, Paperclip queues one automatic assignment recovery wake
-- if that recovery wake also finishes and the issue is still stranded, Paperclip moves the issue to `blocked` and posts a visible comment
+- 如果最新的问题链接运行失败/超时/取消且没有剩余的活跃执行路径，Paperclip 排队一个自动分配恢复唤醒
+- 如果该恢复唤醒也完成且问题仍然滞留，Paperclip 将问题移至 `blocked` 并发布可见评论
 
-This is a dispatch recovery, not a continuation recovery.
+这是派发恢复，而非继续恢复。
 
-### 8.2 Stranded assigned `in_progress`
+### 8.2 滞留已分配的 `in_progress`
 
-Example:
+示例：
 
-- issue is assigned to an agent
-- status is `in_progress`
-- the live run disappeared
-- after restart there is no active run and no queued continuation
+- 问题已分配给智能体
+- 状态为 `in_progress`
+- 活跃运行消失
+- 重启后没有活跃运行且没有排队继续
 
-Recovery rule:
+恢复规则：
 
-- Paperclip queues one automatic continuation wake
-- if that continuation wake also finishes and the issue is still stranded, Paperclip moves the issue to `blocked` and posts a visible comment
+- Paperclip 排队一个自动继续唤醒
+- 如果该继续唤醒也完成且问题仍然滞留，Paperclip 将问题移至 `blocked` 并发布可见评论
 
-This is an active-work continuity recovery.
+这是活跃工作连续性恢复。
 
-## 9. Startup and Periodic Reconciliation
+## 9. 启动与周期性协调
 
-Startup recovery and periodic recovery are different from normal wakeup delivery.
+启动恢复和周期性恢复与正常唤醒交付不同。
 
-On startup and on the periodic recovery loop, Paperclip now does four things in sequence:
+在启动时和周期性恢复循环上，Paperclip 现在按顺序执行四件事：
 
-1. reap orphaned `running` runs
-2. resume persisted `queued` runs
-3. reconcile stranded assigned work
-4. scan silent active runs and create or update explicit watchdog review issues
+1. 收割孤立的 `running` 运行
+2. 恢复持久化的 `queued` 运行
+3. 协调滞留的已分配工作
+4. 扫描静默活跃运行并创建或更新显式看门狗审阅问题
 
-The stranded-work pass closes the gap where issue state survives a crash but the wake/run path does not. The silent-run scan covers the separate case where a live process exists but has stopped producing observable output.
+滞留工作传递关闭了问题状态在崩溃中存活但唤醒/运行路径不存在的间隙。静默运行扫描覆盖了活跃进程存在但已停止产生可观察输出的单独情况。
 
-## 10. Silent Active-Run Watchdog
+## 10. 静默活跃运行看门狗
 
-An active run can still be unhealthy even when its process is `running`. Paperclip treats prolonged output silence as a watchdog signal, not as proof that the run is failed.
+即使进程状态为 `running`，活跃运行仍可能不健康。Paperclip 将长时间的输出静默视为看门狗信号，而非运行失败的证明。
 
-The recovery service owns this contract:
+恢复服务拥有此契约：
 
-- classify active-run output silence as `ok`, `suspicious`, `critical`, `snoozed`, or `not_applicable`
-- collect bounded evidence from run logs, recent run events, child issues, and blockers
-- preserve redaction and truncation before evidence is written to issue descriptions
-- create at most one open `stale_active_run_evaluation` issue per run
-- honor active snooze decisions before creating more review work
-- build the `outputSilence` summary shown by live-run and active-run API responses
+- 将活跃运行输出静默分类为 `ok`、`suspicious`、`critical`、`snoozed` 或 `not_applicable`
+- 从运行日志、近期运行事件、子问题和阻塞器收集有界证据
+- 在证据写入问题描述之前保留脱敏和截断
+- 每个运行最多创建一个开放的 `stale_active_run_evaluation` 问题
+- 在创建更多审阅工作之前尊重活跃的延迟决定
+- 构建实时运行和活跃运行 API 响应中显示的 `outputSilence` 摘要
 
-Suspicious silence creates a medium-priority review issue for the selected recovery owner. Critical silence raises that review issue to high priority and blocks the source issue on the explicit evaluation task without cancelling the active process.
+可疑静默为选定的恢复所有者创建中优先级审阅问题。严重静默将该审阅问题提升为高优先级，并在不取消活跃进程的情况下将源问题阻塞在显式评估任务上。
 
-Watchdog decisions are explicit operator/recovery-owner decisions:
+看门狗决定是显式的操作者/恢复所有者决定：
 
-- `snooze` records an operator-chosen future quiet-until time and suppresses scan-created review work during that window
-- `continue` records that the current evidence is acceptable, does not cancel or mutate the active run, and sets a 30-minute default re-arm window before the watchdog evaluates the still-silent run again
-- `dismissed_false_positive` records why the review was not actionable
+- `snooze` 记录操作者选择的未来静默直到时间，并在该窗口期间抑制扫描创建的审阅工作
+- `continue` 记录当前证据可接受，不取消或变更活跃运行，并设置 30 分钟默认重新装备窗口，然后看门狗再次评估仍静默的运行
+- `dismissed_false_positive` 记录审阅为何不可操作
 
-Operators should prefer `snooze` for known time-bounded quiet periods. `continue` is only a short acknowledgement of the current evidence; if the run remains silent after the re-arm window, the periodic watchdog scan can create or update review work again.
+操作者应优先使用 `snooze` 处理已知的有时间限制的静默期。`continue` 仅是对当前证据的简短确认；如果运行在重新装备窗口后仍保持静默，周期性看门狗扫描可以再次创建或更新审阅工作。
 
-The board can record watchdog decisions. The assigned owner of the watchdog evaluation issue can also record them. Other agents cannot.
+看板可以记录看门狗决定。看门狗评估问题的分配负责人也可以记录。其他智能体不能。
 
-## 11. Auto-Recover vs Explicit Recovery vs Human Escalation
+## 11. 自动恢复 vs 显式恢复 vs 人工升级
 
-Paperclip uses three different recovery outcomes, depending on how much it can safely infer.
+Paperclip 使用三种不同的恢复结果，取决于它可以安全推断的程度。
 
-### Auto-Recover
+### 自动恢复
 
-Auto-recovery is allowed when ownership is clear and the control plane only lost execution continuity.
+当所有权清晰且控制平面仅丢失执行连续性时，允许自动恢复。
 
-Examples:
+示例：
 
-- requeue one dispatch wake for an assigned `todo` issue whose latest run failed, timed out, or was cancelled
-- requeue one continuation wake for an assigned `in_progress` issue whose live execution path disappeared
-- assign an orphan blocker back to its creator when that blocker is already preventing other work
+- 为已分配的 `todo` 问题重新排队一个派发唤醒，其最新运行失败、超时或被取消
+- 为已分配的 `in_progress` 问题重新排队一个继续唤醒，其活跃执行路径消失
+- 将孤立阻塞器重新分配给其创建者，当该阻塞器已在阻止其他工作时
 
-Auto-recovery preserves the existing owner. It does not choose a replacement agent.
+自动恢复保留现有所有者。它不选择替代智能体。
 
-### Explicit Recovery Issue
+### 显式恢复问题
 
-Paperclip creates an explicit recovery issue when the system can identify a problem but cannot safely complete the work itself.
+当系统可以识别问题但无法安全完成工作本身时，Paperclip 创建显式恢复问题。
 
-Examples:
+示例：
 
-- automatic stranded-work retry was already exhausted
-- a dependency graph has an invalid/uninvokable owner, unassigned blocker, or invalid review participant
-- an active run is silent past the watchdog threshold
+- 自动滞留工作重试已耗尽
+- 依赖图有无效/不可调用的所有者、未分配的阻塞器或无效的审阅参与者
+- 活跃运行静默超过看门狗阈值
 
-The source issue remains visible and blocked on the recovery issue when blocking is necessary for correctness. The recovery owner must restore a live path, resolve the source issue manually, or record the reason it is a false positive.
+当阻塞对正确性必要时，源问题保持可见并被阻塞在恢复问题上。恢复所有者必须恢复活跃路径、手动解决源问题或记录其为误报的原因。
 
-Instance-level issue-graph liveness auto-recovery is disabled by default. When enabled, its lookback window means "dependency paths updated within the last N hours"; older findings remain advisory and are counted as outside the configured lookback instead of creating recovery issues automatically. This is an operator noise control, not the older staleness delay for determining whether a chain is old enough to surface.
+实例级问题图活性自动恢复默认禁用。当启用时，其回溯窗口意为"在最近 N 小时内更新的依赖路径"；较旧的发现保持为建议性，并被计为在配置的回溯之外，而非自动创建恢复问题。这是操作者噪音控制，而非确定链是否足够旧以暴露的旧版陈旧延迟。
 
-### Human Escalation
+### 人工升级
 
-Human escalation is required when the next safe action depends on board judgment, budget/approval policy, or information unavailable to the control plane.
+当下一步安全动作依赖于看板判断、预算/批准策略或控制平面无法获得的信息时，需要人工升级。
 
-Examples:
+示例：
 
-- all candidate recovery owners are paused, terminated, pending approval, or budget-blocked
-- the issue is human-owned rather than agent-owned
-- the run is intentionally quiet but needs an operator decision before cancellation or continuation
+- 所有候选恢复所有者已暂停、终止、待批准或预算阻塞
+- 问题由人类拥有而非智能体拥有
+- 运行有意安静但需要操作者决定才能取消或继续
 
-In these cases Paperclip should leave a visible issue/comment trail instead of silently retrying.
+在这些情况下，Paperclip 应留下可见的问题/评论轨迹，而不是静默重试。
 
-## 12. What This Does Not Mean
+## 12. 这不意味着什么
 
-These semantics do not change V1 into an auto-reassignment system.
+这些语义不会将 V1 变成自动重新分配系统。
 
-Paperclip still does not:
+Paperclip 仍然不会：
 
-- automatically reassign work to a different agent
-- infer dependency semantics from `parentId` alone
-- treat human-held work as heartbeat-managed execution
+- 自动将工作重新分配给不同的智能体
+- 仅从 `parentId` 推断依赖语义
+- 将人类持有的工作视为心跳管理的执行
 
-The recovery model is intentionally conservative:
+恢复模型有意保守：
 
-- preserve ownership
-- retry once when the control plane lost execution continuity
-- create explicit recovery work when the system can identify a bounded recovery owner/action
-- escalate visibly when the system cannot safely keep going
+- 保留所有权
+- 当控制平面丢失执行连续性时重试一次
+- 当系统可以识别有界的恢复所有者/动作时创建显式恢复工作
+- 当系统无法安全继续时可见地升级
 
-## 13. Practical Interpretation
+## 13. 实际解释
 
-For a board operator, the intended meaning is:
+对于看板操作者，预期含义是：
 
-- agent-owned `in_progress` should mean \"this is live work or clearly surfaced as a problem\"
-- agent-owned `todo` should not stay assigned forever after a crash with no remaining wake path
-- parent/sub-issue explains structure
-- blockers explain waiting
+- 智能体拥有的 `in_progress` 应意味着"这是活跃工作或已被清晰暴露为问题"
+- 智能体拥有的 `todo` 不应在崩溃后无剩余唤醒路径时永远保持已分配
+- 父/子问题解释结构
+- 阻塞器解释等待
 
-That is the execution contract Paperclip should present to operators.
+这是 Paperclip 应向操作者呈现的执行契约。
