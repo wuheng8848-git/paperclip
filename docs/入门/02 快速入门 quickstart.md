@@ -57,6 +57,6 @@ pnpm paperclipai run
 5. 设置预算并分配初始任务
 6. 点击开始 — 代理开始心跳，公司开始运行
 
-<Card title="核心概念" href="/start/core-concepts">
+<Card title="核心概念" href="/入门/03%20核心概念%20core-concepts">
   了解 Paperclip 背后的关键概念
 </Card>

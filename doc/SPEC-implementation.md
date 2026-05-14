@@ -914,7 +914,7 @@ V1 支持用可移植包契约做 **company** 导入/导出：
 - 以 `COMPANY.md` 为根的 **markdown-first** 包  
 - 约定式隐式目录发现  
 - `.paperclip.yaml` **sidecar（侧车文件）** 承载 Paperclip 特有保真度  
-- 规范基包 vendor-neutral，对齐 `docs/公司/公司规范 companies-spec.md`  
+- 规范基包 vendor-neutral，对齐 `docs/公司/01 公司规范 companies-spec.md`  
 - 常见约定：  
   - `agents/<slug>/AGENTS.md`  
   - `teams/<slug>/TEAM.md`  

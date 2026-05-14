@@ -7,7 +7,7 @@ Related:
 
 - `doc/plans/2026-03-14-skills-ui-product-plan.md`
 - `doc/plans/2026-03-13-company-import-export-v2.md`
-- `docs/公司/公司规范 companies-spec.md`
+- `docs/公司/01 公司规范 companies-spec.md`
 
 ## 1. Purpose
 

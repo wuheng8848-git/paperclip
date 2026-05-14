@@ -6,7 +6,7 @@ Audience: Product and engineering
 Related:
 - `doc/plans/2026-03-13-company-import-export-v2.md`
 - `doc/plans/2026-03-14-adapter-skill-sync-rollout.md`
-- `docs/公司/公司规范 companies-spec.md`
+- `docs/公司/01 公司规范 companies-spec.md`
 - `ui/src/pages/AgentDetail.tsx`
 
 ## 1. Purpose

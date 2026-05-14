@@ -6,7 +6,7 @@ Audience: Product and engineering
 Supersedes for package-format direction:
 
 - `doc/plans/2026-02-16-module-system.md` sections that describe company templates as JSON-only
-- `docs/specs/cliphub-plan.md` assumptions about blueprint bundle shape where they conflict with the markdown-first package model
+- `docs/规格说明/02 cliphub计划 cliphub-plan.md` assumptions about blueprint bundle shape where they conflict with the markdown-first package model
 
 ## 1. Purpose
 
@@ -21,7 +21,7 @@ The core shift is:
 
 The normative package format draft lives in:
 
-- `docs/公司/公司规范 companies-spec.md`
+- `docs/公司/01 公司规范 companies-spec.md`
 
 This plan is about implementation and rollout inside Paperclip.
 
@@ -124,7 +124,7 @@ The canonical authoring format becomes a markdown-first package rooted in one of
 
 The normative draft is:
 
-- `docs/公司/公司规范 companies-spec.md`
+- `docs/公司/01 公司规范 companies-spec.md`
 
 ### 5.2 Relationship To Agent Skills
 
@@ -604,14 +604,14 @@ This phase is intentionally after the structural model is stable.
 
 Primary docs:
 
-- `docs/公司/公司规范 companies-spec.md` as the package-format draft
+- `docs/公司/01 公司规范 companies-spec.md` as the package-format draft
 - this implementation plan for rollout sequencing
 
 Docs to update later as implementation lands:
 
 - `doc/SPEC-implementation.md`
 - `docs/API接口/03 公司 companies.md`
-- `docs/命令行工具 CLI/控制平面命令 control-plane-commands.md`
+- `docs/命令行/02 控制平面命令 control-plane-commands.md`
 - board operator docs for Company Settings import/export
 
 ## 16. Open Questions
@@ -634,7 +634,7 @@ Engineering should treat this as the current plan of record for company import/e
 
 Immediate next steps:
 
-1. accept `docs/公司/公司规范 companies-spec.md` as the package-format draft
+1. accept `docs/公司/01 公司规范 companies-spec.md` as the package-format draft
 2. implement phase 1 stabilization work
 3. build phase 2 markdown-first package reader before expanding ClipHub or `companies.sh`
 4. treat the old manifest-based format as deprecated and not part of the future surface

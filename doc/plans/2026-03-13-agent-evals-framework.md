@@ -25,7 +25,7 @@ This plan is based on:
 - `doc/GOAL.md`
 - `doc/PRODUCT.md`
 - `doc/SPEC-implementation.md`
-- `docs/agents-runtime.md`
+- `docs/01 智能体运行指南 agents-runtime.md`
 - `doc/plans/2026-03-13-TOKEN-OPTIMIZATION-PLAN.md`
 - Discussion #449: <https://github.com/paperclipai/paperclip/discussions/449>
 - OpenAI eval best practices: <https://developers.openai.com/api/docs/guides/evaluation-best-practices>
