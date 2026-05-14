@@ -29,6 +29,7 @@ Import the shared agent brief from `AGENTS.md`.
 - Treat missing requirements as a question, not permission to guess.
 - When checking local AI tool installs, prefer `routic doctor --tools` instead of inventing new filesystem search rules.
 - **No push to remote by default** — same as `AGENTS.md` §5 item 12 / §10 opening: do not `git push` / `gh pr create` unless the human explicitly authorizes that turn; local commits OK.
+- **After `git commit`, do not nag about push** — no closing reminders about remote / authorization unless the human asks.
 
 ## Keep This File Short
 
