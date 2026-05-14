@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { deriveInitials as deriveInitialsFromName } from "@/lib/derive-initials";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type IdentitySize = "xs" | "sm" | "default" | "lg";
@@ -12,9 +13,7 @@ export interface IdentityProps {
 }
 
 export function deriveInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  return name.slice(0, 2).toUpperCase();
+  return deriveInitialsFromName(name);
 }
 
 const textSize: Record<IdentitySize, string> = {
