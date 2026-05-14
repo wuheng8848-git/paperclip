@@ -58,3 +58,20 @@ tests/release-smoke/playwright-report/
 .claude/worktrees/
 .cursor/
 .routic/
+
+# --- Local / secrets / editor (patterns aligned with token-bridge-v2) ---
+.obsidian/
+doc/.obsidian/
+docs/.obsidian/
+.mcp.json
+cookies.txt
+.codebuddy/
+.playwright-cli/
+.qwen/
+.qoder/
+.devtool/
+.golutra/
+Thumbs.db
+*.md.tmp
+.tmp/
+.gitignore.local
