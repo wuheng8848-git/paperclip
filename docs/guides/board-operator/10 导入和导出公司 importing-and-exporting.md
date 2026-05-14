@@ -3,7 +3,7 @@ title: 导入和导出公司
 summary: 将公司导出到可移植包并从本地路径或 GitHub 导入
 ---
 
-Paperclip 公司可以导出为可移植的 markdown 包，并从本地目录或 GitHub 仓库导入。这允许你共享公司配置、复制设置并版本控制你的代理团队。
+Paperclip 公司可以导出为可移植的 markdown 包，并从本地目录或 GitHub 仓库导入。这允许你共享公司配置、复制设置并版本控制你的智能体团队。
 
 ## 包格式
 
@@ -13,7 +13,7 @@ Paperclip 公司可以导出为可移植的 markdown 包，并从本地目录或
 my-company/
 ├── COMPANY.md          # 公司元数据
 ├── agents/
-│   ├── ceo/AGENT.md    # 代理指令 + 前置内容
+│   ├── ceo/AGENT.md    # 智能体指令 + 前置内容
 │   └── cto/AGENT.md
 ├── projects/
 │   └── main/PROJECT.md
@@ -25,8 +25,8 @@ my-company/
 ```
 
 - **COMPANY.md** 定义公司名称、描述和元数据。
-- **AGENT.md** 文件包含代理身份、角色和指令。
-- **SKILL.md** 文件与代理技能生态系统兼容。
+- **AGENT.md** 文件包含智能体身份、角色和指令。
+- **SKILL.md** 文件与智能体技能生态系统兼容。
 - **.paperclip.yaml** 将 Paperclip 特定配置（适配器类型、环境输入、预算）作为可选副车。
 
 ## 导出公司
@@ -45,14 +45,14 @@ paperclipai company export <company-id> --out ./my-export
 | `--include <values>` | 逗号分隔的集合：`company`、`agents`、`projects`、`issues`、`tasks`、`skills` | `company,agents` |
 | `--skills <values>` | 仅导出特定的技能 slug | 全部 |
 | `--projects <values>` | 仅导出特定的项目简称或 ID | 全部 |
-| `--issues <values>` | 导出特定的问题标识符或 ID | 无 |
-| `--project-issues <values>` | 导出属于特定项目的问题 | 无 |
+| `--issues <values>` | 导出特定的事务标识符或 ID | 无 |
+| `--project-issues <values>` | 导出属于特定项目的事务 | 无 |
 | `--expand-referenced-skills` | 供应商技能文件内容，而不是保留上游引用 | `false` |
 
 ### 示例
 
 ```sh
-# 导出带有代理和公司的公司
+# 导出带有智能体和公司的公司
 paperclipai company export abc123 --out ./backup --include company,agents,projects
 
 # 导出所有内容，包括任务和技能
@@ -65,9 +65,9 @@ paperclipai company export abc123 --out ./skills-only --include skills --skills 
 ### 导出了什么
 
 - 公司名称、描述和元数据
-- 代理名称、角色、报告结构和指令
+- 智能体名称、角色、报告结构和指令
 - 项目定义和工作区配置
-- 任务/问题描述（当包含时）
+- 任务/事务描述（当包含时）
 - 技能包（作为引用或供应商内容）
 - `.paperclip.yaml` 中的适配器类型和环境输入声明
 
@@ -100,7 +100,7 @@ paperclipai company import org/repo/companies/acme
 | `--company-id <id>` | `--target existing` 的目标公司 ID | 当前上下文 |
 | `--new-company-name <name>` | 为 `--target new` 覆盖公司名称 | 从包中获取 |
 | `--include <values>` | 逗号分隔的集合：`company`、`agents`、`projects`、`issues`、`tasks`、`skills` | 自动检测 |
-| `--agents <list>` | 要导入的代理 slug 的逗号分隔列表，或 `all` | `all` |
+| `--agents <list>` | 要导入的智能体 slug 的逗号分隔列表，或 `all` | `all` |
 | `--collision <mode>` | 如何处理名称冲突：`rename`、`skip` 或 `replace` | `rename` |
 | `--ref <value>` | GitHub 导入的 Git 引用（分支、标签或提交） | 默认分支 |
 | `--dry-run` | 预览将要导入的内容而不应用 | `false` |
@@ -116,7 +116,7 @@ paperclipai company import org/repo/companies/acme
 
 ### 冲突策略
 
-当导入到现有公司时，代理或项目名称可能与现有名称冲突：
+当导入到现有公司时，智能体或项目名称可能与现有名称冲突：
 
 - **`rename`**（默认） — 附加后缀以避免冲突（例如，`ceo` 变为 `ceo-2`）。
 - **`skip`** — 跳过已存在的实体。
@@ -124,7 +124,7 @@ paperclipai company import org/repo/companies/acme
 
 ### 交互式选择
 
-以交互方式运行时（没有 `--yes` 或 `--json` 标志），导入命令在应用前显示选择器。你可以使用复选框界面精确选择要导入的代理、项目、技能和任务。
+以交互方式运行时（没有 `--yes` 或 `--json` 标志），导入命令在应用前显示选择器。你可以使用复选框界面精确选择要导入的智能体、项目、技能和任务。
 
 ### 应用前预览
 
@@ -135,12 +135,12 @@ paperclipai company import org/repo --target existing --company-id abc123 --dry-
 ```
 
 预览显示：
-- **包内容** — 源中有多少代理、项目、任务和技能
+- **包内容** — 源中有多少智能体、项目、任务和技能
 - **导入计划** — 将创建、重命名、跳过或替换的内容
 - **环境输入** — 导入后可能需要值的环境变量
 - **警告** — 潜在问题，如缺失技能或未解析的引用
 
-导入的代理总是以计时器心跳禁用状态落地。包中的分配/按需唤醒行为被保留，但计划运行保持关闭，直到董事会操作员重新启用它们。
+导入的智能体总是以计时器心跳禁用状态落地。包中的分配/按需唤醒行为被保留，但计划运行保持关闭，直到董事会操作员重新启用它们。
 
 ### 常见工作流
 
@@ -152,7 +152,7 @@ paperclipai company import org/company-templates/engineering-team \
   --new-company-name "我的工程团队"
 ```
 
-**将代理从包添加到你现有的公司：**
+**将智能体从包添加到你现有的公司：**
 
 ```sh
 paperclipai company import ./shared-agents \
@@ -189,7 +189,7 @@ CLI 命令在底层使用这些 API 端点：
 | 预览导入（新公司） | `POST /api/companies/import/preview` |
 | 应用导入（新公司） | `POST /api/companies/import` |
 
-CEO 代理也可以使用安全导入路由（`/imports/preview` 和 `/imports/apply`），这些路由强制执行非破坏性规则：`replace` 被拒绝，冲突通过 `rename` 或 `skip` 解决，问题总是创建为新问题。
+CEO 智能体也可以使用安全导入路由（`/imports/preview` 和 `/imports/apply`），这些路由强制执行非破坏性规则：`replace` 被拒绝，冲突通过 `rename` 或 `skip` 解决，事务始终以新事务形式创建。
 
 ## GitHub 来源
 
