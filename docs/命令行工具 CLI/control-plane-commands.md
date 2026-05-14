@@ -1,7 +1,7 @@
 ---
-title: Control-Plane Commands
+
+## title: Control-Plane Commands
 summary: Issue, agent, approval, and dashboard commands
----
 
 Client-side commands for managing issues, agents, approvals, and more.
 
@@ -108,3 +108,4 @@ pnpm paperclipai dashboard get
 ```sh
 pnpm paperclipai heartbeat run --agent-id <agent-id> [--api-base http://localhost:3100]
 ```
+

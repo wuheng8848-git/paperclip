@@ -1,7 +1,7 @@
 ---
-title: CLI 概览
+
+## title: CLI 概览
 summary: CLI 安装和设置
----
 
 Paperclip CLI 处理实例设置、诊断和控制平面操作。
 
@@ -15,14 +15,16 @@ pnpm paperclipai --help
 
 所有命令支持：
 
-| 标志 | 描述 |
-|------|-------------|
+
+| 标志                  | 描述                                      |
+| ------------------- | --------------------------------------- |
 | `--data-dir <path>` | 本地 Paperclip 数据根目录（与 `~/.paperclip` 隔离） |
-| `--api-base <url>` | API 基础 URL |
-| `--api-key <token>` | API 认证令牌 |
-| `--context <path>` | 上下文文件路径 |
-| `--profile <name>` | 上下文配置文件名称 |
-| `--json` | 输出为 JSON |
+| `--api-base <url>`  | API 基础 URL                              |
+| `--api-key <token>` | API 认证令牌                                |
+| `--context <path>`  | 上下文文件路径                                 |
+| `--profile <name>`  | 上下文配置文件名称                               |
+| `--json`            | 输出为 JSON                                |
+
 
 公司范围的命令还接受 `--company-id <id>`。
 
@@ -73,5 +75,6 @@ pnpm paperclipai secrets migrate-inline-env --company-id <company-id> --apply
 
 CLI 有两个类别：
 
-1. **[设置命令](/cli/setup-commands)** — 实例引导、诊断、配置
-2. **[控制平面命令](/cli/control-plane-commands)** — 问题、代理、批准、活动
+1. **[设置命令](/命令行工具%20CLI/setup-commands)** — 实例引导、诊断、配置
+2. **[控制平面命令](/命令行工具%20CLI/control-plane-commands)** — 问题、代理、批准、活动
+

@@ -609,7 +609,7 @@ Docs to update later as implementation lands:
 
 - `doc/SPEC-implementation.md`
 - `docs/API接口/公司 companies.md`
-- `docs/cli/control-plane-commands.md`
+- `docs/命令行工具 CLI/控制平面命令 control-plane-commands.md`
 - board operator docs for Company Settings import/export
 
 ## 16. Open Questions

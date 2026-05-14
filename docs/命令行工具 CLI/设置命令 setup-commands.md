@@ -1,7 +1,8 @@
 ---
-title: 设置命令
+
+## title: 设置命令
+
 summary: 入门、运行、诊断和配置
----
 
 实例设置和诊断命令。
 
@@ -103,13 +104,15 @@ pnpm paperclipai allowed-hostname my-tailscale-host
 
 ## 本地存储路径
 
-| 数据 | 默认路径 |
-|------|-------------|
-| 配置 | `~/.paperclip/instances/default/config.json` |
-| 数据库 | `~/.paperclip/instances/default/db` |
-| 日志 | `~/.paperclip/instances/default/logs` |
-| 存储 | `~/.paperclip/instances/default/data/storage` |
+
+| 数据   | 默认路径                                                |
+| ---- | --------------------------------------------------- |
+| 配置   | `~/.paperclip/instances/default/config.json`        |
+| 数据库  | `~/.paperclip/instances/default/db`                 |
+| 日志   | `~/.paperclip/instances/default/logs`               |
+| 存储   | `~/.paperclip/instances/default/data/storage`       |
 | 秘密密钥 | `~/.paperclip/instances/default/secrets/master.key` |
+
 
 使用以下命令覆盖：
 
@@ -123,3 +126,4 @@ PAPERCLIP_HOME=/custom/home PAPERCLIP_INSTANCE_ID=dev pnpm paperclipai run
 pnpm paperclipai run --data-dir ./tmp/paperclip-dev
 pnpm paperclipai doctor --data-dir ./tmp/paperclip-dev
 ```
+
