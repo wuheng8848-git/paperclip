@@ -4,6 +4,7 @@ Status: Proposed implementation plan
 Date: 2026-03-13
 Audience: Product and engineering
 Supersedes for package-format direction:
+
 - `doc/plans/2026-02-16-module-system.md` sections that describe company templates as JSON-only
 - `docs/specs/cliphub-plan.md` assumptions about blueprint bundle shape where they conflict with the markdown-first package model
 
@@ -20,7 +21,7 @@ The core shift is:
 
 The normative package format draft lives in:
 
-- `docs/companies/companies-spec.md`
+- `docs/公司/公司规范 companies-spec.md`
 
 This plan is about implementation and rollout inside Paperclip.
 
@@ -123,7 +124,7 @@ The canonical authoring format becomes a markdown-first package rooted in one of
 
 The normative draft is:
 
-- `docs/companies/companies-spec.md`
+- `docs/公司/公司规范 companies-spec.md`
 
 ### 5.2 Relationship To Agent Skills
 
@@ -152,6 +153,7 @@ Resolution model:
 - if the skill is external or referenced, the skill package owns that complexity
 - exporters should prefer shortname-based associations in `AGENTS.md`
 - importers should resolve the shortname against local package skills first, then referenced or installed company skills
+
 ### 5.4 Base Package Vs Paperclip Extension
 
 The repo format should have two layers:
@@ -602,7 +604,7 @@ This phase is intentionally after the structural model is stable.
 
 Primary docs:
 
-- `docs/companies/companies-spec.md` as the package-format draft
+- `docs/公司/公司规范 companies-spec.md` as the package-format draft
 - this implementation plan for rollout sequencing
 
 Docs to update later as implementation lands:
@@ -615,16 +617,16 @@ Docs to update later as implementation lands:
 ## 16. Open Questions
 
 1. Should imported skill packages be stored as managed package files in Paperclip storage, or only referenced at import time?
-   Decision: managed package files should support both company-scoped reuse and agent-scoped attachment.
+  Decision: managed package files should support both company-scoped reuse and agent-scoped attachment.
 2. What is the minimum adapter skill interface needed to make the UI useful across Claude Code, Codex, OpenClaw, and future adapters?
-   Decision: use the baseline interface in section 8.5.
+  Decision: use the baseline interface in section 8.5.
 3. Should Paperclip support direct local folder selection in the web UI, or keep that CLI-only initially?
 4. Do we want optional generated lock files in phase 2, or defer them until provenance work?
 5. How strict should pinning be by default for GitHub references:
-   - warn on unpinned
-   - or block in normal mode
+  - warn on unpinned
+  - or block in normal mode
 6. Is package-provenance grouping enough for imported teams, or do we expect product requirements soon that would justify a first-class runtime `teams` table?
-   Decision: provenance grouping is enough for the import/export product model for now.
+  Decision: provenance grouping is enough for the import/export product model for now.
 
 ## 17. Recommendation
 
@@ -632,7 +634,7 @@ Engineering should treat this as the current plan of record for company import/e
 
 Immediate next steps:
 
-1. accept `docs/companies/companies-spec.md` as the package-format draft
+1. accept `docs/公司/公司规范 companies-spec.md` as the package-format draft
 2. implement phase 1 stabilization work
 3. build phase 2 markdown-first package reader before expanding ClipHub or `companies.sh`
 4. treat the old manifest-based format as deprecated and not part of the future surface
@@ -642,3 +644,4 @@ This keeps Paperclip aligned with:
 - GitHub-native distribution
 - Agent Skills compatibility
 - a registry-optional ecosystem model
+

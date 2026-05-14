@@ -7,7 +7,7 @@ Paperclip companies can be exported to portable markdown packages and imported f
 
 ## Package Format
 
-Exported packages follow the [Agent Companies specification](/companies/companies-spec) and use a markdown-first structure:
+Exported packages follow the [Agent Companies specification](/公司/公司规范%20companies-spec) and use a markdown-first structure:
 
 ```text
 my-company/

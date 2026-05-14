@@ -4,9 +4,10 @@ Status: Proposed
 Date: 2026-03-14
 Audience: Product and engineering
 Related:
+
 - `doc/plans/2026-03-14-skills-ui-product-plan.md`
 - `doc/plans/2026-03-13-company-import-export-v2.md`
-- `docs/companies/companies-spec.md`
+- `docs/公司/公司规范 companies-spec.md`
 
 ## 1. Purpose
 
@@ -170,10 +171,10 @@ Implementation work:
 2. Add `syncSkills` for Cursor.
 3. Reuse the same managed-symlink pattern as Codex.
 4. Distinguish:
-   - managed Paperclip skills
-   - external skills already present
-   - missing desired skills
-   - stale managed skills
+  - managed Paperclip skills
+  - external skills already present
+  - missing desired skills
+  - stale managed skills
 
 Testing:
 
@@ -370,21 +371,21 @@ My recommendation:
 Adapter-wide skill support is ready when all are true:
 
 1. Every adapter has an explicit truth model:
-   - `persistent`
-   - `ephemeral`
-   - `unsupported`
+  - `persistent`
+  - `ephemeral`
+  - `unsupported`
 2. The UI copy matches that truth model.
 3. All local persistent adapters implement:
-   - `listSkills`
-   - `syncSkills`
+  - `listSkills`
+  - `syncSkills`
 4. Tests cover:
-   - desired-state storage
-   - actual-state discovery
-   - managed vs external distinctions
-   - stale managed-skill cleanup where supported
+  - desired-state storage
+  - actual-state discovery
+  - managed vs external distinctions
+  - stale managed-skill cleanup where supported
 5. `openclaw_gateway` is either:
-   - explicitly unsupported with clean UX
-   - or backed by a real remote skill API
+  - explicitly unsupported with clean UX
+  - or backed by a real remote skill API
 
 ## 10. Recommendation
 

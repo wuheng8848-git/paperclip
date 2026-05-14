@@ -7,7 +7,7 @@ Paperclip 公司可以导出为可移植的 markdown 包，并从本地目录或
 
 ## 包格式
 
-导出的包遵循[代理公司规范](/companies/companies-spec)并使用以 markdown 为中心的结构：
+导出的包遵循[代理公司规范](/公司/公司规范%20companies-spec)并使用以 markdown 为中心的结构：
 
 ```text
 my-company/

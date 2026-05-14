@@ -1,6 +1,6 @@
 # Paperclip Module System
 
-> Supersession note: the company-template/package-format direction in this document is no longer current. For the current markdown-first company import/export plan, see `doc/plans/2026-03-13-company-import-export-v2.md` and `docs/companies/companies-spec.md`.
+> Supersession note: the company-template/package-format direction in this document is no longer current. For the current markdown-first company import/export plan, see `doc/plans/2026-03-13-company-import-export-v2.md` and `docs/公司/公司规范 companies-spec.md`.
 
 ## Overview
 
@@ -14,13 +14,15 @@ Both are discoverable through the **Company Store**.
 
 ## Concepts
 
-| Concept | What it is | Contains code? |
-|---------|-----------|----------------|
-| **Module** | A package that extends Paperclip's API, UI, and data model | Yes |
-| **Company Template** | A data snapshot — agents, projects, goals, org structure | No (JSON only) |
-| **Company Store** | Registry for browsing/installing modules and templates | — |
-| **Hook** | A named event in the core that modules can subscribe to | — |
-| **Slot** | An exclusive category where only one module can be active (e.g., `observability`) | — |
+
+| Concept              | What it is                                                                        | Contains code? |
+| -------------------- | --------------------------------------------------------------------------------- | -------------- |
+| **Module**           | A package that extends Paperclip's API, UI, and data model                        | Yes            |
+| **Company Template** | A data snapshot — agents, projects, goals, org structure                          | No (JSON only) |
+| **Company Store**    | Registry for browsing/installing modules and templates                            | —              |
+| **Hook**             | A named event in the core that modules can subscribe to                           | —              |
+| **Slot**             | An exclusive category where only one module can be active (e.g., `observability`) | —              |
+
 
 ---
 
@@ -106,14 +108,14 @@ Modules live in a top-level `modules/` directory. Each module is a pnpm workspac
 
 Key fields:
 
-- **`id`**: Unique identifier, used as the npm package name suffix (`@paperclipai/mod-observability`)
-- **`slot`**: Optional exclusive category. If set, only one module with this slot can be active. Omit for modules that can coexist freely.
-- **`hooks`**: Which core events this module subscribes to. Declared upfront so the core knows what to emit.
-- **`routes.prefix`**: Mounted under `/api/modules/<prefix>`. The module owns this namespace.
-- **`ui.pages`**: Adds entries to the sidebar. Lazy-loaded React components.
-- **`ui.widgets`**: Injects components into existing pages (e.g., dashboard cards).
-- **`schema`**: Drizzle table definitions for module-owned tables. Prefixed with `mod_<id>_` to avoid collisions.
-- **`configSchema`**: JSON Schema for module configuration. Validated before the module loads.
+- `**id**`: Unique identifier, used as the npm package name suffix (`@paperclipai/mod-observability`)
+- `**slot**`: Optional exclusive category. If set, only one module with this slot can be active. Omit for modules that can coexist freely.
+- `**hooks**`: Which core events this module subscribes to. Declared upfront so the core knows what to emit.
+- `**routes.prefix**`: Mounted under `/api/modules/<prefix>`. The module owns this namespace.
+- `**ui.pages**`: Adds entries to the sidebar. Lazy-loaded React components.
+- `**ui.widgets**`: Injects components into existing pages (e.g., dashboard cards).
+- `**schema**`: Drizzle table definitions for module-owned tables. Prefixed with `mod_<id>_` to avoid collisions.
+- `**configSchema**`: JSON Schema for module configuration. Validated before the module loads.
 
 ### Entry Point
 
@@ -187,21 +189,23 @@ Modules get a scoped logger, access to the shared database, and read access to c
 
 Hooks are the primary integration point. The core emits events at well-defined moments. Modules subscribe in their `register` function.
 
-| Hook | Payload | When |
-|------|---------|------|
-| `server:started` | `{ port }` | After the Express server begins listening |
-| `agent:created` | `{ agent }` | After a new agent is inserted |
-| `agent:updated` | `{ agent, changes }` | After an agent record is modified |
-| `agent:deleted` | `{ agent }` | After an agent is removed |
-| `agent:heartbeat` | `{ agentId, timestamp, meta }` | When an agent checks in. `meta` carries tokens_used, cost, latency, etc. |
-| `agent:status_changed` | `{ agent, from, to }` | When agent status transitions (idle→active, active→error, etc.) |
-| `issue:created` | `{ issue }` | After a new issue is inserted |
-| `issue:status_changed` | `{ issue, from, to }` | When issue moves between statuses |
-| `issue:assigned` | `{ issue, agent }` | When an issue is assigned to an agent |
-| `goal:created` | `{ goal }` | After a new goal is inserted |
-| `goal:completed` | `{ goal }` | When a goal's status becomes complete |
-| `budget:spend_recorded` | `{ agentId, amount, total }` | After spend is incremented |
-| `budget:threshold_crossed` | `{ agentId, budget, spent, percent }` | When an agent crosses 80%, 90%, or 100% of budget |
+
+| Hook                       | Payload                               | When                                                                     |
+| -------------------------- | ------------------------------------- | ------------------------------------------------------------------------ |
+| `server:started`           | `{ port }`                            | After the Express server begins listening                                |
+| `agent:created`            | `{ agent }`                           | After a new agent is inserted                                            |
+| `agent:updated`            | `{ agent, changes }`                  | After an agent record is modified                                        |
+| `agent:deleted`            | `{ agent }`                           | After an agent is removed                                                |
+| `agent:heartbeat`          | `{ agentId, timestamp, meta }`        | When an agent checks in. `meta` carries tokens_used, cost, latency, etc. |
+| `agent:status_changed`     | `{ agent, from, to }`                 | When agent status transitions (idle→active, active→error, etc.)          |
+| `issue:created`            | `{ issue }`                           | After a new issue is inserted                                            |
+| `issue:status_changed`     | `{ issue, from, to }`                 | When issue moves between statuses                                        |
+| `issue:assigned`           | `{ issue, agent }`                    | When an issue is assigned to an agent                                    |
+| `goal:created`             | `{ goal }`                            | After a new goal is inserted                                             |
+| `goal:completed`           | `{ goal }`                            | When a goal's status becomes complete                                    |
+| `budget:spend_recorded`    | `{ agentId, amount, total }`          | After spend is incremented                                               |
+| `budget:threshold_crossed` | `{ agentId, budget, spent, percent }` | When an agent crosses 80%, 90%, or 100% of budget                        |
+
 
 ### Hook Execution Model
 
@@ -227,6 +231,7 @@ class HookBus {
 ```
 
 Design rules:
+
 - **Hooks are fire-and-forget.** A failing hook handler never crashes or blocks the core operation.
 - **Hooks are concurrent.** All handlers for an event run in parallel via `Promise.allSettled`.
 - **Hooks are post-commit.** They fire after the database write succeeds, not before. No vetoing.
@@ -355,6 +360,7 @@ Module config lives in the server's environment or a config file:
 ### Disabling a Module
 
 Setting a module's enabled state to false:
+
 1. Stops its background services
 2. Unmounts its routes (returns 404)
 3. Unsubscribes its hook handlers
@@ -367,6 +373,7 @@ Setting a module's enabled state to false:
 ### How Module UI Works
 
 The core UI shell provides:
+
 - A sidebar with slots for module-contributed nav items
 - A dashboard with widget mount points
 - A module settings page
@@ -601,27 +608,33 @@ pnpm paperclipai store export                  # export current company as templ
 
 ### Tier 1 — Build first (core extensions)
 
-| Module | What it does | Key hooks |
-|--------|-------------|-----------|
-| **Observability** | Token usage tracking, cost metrics, agent performance dashboards, Prometheus export | `agent:heartbeat`, `budget:spend_recorded` |
-| **Revenue Tracking** | Connect Stripe/crypto wallets, track income, show P&L against agent costs | `budget:spend_recorded` |
-| **Notifications** | Slack/Discord/email alerts on configurable triggers | All hooks (configurable) |
+
+| Module               | What it does                                                                        | Key hooks                                  |
+| -------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------ |
+| **Observability**    | Token usage tracking, cost metrics, agent performance dashboards, Prometheus export | `agent:heartbeat`, `budget:spend_recorded` |
+| **Revenue Tracking** | Connect Stripe/crypto wallets, track income, show P&L against agent costs           | `budget:spend_recorded`                    |
+| **Notifications**    | Slack/Discord/email alerts on configurable triggers                                 | All hooks (configurable)                   |
+
 
 ### Tier 2 — High value
 
-| Module | What it does | Key hooks |
-|--------|-------------|-----------|
-| **Analytics Dashboard** | Burn rate trends, agent utilization over time, goal velocity charts | `agent:heartbeat`, `issue:status_changed`, `goal:completed` |
-| **Workflow Automation** | If/then rules: "when issue is done, create follow-up", "when budget at 90%, pause agent" | `issue:status_changed`, `budget:threshold_crossed` |
-| **Knowledge Base** | Shared document store, vector search, agents read/write organizational knowledge | `agent:heartbeat` (for context injection) |
+
+| Module                  | What it does                                                                             | Key hooks                                                   |
+| ----------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| **Analytics Dashboard** | Burn rate trends, agent utilization over time, goal velocity charts                      | `agent:heartbeat`, `issue:status_changed`, `goal:completed` |
+| **Workflow Automation** | If/then rules: "when issue is done, create follow-up", "when budget at 90%, pause agent" | `issue:status_changed`, `budget:threshold_crossed`          |
+| **Knowledge Base**      | Shared document store, vector search, agents read/write organizational knowledge         | `agent:heartbeat` (for context injection)                   |
+
 
 ### Tier 3 — Nice to have
 
-| Module | What it does | Key hooks |
-|--------|-------------|-----------|
-| **Audit & Compliance** | Immutable audit trail, approval workflows, spend authorization | All write hooks |
-| **Agent Logs / Replay** | Full execution traces per agent, token-by-token replay | `agent:heartbeat` |
-| **Multi-tenant** | Separate companies/orgs within one Paperclip instance | `server:started` |
+
+| Module                  | What it does                                                   | Key hooks         |
+| ----------------------- | -------------------------------------------------------------- | ----------------- |
+| **Audit & Compliance**  | Immutable audit trail, approval workflows, spend authorization | All write hooks   |
+| **Agent Logs / Replay** | Full execution traces per agent, token-by-token replay         | `agent:heartbeat` |
+| **Multi-tenant**        | Separate companies/orgs within one Paperclip instance          | `server:started`  |
+
 
 ---
 
@@ -640,48 +653,43 @@ Add to `@paperclipai/server`:
 
 Add to `@paperclipai/ui`:
 
-7. **Module page loader** — Reads module manifests, generates lazy routes
-8. **Dashboard widget slots** — Render module-contributed widgets on the Dashboard page
-9. **Sidebar extension** — Dynamically add module nav items
+1. **Module page loader** — Reads module manifests, generates lazy routes
+2. **Dashboard widget slots** — Render module-contributed widgets on the Dashboard page
+3. **Sidebar extension** — Dynamically add module nav items
 
 Add new package:
 
-10. **`@paperclipai/module-sdk`** — TypeScript types for `ModuleAPI`, `HookEvent`, `HookHandler`, manifest schema
+1. `**@paperclipai/module-sdk`** — TypeScript types for `ModuleAPI`, `HookEvent`, `HookHandler`, manifest schema
 
 ### Phase 2: First module (observability)
 
-11. Build `modules/observability` as the reference implementation
-12. Token metrics table + migration
-13. Heartbeat hook handler recording token usage
-14. Dashboard widget showing burn rate
-15. API routes for querying metrics
+1. Build `modules/observability` as the reference implementation
+2. Token metrics table + migration
+3. Heartbeat hook handler recording token usage
+4. Dashboard widget showing burn rate
+5. API routes for querying metrics
 
 ### Phase 3: Templates
 
-16. Template import endpoint (`POST /api/templates/import`)
-17. Template export endpoint (`GET /api/templates/export`)
-18. First template: "Startup in a Box"
+1. Template import endpoint (`POST /api/templates/import`)
+2. Template export endpoint (`GET /api/templates/export`)
+3. First template: "Startup in a Box"
 
 ### Phase 4: Company Store
 
-19. GitHub-based store index
-20. CLI commands for browse/install/import
-21. UI page for browsing the store
+1. GitHub-based store index
+2. CLI commands for browse/install/import
+3. UI page for browsing the store
 
 ---
 
 ## Design Principles
 
 1. **Modules extend, never patch.** Modules add new routes, tables, and hook handlers. They never modify core tables or override core routes.
-
 2. **Hooks are post-commit, fire-and-forget.** Module failures never break core operations.
-
 3. **One-way dependency.** Modules depend on core. Core never depends on modules. Module tables can FK to core tables, not the reverse.
-
 4. **Declarative manifest, imperative registration.** Static metadata in JSON (validated without running code). Runtime behavior registered via the API.
-
 5. **Namespace isolation.** Module routes live under `/api/modules/<id>/`. Module tables are prefixed `mod_<id>_`. Module config is scoped to its ID.
-
 6. **Graceful degradation.** If a module fails to load, log the error and continue. The rest of the system works fine.
-
 7. **Data survives disable.** Disabling a module stops its code but preserves its data. Re-enabling picks up where it left off.
+
