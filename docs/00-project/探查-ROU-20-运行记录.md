@@ -33,11 +33,74 @@
 | 5 | `f7f3c17d-8641-41d3-8098-a7424ddf7f77` | **开发-Cursor** | `automation` | **`process_lost_retry`** | `failed` | **`process_lost`** — `retryOfRunId` = `0607fc70-…`，`processLossRetryCount: 1` |
 | 6 | `f3a91ccf-ad66-4a19-8ec6-42eedd186f87` | **开发-Cursor** | `automation` | `issue_commented` | `cancelled` | **`cancelled`** — `Cancelled due to agent pause`（与 `process_lost` 不同类） |
 
+---
+
+## 第六条（时间上最后一条 run）反查：活动、时间点、提示词、谁发起 / 谁执行
+
+**约定**：与 ROU-20 挂钩的 **6 条**指上表 **6 次 heartbeat run**（不是 `activity_log` 总条数）。**时间上最后一条 run** 为第 6 行：`f3a91ccf-ad66-4a19-8ec6-42eedd186f87`。
+
+### 1）时间点（API 字段）
+
+| 含义 | 值（UTC，`Z`） |
+|------|----------------|
+| 本 run **入队/创建** | `createdAt` = **2026-05-14T06:20:28.622Z** |
+| **开始执行**（调 adapter） | `startedAt` = **2026-05-14T06:20:28.694Z** |
+| **结束** | `finishedAt` = **2026-05-14T06:32:15.017Z** |
+| **与本 runId 绑定的活动**（`GET /api/issues/ROU-20/activity` 中 `runId` 过滤）共 **2** 条；**最后一条活动** | **`issue.comment_added`**，`createdAt` = **2026-05-14T06:22:10.674Z**（晚于同 run 上的 `issue.updated` **2026-05-14T06:22:10.587Z**） |
+
+### 2）「最后一条活动」内容（落库摘要）
+
+- **`action`**：`issue.comment_added`  
+- **`details.bodySnippet`**（节选）：以 `## Heartbeat closure（开发-Cursor-composer2fast）` 开头，说明已阅读 Board 评论、**`process_lost_retry` 仅做状态校正**、ROU-20 探查已闭环等（完整正文在工单评论 `commentId` 见 `details.commentId` = `489e6bf6-c913-467c-a0fc-891064487467`）。  
+- **活动里的 `actorType` / `actorId`**：`agent` / `b064fe96-df64-434c-ace3-607674991330` —— 表示 **本条评论由该 agent 身份写入**（与 Board 侧「人类先写评论触发唤醒」是两条线，见下「谁发起」）。
+
+### 3）提示词（模型/CLI 实际吃到的长文本）
+
+- **不落**在 `activity_log` 表；在 **`GET /api/heartbeat-runs/f3a91ccf-ad66-4a19-8ec6-42eedd186f87/events`** 返回的事件里，**最后一条**为 **`eventType`: `adapter.invoke`**（本库快照里 `seq` = 2）。  
+- **`payload.prompt`** 结构（自上而下）：  
+  1. **Execution Contract**（英文系统约束）；  
+  2. **从实例路径加载的 `AGENTS.md`** 说明（`payload` 内写明来自 `…\\agents\\b064fe96-…\\instructions\\AGENTS.md`）；  
+  3. **Paperclip Wake Payload** 段落：`reason: issue_commented`、工单摘要、**continuation summary**、唤醒评论窗口内 **Board 用户**两条评论全文（`b4ed75a9…`、`a1383a0d…`）、`fallbackFetchNeeded: yes` 等；  
+  4. **Runtime note**（`PAPERCLIP_*` 环境变量提示）；  
+  5. **Agent 身份续写**（`You are agent … 开发-Cursor-composer2fast`）及执行合同复述。  
+- **_wake 评论语义_**：`wakeCommentId` / `latestCommentId` = **`a1383a0d-f994-4edf-9733-351da90c562d`**（Board 用户 `local-board` 所发：*「Heartbeat process_lost_retry：结案评论触发隐式回到 todo…」*）。
+
+### 4）谁发起（唤醒 / 调度链）
+
+| 层级 | 说明 |
+|------|------|
+| **人类触发条件** | Board 用户在工单上新增/串起评论（含 `a1383a0d…` 等），使工单在 **`done`** 上仍出现需跟进的评论线程（`contextSnapshot.reopenedFrom` = **`done`**，`wakeReason` = **`issue_commented`**）。 |
+| **Paperclip 调度** | `invocationSource` = **`automation`**，`triggerDetail` = **`system`**，`wakeSource` = **`automation`**；并生成 **`wakeupRequestId`**（本 run 为 `227db714-b030-4d21-ae1d-59b90b8bca80`）。即：**系统根据「评论唤醒」规则排队心跳**，不是用户直接点「运行」。 |
+
+### 5）谁执行（进程 / 适配器）
+
+| 层级 | 说明 |
+|------|------|
+| **责任 agent** | **`b064fe96-df64-434c-ace3-607674991330`**（**开发-Cursor-composer2fast**，`cursor`）。 |
+| **OS 命令** | 同条 `adapter.invoke` 事件里 **`payload.command`** = `C:\Users\wuhen\AppData\Local\cursor-agent\agent.CMD`（**Cursor CLI**）。 |
+
+### 6）执行了什么（可核对的最小事实集）
+
+1. **发起一次 `cursor` 本地 adapter 调用**（`adapter.invoke` / `adapter invocation`）。  
+2. **在活动日志写入两条 mutation**（均带 `runId`）：先 **`issue.updated`**，再 **`issue.comment_added`**（见 §1 时间戳）。  
+3. **未正常跑完**：run 以 **`cancelled`** 结束，`error` = **`Cancelled due to agent pause`** —— 即执行过程中 **agent 被暂停**，心跳中止（与评论内容是否写完独立，需与 Board 上 **暂停** 操作对照）。
+
+### 7）反查时用到的请求（备忘）
+
+```http
+GET /api/issues/ROU-20/runs
+GET /api/heartbeat-runs/f3a91ccf-ad66-4a19-8ec6-42eedd186f87
+GET /api/heartbeat-runs/f3a91ccf-ad66-4a19-8ec6-42eedd186f87/events?limit=50
+GET /api/issues/ROU-20/activity
+```
+
+对 `activity` 结果在客户端按 `runId === 'f3a91ccf-ad66-4a19-8ec6-42eedd186f87'` 过滤后按 `createdAt` 排序，即得 **「与该 run 挂钩的最后一条活动」**。
+
 ## 结论（与 `process_lost_retry` 探查文档交叉）
 
 - 同一工单上出现 **两条** `wakeReason === "process_lost_retry"` 的 run（`82eecc3c…`、`f7f3c17d…`），对应 **两条独立原 run**（`1e367944…`、`0607fc70…`）各自触发 **「最多一次」** 自动重试，**不是**单链上重复排队多次。详见 `探查-process_lost_retry.md`。  
 - **首条 run** 为 CEO **CodeBuddy** `adapter_failed`，随后工单由 Board 改派 **Cursor** 继续，后续失败主要为 **本地子进程丢失**（`process_lost`）及一次自动重试后再丢。  
-- 最后一条 **`issue_commented`** 唤醒被取消，原因为 **agent 处于 pause**，需在 Board 上对照当时 **开发-Cursor** 是否被暂停。
+- 最后一条 run（`f3a91ccf…`）的 **活动 / 提示词 / 发起与执行链** 见上文 **「第六条反查」**；取消原因 **`Cancelled due to agent pause`** 需在 Board 核对当时 **开发-Cursor** 是否被暂停。
 
 ## 复现拉数（备忘）
 
