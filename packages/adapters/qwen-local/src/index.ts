@@ -4,6 +4,8 @@ import {
   execute,
   sessionCodec,
   testEnvironment,
+  listQwenSkills,
+  syncQwenSkills,
 } from "./server/index.js";
 
 export const type = "qwen_local";
@@ -74,9 +76,11 @@ export function createServerAdapter(): ServerAdapterModule {
     models,
     modelProfiles,
     agentConfigurationDoc,
+    listSkills: listQwenSkills,
+    syncSkills: syncQwenSkills,
     supportsLocalAgentJwt: true,
     supportsInstructionsBundle: true,
     instructionsPathKey: "instructionsFilePath",
-    requiresMaterializedRuntimeSkills: false,
+    requiresMaterializedRuntimeSkills: true,
   };
 }
