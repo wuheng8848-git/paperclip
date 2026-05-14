@@ -28,8 +28,8 @@
 |---|---------|--------|-------------------|----------------------------------------|------|-------------------|
 | 1 | `fa42f79f-be80-43ec-a698-ec1343f85a14` | **CEO**（`2543471f-454b-4b3c-98eb-9398130af314`，`codebuddy_local`） | `assignment` | `issue_assigned` | `failed` | **`adapter_failed`** — `Adapter failed` |
 | 2 | `1e367944-0d9f-4a6a-9216-8426d889ac33` | **开发-Cursor**（`b064fe96-…`，`cursor`） | `assignment` | `issue_assigned` | `failed` | **`process_lost`** — 子 pid 已退出；文案含 *retrying once*；`processLossRetryCount: 0` |
-| 3 | `82eecc3c-c0b2-43a5-9db0-460199c81e91` | **开发-Cursor** | `automation` | **`process_lost_retry`** | `failed` | **`process_lost`** — `retryOfRunId` = `1e367944-…`，`processLossRetryCount: 1`（自动重试耗尽后仍丢进程） |
-| 4 | `0607fc70-43b2-4007-905d-aafbf09a9b06` | **开发-Cursor** | `automation` | `issue_reopened_via_comment` | `failed` | **`process_lost`** — *retrying once*；`processLossRetryCount: 0` |
+| 3 | `0607fc70-43b2-4007-905d-aafbf09a9b06` | **开发-Cursor** | `automation` | `issue_reopened_via_comment` | `failed` | **`process_lost`** — *retrying once*；`processLossRetryCount: 0` |
+| 4 | `82eecc3c-c0b2-43a5-9db0-460199c81e91` | **开发-Cursor** | `automation` | **`process_lost_retry`** | `failed` | **`process_lost`** — `retryOfRunId` = `1e367944-…`，`processLossRetryCount: 1`（自动重试耗尽后仍丢进程） |
 | 5 | `f7f3c17d-8641-41d3-8098-a7424ddf7f77` | **开发-Cursor** | `automation` | **`process_lost_retry`** | `failed` | **`process_lost`** — `retryOfRunId` = `0607fc70-…`，`processLossRetryCount: 1` |
 | 6 | `f3a91ccf-ad66-4a19-8ec6-42eedd186f87` | **开发-Cursor** | `automation` | `issue_commented` | `cancelled` | **`cancelled`** — `Cancelled due to agent pause`（与 `process_lost` 不同类） |
 

@@ -40,6 +40,29 @@ GET http://127.0.0.1:3100/api/heartbeat-runs/{runId}
 
 **重要**：`GET /issues/.../runs` 返回的字段名是 **`runId`**，不是 `id`。若用脚本聚合，请以 `runId` 拼上一步 URL。
 
+### 1.4 一键脚本（指定 **公司 + 工单**，可反复跑）
+
+仓库根目录（**仅依赖 Node 自带 `http`/`https`，无额外 npm 包**）：
+
+```sh
+# 只列本工单相关 runs（按 createdAt 升序编号，与下表「第 N 条」一致）
+pnpm issue:forensics -- --company <companyUuid> --issue ROU-20
+
+# 深查第 N 条：run 详情 + events + 本 runId 活动 + adapter.invoke 提示词节选
+pnpm issue:forensics -- --company <companyUuid> --issue ROU-20 --run 4
+
+# 或直接写 run UUID（仍建议带 --issue，便于拉 /activity）
+pnpm issue:forensics -- --company <companyUuid> --issue ROU-20 --run-id <uuid>
+```
+
+- **`--company`**：与 `GET /api/issues/{ref}` 返回的 **`companyId`** 对齐；不一致会直接退出（防串公司）。  
+- **`--issue`**：人类标识（如 **`ROU-20`**）或 issue UUID。  
+- **`--base`**：默认 **`http://127.0.0.1:3100`**；也可用环境变量 **`PAPERCLIP_API_BASE`**。  
+- **`authenticated`** 实例：加 **`--auth "Bearer …"`** 或环境变量 **`PAPERCLIP_AUTH`**。  
+- 可选：`--events-limit`、`--prompt-chars`（控制事件条数与打印的 prompt 长度）。
+
+实现文件：`scripts/issue-run-forensics.mjs`。
+
 ---
 
 ## 2）本次探查中实际多花了时间的点（踩坑记录）
