@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { Identity } from "./Identity";
 import { agentUrl, projectUrl } from "../lib/utils";
+import { nav } from "../lib/i18n";
 
 const SEARCH_ALL_VALUE = "__paperclip-search-all__";
 
@@ -221,7 +222,7 @@ export function CommandPalette() {
           </CommandItem>
           <CommandItem onSelect={() => go("/costs")}>
             <DollarSign className="mr-2 h-4 w-4" />
-            Costs
+            {nav.costs}
           </CommandItem>
           <CommandItem onSelect={() => go("/activity")}>
             <History className="mr-2 h-4 w-4" />

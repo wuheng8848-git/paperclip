@@ -145,8 +145,8 @@ describe("IssueScheduledRetryCard", () => {
     const text = card!.textContent ?? "";
     expect(text).toContain("Retry scheduled");
     expect(text).toContain("Attempt 4");
-    expect(text).toContain("Transient failure");
-    expect(text).toContain("Automatic retry in 15m");
+    expect(text).toContain("瞬时故障");
+    expect(text).toContain("Automatic retry 15分钟后");
     expect(text).toContain("run-prev");
   });
 
@@ -171,7 +171,7 @@ describe("IssueScheduledRetryCard", () => {
       />,
     );
     const text = getCard()?.textContent ?? "";
-    expect(text).toContain("Automatic retry due now");
+    expect(text).toContain("Automatic retry 现在");
   });
 
   it("invokes retry-now and shows promoted state on success", async () => {

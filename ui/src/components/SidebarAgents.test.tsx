@@ -146,7 +146,7 @@ async function openAgentMenu(label = "操作：Alpha") {
 }
 
 async function openAgentsSectionMenu() {
-  const trigger = document.body.querySelector('button[aria-label="Agents section actions"]');
+  const trigger = document.body.querySelector('button[aria-label="智能体区域操作"]');
   expect(trigger).not.toBeNull();
 
   await act(async () => {
@@ -240,7 +240,7 @@ describe("SidebarAgents", () => {
   it("uses the heading for section menu and the plus button for agent creation", async () => {
     await renderSidebarAgents();
 
-    const sectionMenuTrigger = container.querySelector('button[aria-label="Agents section actions"]');
+    const sectionMenuTrigger = container.querySelector('button[aria-label="智能体区域操作"]');
     expect(sectionMenuTrigger?.textContent).toContain("智能体");
     expect(sectionMenuTrigger?.querySelector("svg")).toBeNull();
 

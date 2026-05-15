@@ -25,11 +25,11 @@ describe("RunInvocationCard", () => {
       </ThemeProvider>,
     );
 
-    expect(html).toContain("Invocation");
-    expect(html).toContain("Adapter:");
-    expect(html).toContain("Working dir:");
-    expect(html).toContain("Details");
-    expect(html).not.toContain("Command:");
+    expect(html).toContain("调用");
+    expect(html).toContain("适配器:");
+    expect(html).toContain("工作目录:");
+    expect(html).toContain("详情");
+    expect(html).not.toContain("命令:");
     expect(html).not.toContain("Prompt is piped to claude via stdin.");
     expect(html).not.toContain("very long prompt body");
     expect(html).not.toContain("ANTHROPIC_API_KEY");

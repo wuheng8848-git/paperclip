@@ -242,9 +242,9 @@ export const nav = {
   search: "搜索",
   dashboard: "工作台",
   inbox: "收件箱",
-  issues: "事务",
+  issues: "事务清单",
   routines: "例行任务",
-  goals: "目标",
+  goals: "公司目标",
   workspaces: "工作区",
   work: "工作",
   org: "组织",
@@ -261,6 +261,242 @@ export const nav = {
   newCompany: "新建团队",
   recentRuns: "最近运行",
 } as const;
+
+/** 项目详情页（`/projects/:id`）右侧主内容区 */
+export const projectDetailUi = {
+  tabIssues: "事务清单",
+  tabOverview: "概览",
+  tabPluginOperations: "插件操作",
+  tabWorkspaces: "工作区",
+  tabConfiguration: "配置",
+  tabBudget: "预算",
+  addDescriptionPlaceholder: "添加描述…",
+  status: "状态",
+  targetDate: "目标日期",
+  changeProjectColorAria: "更改项目颜色",
+  selectColorAria: (color: string) => `选择颜色 ${color}`,
+  pausedByBudgetHardStop: "因预算熔断已暂停",
+  managedByPlugin: (pluginDisplayName: string) => `由 ${pluginDisplayName} 托管`,
+  loadingWorkspaces: "正在加载工作区…",
+  toastArchived: (name: string) => `「${name}」已归档`,
+  toastUnarchived: (name: string) => `「${name}」已取消归档`,
+  toastArchiveFailed: "归档项目失败",
+  toastUnarchiveFailed: "取消归档失败",
+  fallbackProjectName: "项目",
+  breadcrumbProjects: "项目列表",
+} as const;
+
+export const projectPropertiesUi = {
+  saving: "保存中",
+  saved: "已保存",
+  failed: "失败",
+  statusBacklog: "待排期",
+  statusPlanned: "已计划",
+  statusInProgress: "进行中",
+  statusCompleted: "已完成",
+  statusCancelled: "已取消",
+  fieldName: "名称",
+  fieldDescription: "描述",
+  projectNamePlaceholder: "项目名称",
+  addDescriptionPlaceholder: "添加描述…",
+  noDescription: "暂无描述",
+  fieldStatus: "状态",
+  fieldLead: "负责人",
+  fieldGoals: "目标",
+  addGoalButton: "添加目标",
+  allGoalsLinked: "已全部关联目标。",
+  removeGoalAria: (title: string) => `移除目标 ${title}`,
+  fieldEnv: "环境变量",
+  envHint:
+    "应用于本项目内事务的全部运行；与智能体环境变量重键时，以项目值为准。",
+  fieldCreated: "创建时间",
+  fieldUpdated: "更新时间",
+  fieldTargetDate: "目标日期",
+  codebase: "代码库",
+  codebaseHelpAria: "代码库说明",
+  codebaseTooltip:
+    "仓库标识权威来源；本地目录为智能体默认写入代码的位置。",
+  repoEyebrow: "仓库",
+  localFolderEyebrow: "本地目录",
+  notSet: "未设置。",
+  changeRepo: "更改仓库",
+  setRepo: "设置仓库",
+  clearRepoAria: "清除仓库",
+  paperclipManagedFolder: "由 Paperclip 管理的目录。",
+  changeLocalFolder: "更改本地目录",
+  setLocalFolder: "设置本地目录",
+  clearLocalFolderAria: "清除本地目录",
+  legacyWorkspacesNote:
+    "该项目还存在额外的历史工作区记录；代码库视图以主工作区为准。",
+  noUrl: "无 URL",
+  save: "保存",
+  cancel: "取消",
+  errLocalFolderAbsolute: "本地目录须为完整绝对路径。",
+  errRepoUrlGithub: "须使用有效的 GitHub 或 GitHub Enterprise 仓库 URL。",
+  confirmClearLocalFromWorkspace: "从本工作区清除本地目录？",
+  confirmDeleteWorkspaceLocal: "删除本工作区的本地目录？",
+  confirmClearRepoFromWorkspace: "从本工作区清除仓库？",
+  confirmDeleteWorkspaceRepo: "删除本工作区的仓库？",
+  errSaveWorkspace: "保存工作区失败。",
+  errDeleteWorkspace: "删除工作区失败。",
+  errUpdateWorkspace: "更新工作区失败。",
+  executionWorkspaces: "执行工作区",
+  executionWorkspacesHelpAria: "执行工作区说明",
+  executionWorkspacesTooltip:
+    "项目级默认：隔离检出与执行工作区行为。",
+  enableIsolatedCheckouts: "启用隔离事务检出",
+  enableIsolatedCheckoutsHint:
+    "允许事务在「项目主检出」与「隔离执行工作区」之间选择。",
+  enabled: "已开启",
+  disabled: "已关闭",
+  newIssuesDefaultIsolated: "新建事务默认使用隔离检出",
+  newIssuesDefaultIsolatedHint:
+    "关闭后，新建事务默认留在项目主检出上，除非手动选择隔离。",
+  showAdvancedCheckout: "显示高级检出设置",
+  hideAdvancedCheckout: "隐藏高级检出设置",
+  hostManagedImplementationPrefix: "托管实现：",
+  fieldEnvironment: "运行环境",
+  noEnvironmentOption: "未选环境",
+  fieldBaseRef: "基准引用",
+  fieldBranchTemplate: "分支模板",
+  fieldWorktreeParentDir: "工作树父目录",
+  fieldProvisionCommand: "预置命令",
+  fieldTeardownCommand: "拆除命令",
+  provisionTeardownFootnote:
+    "预置在派生工作树内、智能体执行前运行；拆除命令预留给后续清理流程。",
+  dangerZone: "危险操作",
+  archiveBlurb: "归档后将从侧栏与项目选择器中隐藏。",
+  unarchiveBlurb: "取消归档后将恢复到侧栏与项目选择器。",
+  archiveverb: "归档",
+  unarchiveverb: "取消归档",
+  archiving: "正在归档…",
+  unarchiving: "正在取消归档…",
+  confirm: "确认",
+  cancelverb: "取消",
+  archiveProject: "归档项目",
+  unarchiveProject: "取消归档项目",
+  archiveConfirmPrompt: (verb: string, name: string) => `${verb}「${name}」？`,
+  selectCompanyForSecrets: "请先选择团队后再创建密钥",
+  localPathPlaceholder: "/absolute/path/to/workspace",
+  repoUrlPlaceholder: "https://github.com/org/repo",
+} as const;
+
+export const projectWorkspacesUi = {
+  empty: "尚无需要展示的非默认工作区活动。",
+  cleanupAttention: "需要处理清理问题",
+} as const;
+
+export const projectWorkspaceCardUi = {
+  kindExecution: "执行工作区",
+  kindProject: "项目工作区",
+  updatedPrefix: "更新于",
+  servicesCount: (running: number, total: number) => `${running}/${total} 个服务`,
+  stopServices: "停止服务",
+  startServices: "启动服务",
+  retryClose: "重试关闭",
+  closeWorkspace: "关闭工作区",
+  branchEyebrow: "分支",
+  pathEyebrow: "路径",
+  serviceEyebrow: "服务",
+  linkedIssues: "关联事务",
+  moreLinked: (n: number) => `+ 还有 ${n} 个`,
+  branchCopied: "已复制分支",
+  pathCopied: "已复制路径",
+  copyBranchAria: "复制分支",
+  copyPathAria: "复制路径",
+} as const;
+
+export const executionWorkspaceCloseUi = {
+  closeWorkspace: "关闭工作区",
+  retryClose: "重试关闭",
+  descriptionIntro: (name: string) =>
+    `将「${name}」归档并清理其拥有的工作区产物。Paperclip 会保留工作区记录与事务历史，但从活跃工作区视图中移除。`,
+  checkingSafe: "正在检查该工作区是否可以安全关闭…",
+  inspectFailed: "无法检查关闭就绪状态。",
+  stateBlocked: "当前无法关闭",
+  stateReadyWithWarnings: "存在告警，但允许关闭",
+  stateReady: "可以关闭",
+  hintSharedSession:
+    "这是共享工作区会话。归档后仅移除该会话记录，底层项目工作区仍保留。",
+  hintOwnCheckout:
+    "该执行工作区有独立检出路径，可单独归档。",
+  hintProjectPrimary:
+    "该执行工作区当前指向项目主工作区路径。",
+  hintDisposable: "该工作区可丢弃并可归档。",
+  blockingIssues: "阻塞事务",
+  blockingReasons: "阻塞原因",
+  warnings: "警告",
+  gitStatus: "Git 状态",
+  gitBranch: "分支",
+  gitBaseRefLabel: "基准引用",
+  unknown: "未知",
+  notSet: "未设置",
+  mergedIntoBase: "已合并进基准",
+  yes: "是",
+  no: "否",
+  aheadBehind: "领先 / 落后",
+  dirtyTrackedFiles: "已跟踪文件的未提交变更",
+  untrackedFiles: "未跟踪文件",
+  otherLinkedIssues: "其他关联事务",
+  attachedRuntimeServices: "已挂运行时服务",
+  noAdditionalDetails: "无更多详情",
+  cleanupActions: "清理操作",
+  cleanupFailedBlurb:
+    "该工作区上次清理失败。重试关闭将重新执行清理流程并在成功时更新状态。",
+  alreadyArchived: "该工作区已归档。",
+  repoRootLabel: "仓库根目录：",
+  workspacePathLabel: "工作区路径：",
+  lastChecked: (when: string) => `上次检查：${when}`,
+  cancel: "取消",
+  toastCloseRetried: "已重试关闭工作区",
+  toastClosed: "工作区已关闭",
+  toastCloseFailed: "关闭工作区失败",
+  unknownError: "未知错误",
+} as const;
+
+const PROJECT_PROPERTY_STATUS_LABELS: Record<string, string> = {
+  backlog: projectPropertiesUi.statusBacklog,
+  planned: projectPropertiesUi.statusPlanned,
+  in_progress: projectPropertiesUi.statusInProgress,
+  completed: projectPropertiesUi.statusCompleted,
+  cancelled: projectPropertiesUi.statusCancelled,
+};
+
+export function formatProjectPropertyStatusLabel(status: string): string {
+  return PROJECT_PROPERTY_STATUS_LABELS[status] ?? status.replace(/_/g, " ");
+}
+
+const EXECUTION_WORKSPACE_STATUS_ZH: Record<string, string> = {
+  active: "活跃",
+  idle: "空闲",
+  in_review: "审阅中",
+  archived: "已归档",
+  cleanup_failed: "清理失败",
+};
+
+export function formatExecutionWorkspaceStatusZh(status: string): string {
+  return EXECUTION_WORKSPACE_STATUS_ZH[status] ?? status.replace(/_/g, " ");
+}
+
+const WORKSPACE_RUNTIME_SERVICE_STATUS_ZH: Record<string, string> = {
+  starting: "启动中",
+  running: "运行中",
+  stopped: "已停止",
+  failed: "失败",
+};
+
+export function formatWorkspaceRuntimeServiceStatusZh(status: string): string {
+  return WORKSPACE_RUNTIME_SERVICE_STATUS_ZH[status] ?? status;
+}
+
+const WORKSPACE_RUNTIME_LIFECYCLE_ZH: Record<string, string> = {
+  shared: "共享",
+  ephemeral: "临时",
+};
+
+export function formatWorkspaceRuntimeLifecycleZh(lifecycle: string): string {
+  return WORKSPACE_RUNTIME_LIFECYCLE_ZH[lifecycle] ?? lifecycle;
+}
 
 export const dashboard = {
   welcomeNoCompany: "欢迎使用 Paperclip。先创建团队与智能体即可开始。",
@@ -372,9 +608,9 @@ export const issuesPage = {
 export const issuesList = {
   searchPlaceholder: "搜索事务…",
   searchAria: "搜索事务",
-  nextUp: "下一步",
-  waitingBlockers: "等待阻塞项",
-  board: "董事会",
+  nextUp: "下一个",
+  waitingBlockers: "等待阻塞解除",
+  board: "看板",
   me: "我",
   noWorkspace: "无工作区",
   noProject: "无项目",
@@ -405,10 +641,17 @@ export const issuesList = {
   noMatch: "没有符合当前筛选或搜索的事务。",
   paused: "已暂停",
   needsNext: "需要下一步",
-  needsNextTitle: "此事务需要下一步操作",
+  needsNextTitle: "该事务需要下一步操作",
   searchAssignees: "搜索经办人…",
   loadingMore: "加载更多事务…",
   scrollLoad: "滚动加载更多",
+  subIssuesProgressAria: "子事务完成进度",
+  noActiveSubIssues: "无活跃子事务",
+  allSubIssuesDone: "子事务均已完成",
+  noActionableSubIssues: "无可执行的子事务",
+  assignee: "经办人",
+  noAssignee: "无经办人",
+  subTaskCount: (n: number) => `（${n} 个子事务）`,
 } as const;
 
 export const onboarding = {
@@ -1351,6 +1594,202 @@ export function budgetPolicySoftWarnLine(
   }
   return base;
 }
+
+// ——— 成本页 `/costs` ———
+
+export const costsUi = {
+  pageTitle: "成本",
+  pageSubtitle: "推理支出、平台费用、额度与实时订阅配额视图。",
+  emptySelectCompany: "请选择公司以查看成本。",
+  customRangeTo: "至",
+
+  metricInferenceSpend: "推理支出",
+  inferenceSpendSubtitle: (formattedTokens: string) =>
+    `${formattedTokens}（笔请求范围内事件的 Token 合计）`,
+
+  metricBudget: "预算",
+  budgetMetricOpen: "正常",
+  budgetPausedSubtitle: (agents: number, projects: number) =>
+    `${agents} 个智能体已暂停 · ${projects} 个项目已暂停`,
+  budgetUtilSubtitle: (spend: string, cap: string) => `${spend} / ${cap}（占月度上限）`,
+  budgetNoMonthlyCap: "未配置月度上限",
+
+  metricFinanceNet: "账务净额",
+  financeNetSubtitle: (debits: string, credits: string) => `借方 ${debits} · 贷方 ${credits}`,
+
+  metricFinanceEvents: "账务事件",
+  financeEventsSubtitle: (estimated: string) => `范围内预估 ${estimated}`,
+
+  tabOverview: "概览",
+  tabBudgets: "预算",
+  tabProviders: "供应商",
+  tabBillers: "计费方",
+  tabFinance: "账务",
+
+  selectDatesToLoad: "请选择起止日期以加载数据。",
+
+  inferenceLedgerTitle: "推理台账",
+  inferenceLedgerDescription: "所选时间范围内、按请求计量的推理支出。",
+  budgetLine: (amount: string) => `预算 ${amount}`,
+  unlimitedBudget: "无预算上限",
+  usageEyebrow: "用量",
+  monthlyBudgetConsumedPct: (pct: number) => `本范围内已用月度预算的 ${pct}%。`,
+
+  byAgentTitle: "按智能体",
+  byAgentDescription: "各智能体在所选周期内的消耗。",
+  noCostEvents: "尚无成本事件。",
+  tokInOut: (inn: string, out: string) => `入 ${inn} · 出 ${out}`,
+  runCountApi: (n: number) => (n > 0 ? `${n} 次 API` : "0 次 API"),
+  runCountSubscription: (n: number) => (n > 0 ? `${n} 次订阅` : "0 次订阅"),
+  modelRowTokLabel: (formatted: string) => `${formatted} Token`,
+
+  byProjectTitle: "按项目",
+  byProjectDescription: "通过关联项目的事务归集的运次成本。",
+  noProjectAttributedCosts: "尚无可归集到项目的运次成本。",
+  unattributed: "未归属",
+
+  financeTimelineEmptyCostsOverview:
+    "尚无账务事件。计费方发票或贷项入账后，将显示账户级费用。",
+
+  budgetControlPlaneTitle: "预算控制面",
+  budgetControlPlaneDescription:
+    "针对智能体与项目的硬停支出上限。供应商订阅配额另行展示，见「供应商」Tab。",
+
+  metricActiveIncidents: "活跃事件",
+  activeIncidentsSubtitle: "软/硬阈值已触发（待处理）",
+  metricPendingApprovals: "待审批",
+  pendingApprovalsSubtitle: "预算覆盖申请待看板处理",
+  metricPausedAgents: "已暂停智能体",
+  pausedAgentsSubtitle: "因预算已阻断智能体心跳",
+  metricPausedProjects: "已暂停项目",
+  pausedProjectsSubtitle: "因预算已阻断项目执行",
+
+  activeIncidentsHeading: "活跃事件",
+  activeIncidentsHint: "在此提高预算或明确保持暂停以处理硬停。",
+
+  scopeBudgetDescription: {
+    company: "全公司月度策略。",
+    agent: "各智能体的循环月度支出策略。",
+    project: "与执行绑定的项目的生命周期支出策略。",
+  } as const,
+  scopeBudgetTitle: (scopeLabel: string) => `${scopeLabel}预算`,
+
+  noBudgetPoliciesBody:
+    "尚无预算策略。可在智能体/项目详情页设置，或使用既有公司月度预算控制。",
+
+  allProviders: "全部供应商",
+  allBillers: "全部计费方",
+  noCostEventsInPeriod: "本周期内无成本事件。",
+  noBillableEventsInPeriod: "本周期内无可计费事件。",
+
+  financeByBillerTitle: "按计费方",
+  financeByBillerDescription: "按收费/入账方分组的账户级账务事件。",
+  noFinanceEvents: "尚无账务事件。",
+
+  financeSummaryTitle: "账务台账",
+  financeSummaryDescription: "无法映射到单笔推理请求的账户级费用。",
+  financeSummaryDebits: "借方",
+  financeSummaryDebitsSubtitle: (n: number) => `范围内共 ${n} 条事件`,
+  financeSummaryCredits: "贷方",
+  financeSummaryCreditsSubtitle: "退款、冲减与额度退回",
+  financeSummaryNet: "净额",
+  financeSummaryNetSubtitle: "所选周期内借方减贷方",
+  financeSummaryEstimated: "预估",
+  financeSummaryEstimatedSubtitle: "尚未以发票为准的预估借方",
+} as const;
+
+export const costsBudgetIncidentUi = {
+  stateResolved: "已解决",
+  stateDismissed: "已忽略",
+  stateEscalated: "已升级",
+  statePendingApproval: "待审批",
+  stateOpen: "待处理",
+  hardStopEyebrow: (scopeZh: string) => `${scopeZh}硬停`,
+  spendingAgainstLimit: (observed: string, limit: string) =>
+    `支出已达 ${observed}，上限为 ${limit}。`,
+  pauseProject:
+    "在解决预算事件之前，本项目的新工作不会启动。",
+  pauseScopeHeartbeats:
+    "在解决预算事件之前，该范围内新的心跳将不会启动。",
+  newBudgetUsd: "新预算（USD）",
+  raiseBudgetResume: "提高预算并恢复",
+  applying: "提交中…",
+  budgetMustExceedObserved: "新预算须高于当前已观测支出。",
+  keepPaused: "保持暂停",
+} as const;
+
+export const costsProviderUi = {
+  periodSpend: "周期内支出",
+  pctOfAllocation: (pct: number) => `占分配额度 ${pct}%`,
+  thisWeek: "本周",
+  weeklyAllocationHint: (amount: string) => `约 ${amount}/周`,
+  rollingWindows: "滚动窗口",
+  tok: (formatted: string) => `${formatted} Token`,
+  subscription: "订阅",
+  pctTokenViaSubscription: (pct: number) => `${pct}% 的 Token 用量来自订阅`,
+  titlePctOfProviderTokens: (pct: number) => `占该供应商 Token 的 ${pct}%`,
+  titlePctOfProviderCost: (pct: number) => `占该供应商费用的 ${pct}%`,
+  subscriptionQuota: "订阅配额",
+  pctUsed: (pct: number) => `已用 ${pct}%`,
+  resetsOn: (date: string) => `${date} 重置`,
+  descInOut: (inn: string, out: string) => `入 ${inn} · 出 ${out}`,
+  meteredRunsHint: (api: number, sub: number) => {
+    if (api > 0 && sub > 0) return `约 ${api} 次 API / ${sub} 次订阅运行`;
+    if (api > 0) return `约 ${api} 次 API 运行`;
+    if (sub > 0) return `约 ${sub} 次订阅运行`;
+    return "";
+  },
+  subscriptionDetailLine: (runCount: number, totalTokFmt: string | null, inFmt: string, outFmt: string) => {
+    let s = `${runCount} 次运行`;
+    if (totalTokFmt) s += ` · ${totalTokFmt} 合计`;
+    s += ` · ${inFmt} 入 · ${outFmt} 出`;
+    return s;
+  },
+} as const;
+
+export const costsBillerUi = {
+  descLine: (inn: string, out: string, providers: number, models: number) =>
+    `入 ${inn} · 出 ${out} · ${providers} 个供应商 · ${models} 个模型`,
+  meteredRuns: (n: number) => (n === 0 ? "0 次按量运行" : `${n} 次按量运行`),
+  subscriptionRuns: (n: number) => (n === 0 ? "0 次订阅运行" : `${n} 次订阅运行`),
+  thisWeekAmount: (amount: string) => `本周 ${amount}`,
+  providerModelsLine: (providers: number, models: number) =>
+    `${providers} 个供应商 · ${models} 个模型`,
+  billingTypes: "计费类型",
+  upstreamProviders: "上游供应商",
+  tok: (formatted: string) => `${formatted} Token`,
+} as const;
+
+export const costsFinanceCardsUi = {
+  recentEventsTitle: "近期账务事件",
+  recentEventsDescription: "充值、费用、贷项、承诺及其它非按请求计费项。",
+  emptyInPeriod: "本周期内无账务事件。",
+  invoicePrefix: (id: string) => `发票 ${id}`,
+  regionPrefix: (code: string) => `区域 ${code}`,
+  tierPrefix: (name: string) => `档位 ${name}`,
+  estimatedBadge: "预估",
+  mixTitle: "账务事件构成",
+  mixDescription: "按事件类型的账户级费用分组。",
+  mixRowMeta: (events: number, billers: number) =>
+    `${events} 条事件 · ${billers} 个计费方`,
+  mixDebitsLine: (amount: string) => `借方 ${amount}`,
+  billerMeta: (events: number, kinds: number) => `${events} 条事件，涉 ${kinds} 类`,
+  netEyebrow: "净额",
+  gridDebits: "借方",
+  gridCredits: "贷方",
+  gridEstimated: "预估",
+} as const;
+
+export const costsSubscriptionPanelUi = {
+  anthropicTitle: "Anthropic 订阅",
+  anthropicSubtitle: "实时 Claude 配额窗口。",
+  codexTitle: "Codex 订阅",
+  codexSubtitle: "实时 Codex 配额窗口。",
+  accountWindows: "账户级窗口",
+  modelWindows: "模型级窗口",
+  resetsAt: (when: string) => `${when} 重置`,
+  pctUsed: (pct: number) => `已用 ${pct}%`,
+} as const;
 
 /** 审批记录在收件箱等处展示的状态（API 仍为英文枚举） */
 const INBOX_APPROVAL_STATUS_ZH: Record<string, string> = {

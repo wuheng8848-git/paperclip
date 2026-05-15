@@ -177,8 +177,8 @@ describe("ProjectDetail", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
-    expect(container.textContent).toContain("Managed by Missions");
-    expect(container.textContent).toContain("Plugin operations");
+    expect(container.textContent).toContain("由 Missions 托管");
+    expect(container.textContent).toContain("插件操作");
     expect(mockIssuesApi.list).toHaveBeenCalledWith("company-1", {
       projectId: "project-1",
       originKindPrefix: "plugin:paperclip.missions",

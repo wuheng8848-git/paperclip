@@ -120,14 +120,14 @@ describe("ProjectWorkspaceSummaryCard", () => {
       );
     });
 
-    expect(container.textContent).toContain("Execution workspace");
-    expect(container.textContent).toContain("Branch");
-    expect(container.textContent).toContain("Path");
-    expect(container.textContent).toContain("Service");
-    expect(container.textContent).toContain("Linked issues");
-    expect(container.textContent).toContain("Start services");
-    expect(container.textContent).toContain("Close workspace");
-    expect(container.textContent).toContain("+1 more");
+    expect(container.textContent).toContain("执行工作区");
+    expect(container.textContent).toContain("分支");
+    expect(container.textContent).toContain("路径");
+    expect(container.textContent).toContain("服务");
+    expect(container.textContent).toContain("关联事务");
+    expect(container.textContent).toContain("启动服务");
+    expect(container.textContent).toContain("关闭工作区");
+    expect(container.textContent).toContain("+ 还有 1 个");
 
     const actions = container.querySelector('[data-testid="workspace-summary-actions"]');
     expect(actions?.className).toContain("flex-col");
@@ -167,8 +167,8 @@ describe("ProjectWorkspaceSummaryCard", () => {
 
     const titleLink = container.querySelector("a[href='/projects/paperclip-app/workspaces/workspace-1']");
     expect(titleLink).not.toBeNull();
-    expect(container.textContent).not.toContain("Close workspace");
-    expect(container.textContent).not.toContain("Start services");
+    expect(container.textContent).not.toContain("关闭工作区");
+    expect(container.textContent).not.toContain("启动服务");
 
     act(() => {
       root.unmount();
@@ -193,7 +193,7 @@ describe("ProjectWorkspaceSummaryCard", () => {
       );
     });
 
-    expect(container.textContent).toContain("Retry close");
+    expect(container.textContent).toContain("重试关闭");
 
     act(() => {
       root.unmount();
@@ -223,8 +223,8 @@ describe("ProjectWorkspaceSummaryCard", () => {
     const branchTextButton = Array.from(container.querySelectorAll("button"))
       .find((button) => button.textContent === summary.branchName);
     const pathTextButton = container.querySelector(`button[title="${summary.cwd}"]`);
-    const branchIconButton = container.querySelector('button[aria-label="Copy branch"]');
-    const pathIconButton = container.querySelector('button[aria-label="Copy path"]');
+    const branchIconButton = container.querySelector('button[aria-label="复制分支"]');
+    const pathIconButton = container.querySelector('button[aria-label="复制路径"]');
 
     expect(branchTextButton).not.toBeNull();
     expect(pathTextButton).not.toBeNull();
