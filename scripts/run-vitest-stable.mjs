@@ -28,6 +28,7 @@ const additionalSerializedServerTests = new Set([
   "server/src/__tests__/express5-auth-wildcard.test.ts",
   "server/src/__tests__/health-dev-server-token.test.ts",
   "server/src/__tests__/health.test.ts",
+  "server/src/__tests__/heartbeat-concurrency-caps.test.ts",
   "server/src/__tests__/heartbeat-dependency-scheduling.test.ts",
   "server/src/__tests__/heartbeat-issue-liveness-escalation.test.ts",
   "server/src/__tests__/heartbeat-process-recovery.test.ts",
@@ -216,11 +217,14 @@ function runVitest(args, label) {
   };
   mkdirSync(env.PAPERCLIP_HOME, { recursive: true });
   mkdirSync(env.TMPDIR, { recursive: true });
-  const result = spawnSync("pnpm", ["exec", "vitest", "run", ...args], {
+  /** Windows: bare `pnpm` is not a real exe; spawn without shell often fails (ENOENT/EINVAL). */
+  const spawnOptions = {
     cwd: repoRoot,
     env,
     stdio: "inherit",
-  });
+    ...(process.platform === "win32" ? { shell: true } : {}),
+  };
+  const result = spawnSync("pnpm", ["exec", "vitest", "run", ...args], spawnOptions);
   if (result.error) {
     console.error(`[test:run] Failed to start Vitest: ${result.error.message}`);
     process.exit(1);
