@@ -71,6 +71,8 @@ import { issueService } from "./issues.js";
 import { projectService } from "./projects.js";
 import { routineService } from "./routines.js";
 import { secretService } from "./secrets.js";
+import { instanceSettingsService } from "./instance-settings.js";
+import { applyInstanceTimerHeartbeatDefaultsToRuntimeConfig } from "./agent-timer-heartbeat-config.js";
 
 /** Build OrgNode tree from manifest agent list (slug + reportsToSlug). */
 function buildOrgTreeFromManifest(agents: CompanyPortabilityManifest["agents"]): OrgNode[] {
@@ -842,17 +844,6 @@ function parseFiniteNumberLike(value: unknown): number | null {
   if (typeof value !== "string") return null;
   const parsed = Number(value.trim());
   return Number.isFinite(parsed) ? parsed : null;
-}
-
-function disableImportedTimerHeartbeat(runtimeConfig: unknown) {
-  const next = clonePortableRecord(runtimeConfig) ?? {};
-  const heartbeat = isPlainRecord(next.heartbeat) ? { ...next.heartbeat } : {};
-  heartbeat.enabled = false;
-  if (parseFiniteNumberLike(heartbeat.maxConcurrentRuns) == null) {
-    heartbeat.maxConcurrentRuns = AGENT_DEFAULT_MAX_CONCURRENT_RUNS;
-  }
-  next.heartbeat = heartbeat;
-  return next;
 }
 
 function normalizePortableProjectWorkspaceExtension(
@@ -4231,6 +4222,7 @@ export function companyPortabilityService(db: Db, storage?: StorageService) {
     }
 
     if (include.agents) {
+      const instanceExperimental = await instanceSettingsService(db).getExperimental();
       for (const planAgent of plan.preview.plan.agentPlans) {
         const manifestAgent = plan.selectedAgents.find((agent) => agent.slug === planAgent.slug);
         if (!manifestAgent) continue;
@@ -4295,7 +4287,12 @@ export function companyPortabilityService(db: Db, storage?: StorageService) {
           reportsTo: null,
           adapterType: normalizedAdapter.adapterType,
           adapterConfig: normalizedAdapter.adapterConfig,
-          runtimeConfig: disableImportedTimerHeartbeat(manifestAgent.runtimeConfig),
+          runtimeConfig: applyInstanceTimerHeartbeatDefaultsToRuntimeConfig(
+            isPlainRecord(manifestAgent.runtimeConfig) ? { ...manifestAgent.runtimeConfig } : {},
+            manifestAgent.role,
+            instanceExperimental,
+            "import",
+          ),
           budgetMonthlyCents: manifestAgent.budgetMonthlyCents,
           permissions: manifestAgent.permissions,
           metadata: manifestAgent.metadata,

@@ -17,6 +17,8 @@ import {
   issueComments,
 } from "@paperclipai/db";
 import { AGENT_DEFAULT_MAX_CONCURRENT_RUNS, isUuidLike, normalizeAgentUrlKey } from "@paperclipai/shared";
+import { stripTimerHeartbeatIfRoleIneligible } from "./agent-timer-heartbeat-config.js";
+import { instanceSettingsService } from "./instance-settings.js";
 import { conflict, notFound, unprocessable } from "../errors.js";
 import { normalizeAgentPermissions } from "./agent-permissions.js";
 import { REDACTED_EVENT_VALUE, sanitizeRecord } from "../redaction.js";
@@ -363,6 +365,21 @@ export function agentService(db: Db) {
     if (data.permissions !== undefined) {
       const role = (data.role ?? existing.role) as string;
       normalizedPatch.permissions = normalizeAgentPermissions(data.permissions, role);
+    }
+
+    const nextRole = (normalizedPatch.role ?? existing.role) as string;
+    const instanceSettings = instanceSettingsService(db);
+    if (normalizedPatch.runtimeConfig !== undefined) {
+      const experimental = await instanceSettings.getExperimental();
+      const rc = isPlainRecord(normalizedPatch.runtimeConfig) ? normalizedPatch.runtimeConfig : {};
+      normalizedPatch.runtimeConfig = stripTimerHeartbeatIfRoleIneligible(rc, nextRole, experimental);
+    } else if (normalizedPatch.role !== undefined) {
+      const experimental = await instanceSettings.getExperimental();
+      normalizedPatch.runtimeConfig = stripTimerHeartbeatIfRoleIneligible(
+        isPlainRecord(existing.runtimeConfig) ? { ...existing.runtimeConfig } : {},
+        nextRole,
+        experimental,
+      );
     }
 
     const shouldRecordRevision = Boolean(options?.recordRevision) && hasConfigPatchFields(normalizedPatch);

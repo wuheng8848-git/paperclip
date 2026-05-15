@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { promisify } from "node:util";
+import { killWindowsProcessTree } from "@paperclipai/adapter-utils/server-utils";
 import { resolvePaperclipInstanceRoot } from "../home-paths.js";
 
 const execFileAsync = promisify(execFile);
@@ -328,6 +329,10 @@ export async function terminateLocalService(
     }
   } catch {
     // Ignore cleanup races.
+  }
+
+  if (process.platform === "win32" && isPidAlive(record.pid)) {
+    killWindowsProcessTree(record.pid);
   }
 }
 

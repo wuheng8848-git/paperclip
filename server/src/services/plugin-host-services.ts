@@ -1859,7 +1859,9 @@ export function buildHostServices(
         await ensurePluginAvailableForCompany(companyId);
         const agent = await agents.getById(params.agentId);
         requireInCompany("Agent", agent, companyId);
-        return (await agents.pause(params.agentId)) as Agent;
+        const paused = (await agents.pause(params.agentId)) as Agent;
+        await heartbeat.cancelActiveForAgent(params.agentId);
+        return paused;
       },
       async resume(params) {
         const companyId = ensureCompanyId(params.companyId);

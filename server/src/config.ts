@@ -43,6 +43,34 @@ if (!isSameFile && existsSync(CWD_ENV_PATH)) {
   loadDotenv({ path: CWD_ENV_PATH, override: false, quiet: true });
 }
 
+/**
+ * `pnpm --filter @paperclipai/server dev` often uses `cwd = server/`, so `CWD_ENV_PATH` never points at the
+ * monorepo root `.env` (DATABASE_URL, etc.). Load the workspace root `.env` when we find `pnpm-workspace.yaml`.
+ */
+function loadMonorepoRootDotenv() {
+  let dir = resolve(process.cwd());
+  for (let depth = 0; depth < 24; depth++) {
+    const workspaceMarker = resolve(dir, "pnpm-workspace.yaml");
+    const envPath = resolve(dir, ".env");
+    if (existsSync(workspaceMarker) && existsSync(envPath)) {
+      const sameAsInstance =
+        existsSync(PAPERCLIP_ENV_FILE_PATH) &&
+        realpathSync(envPath) === realpathSync(PAPERCLIP_ENV_FILE_PATH);
+      const sameAsCwd =
+        existsSync(CWD_ENV_PATH) && realpathSync(envPath) === realpathSync(CWD_ENV_PATH);
+      if (!sameAsInstance && !sameAsCwd) {
+        loadDotenv({ path: envPath, override: false, quiet: true });
+      }
+      return;
+    }
+    const parent = resolve(dir, "..");
+    if (parent === dir) return;
+    dir = parent;
+  }
+}
+
+loadMonorepoRootDotenv();
+
 maybeRepairLegacyWorktreeConfigAndEnvFiles();
 
 const TAILSCALE_DETECT_TIMEOUT_MS = 3000;

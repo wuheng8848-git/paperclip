@@ -67,6 +67,9 @@ describe("instance settings routes", () => {
       autoRestartDevServerWhenIdle: false,
       enableIssueGraphLivenessAutoRecovery: true,
       issueGraphLivenessAutoRecoveryLookbackHours: 24,
+      timerHeartbeatEligibleAgentRoles: ["ceo", "cto"],
+      defaultTimerHeartbeatIntervalSec: 300,
+      enableTimerHeartbeatByDefaultForEligibleRoles: true,
     });
     mockInstanceSettingsService.updateGeneral.mockResolvedValue({
       id: "instance-settings-1",
@@ -84,6 +87,9 @@ describe("instance settings routes", () => {
         autoRestartDevServerWhenIdle: false,
         enableIssueGraphLivenessAutoRecovery: true,
         issueGraphLivenessAutoRecoveryLookbackHours: 24,
+        timerHeartbeatEligibleAgentRoles: ["ceo", "cto"],
+        defaultTimerHeartbeatIntervalSec: 300,
+        enableTimerHeartbeatByDefaultForEligibleRoles: true,
       },
     });
     mockInstanceSettingsService.listCompanyIds.mockResolvedValue(["company-1", "company-2"]);
@@ -126,6 +132,9 @@ describe("instance settings routes", () => {
       autoRestartDevServerWhenIdle: false,
       enableIssueGraphLivenessAutoRecovery: true,
       issueGraphLivenessAutoRecoveryLookbackHours: 24,
+      timerHeartbeatEligibleAgentRoles: ["ceo", "cto"],
+      defaultTimerHeartbeatIntervalSec: 300,
+      enableTimerHeartbeatByDefaultForEligibleRoles: true,
     });
 
     const patchRes = await request(app)

@@ -4,6 +4,7 @@ import {
   DEFAULT_FEEDBACK_DATA_SHARING_PREFERENCE,
   DEFAULT_BACKUP_RETENTION,
   DEFAULT_ISSUE_GRAPH_LIVENESS_AUTO_RECOVERY_LOOKBACK_HOURS,
+  DEFAULT_TIMER_HEARTBEAT_ELIGIBLE_AGENT_ROLES,
   instanceGeneralSettingsSchema,
   type InstanceGeneralSettings,
   instanceExperimentalSettingsSchema,
@@ -38,15 +39,7 @@ function normalizeGeneralSettings(raw: unknown): InstanceGeneralSettings {
 function normalizeExperimentalSettings(raw: unknown): InstanceExperimentalSettings {
   const parsed = instanceExperimentalSettingsSchema.safeParse(raw ?? {});
   if (parsed.success) {
-    return {
-      enableEnvironments: parsed.data.enableEnvironments ?? false,
-      enableIsolatedWorkspaces: parsed.data.enableIsolatedWorkspaces ?? false,
-      autoRestartDevServerWhenIdle: parsed.data.autoRestartDevServerWhenIdle ?? false,
-      enableIssueGraphLivenessAutoRecovery: parsed.data.enableIssueGraphLivenessAutoRecovery ?? false,
-      issueGraphLivenessAutoRecoveryLookbackHours:
-        parsed.data.issueGraphLivenessAutoRecoveryLookbackHours ??
-        DEFAULT_ISSUE_GRAPH_LIVENESS_AUTO_RECOVERY_LOOKBACK_HOURS,
-    };
+    return parsed.data;
   }
   return {
     enableEnvironments: false,
@@ -55,6 +48,9 @@ function normalizeExperimentalSettings(raw: unknown): InstanceExperimentalSettin
     enableIssueGraphLivenessAutoRecovery: false,
     issueGraphLivenessAutoRecoveryLookbackHours:
       DEFAULT_ISSUE_GRAPH_LIVENESS_AUTO_RECOVERY_LOOKBACK_HOURS,
+    timerHeartbeatEligibleAgentRoles: [...DEFAULT_TIMER_HEARTBEAT_ELIGIBLE_AGENT_ROLES],
+    defaultTimerHeartbeatIntervalSec: 300,
+    enableTimerHeartbeatByDefaultForEligibleRoles: true,
   };
 }
 

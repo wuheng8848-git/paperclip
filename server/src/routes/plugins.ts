@@ -15,7 +15,7 @@
  * mutations such as install/upgrade require instance-admin privileges.
  *
  * @module server/routes/plugins
- * @see doc/plugins/PLUGIN_SPEC.md for the full plugin specification
+ * @see doc/plugins/插件规范 PLUGIN_SPEC.md for the full plugin specification
  */
 
 import { existsSync } from "node:fs";

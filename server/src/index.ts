@@ -272,11 +272,12 @@ export async function startServer(): Promise<StartedServer> {
     | { mode: "embedded-postgres"; dataDir: string; port: number };
   if (config.databaseUrl) {
     const migrationUrl = config.databaseMigrationUrl ?? config.databaseUrl;
+    logger.info("Using external PostgreSQL via DATABASE_URL / config (ensure this server is running before start).");
     migrationSummary = await ensureMigrations(migrationUrl, "PostgreSQL");
-  
+
     db = createDb(config.databaseUrl);
     pluginMigrationDb = config.databaseMigrationUrl ? createDb(config.databaseMigrationUrl) : db;
-    logger.info("Using external PostgreSQL via DATABASE_URL/config");
+    logger.info("External PostgreSQL connection established for app runtime");
     activeDatabaseConnectionString = config.databaseUrl;
     startupDbInfo = { mode: "external-postgres", connectionString: config.databaseUrl };
   } else {
@@ -355,20 +356,43 @@ export async function startServer(): Promise<StartedServer> {
       }
     };
   
-    const runningPid = getRunningPid();
+    let runningPid = getRunningPid();
+    let reuseLiveEmbeddedServer = false;
+    const configuredAdminCs = `postgres://paperclip:paperclip@127.0.0.1:${configuredPort}/postgres`;
+
     if (runningPid) {
-      logger.warn(`Embedded PostgreSQL already running; reusing existing process (pid=${runningPid}, port=${port})`);
-    } else {
-      const configuredAdminConnectionString = `postgres://paperclip:paperclip@127.0.0.1:${configuredPort}/postgres`;
       try {
-        const actualDataDir = await getPostgresDataDirectory(configuredAdminConnectionString);
+        const actualDataDir = await getPostgresDataDirectory(configuredAdminCs);
         if (
           typeof actualDataDir !== "string" ||
           resolve(actualDataDir) !== resolve(dataDir)
         ) {
           throw new Error("reachable postgres does not use the expected embedded data directory");
         }
-        await ensurePostgresDatabase(configuredAdminConnectionString, "paperclip");
+        await ensurePostgresDatabase(configuredAdminCs, "paperclip");
+        reuseLiveEmbeddedServer = true;
+        logger.warn(
+          `Embedded PostgreSQL already running; reusing existing process (pid=${runningPid}, port=${port})`,
+        );
+      } catch {
+        logger.warn(
+          { runningPid },
+          "Embedded PostgreSQL postmaster.pid matched a live PID but PostgreSQL is not reachable here; clearing stale lock and restarting",
+        );
+        rmSync(postmasterPidFile, { force: true });
+      }
+    }
+
+    if (!reuseLiveEmbeddedServer) {
+      try {
+        const actualDataDir = await getPostgresDataDirectory(configuredAdminCs);
+        if (
+          typeof actualDataDir !== "string" ||
+          resolve(actualDataDir) !== resolve(dataDir)
+        ) {
+          throw new Error("reachable postgres does not use the expected embedded data directory");
+        }
+        await ensurePostgresDatabase(configuredAdminCs, "paperclip");
         logger.warn(
           `Embedded PostgreSQL appears to already be reachable without a pid file; reusing existing server on configured port ${configuredPort}`,
         );
@@ -445,9 +469,20 @@ export async function startServer(): Promise<StartedServer> {
   }
   
   if (config.deploymentMode === "local_trusted" && !isLoopbackHost(config.host)) {
-    throw new Error(
-      `local_trusted mode requires loopback host binding (received: ${config.host}). ` +
-        "Use authenticated mode for non-loopback deployments.",
+    const allowLanTrustedBind =
+      process.env.PAPERCLIP_ALLOW_LOCAL_TRUSTED_LAN_BIND === "true" ||
+      process.env.PAPERCLIP_ALLOW_LOCAL_TRUSTED_LAN_BIND === "1";
+    if (!allowLanTrustedBind) {
+      throw new Error(
+        `local_trusted mode requires loopback host binding (received: ${config.host}). ` +
+          "Use authenticated mode for non-loopback deployments. " +
+          "For containerized or LAN-bound local development only, set PAPERCLIP_ALLOW_LOCAL_TRUSTED_LAN_BIND=true " +
+          "(unsafe on untrusted networks).",
+      );
+    }
+    logger.warn(
+      { host: config.host },
+      "local_trusted with non-loopback bind: PAPERCLIP_ALLOW_LOCAL_TRUSTED_LAN_BIND is set; use only on trusted developer machines.",
     );
   }
   

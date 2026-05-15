@@ -17,6 +17,7 @@ import {
   resetAgentSessionSchema,
   testAdapterEnvironmentSchema,
   type AgentSkillSnapshot,
+  type InstanceExperimentalSettings,
   type InstanceSchedulerHeartbeatAgent,
   upsertAgentInstructionsFileSchema,
   updateAgentInstructionsBundleSchema,
@@ -76,6 +77,10 @@ import { redactEventPayload } from "../redaction.js";
 import { redactCurrentUserValue } from "../log-redaction.js";
 import { renderOrgChartSvg, renderOrgChartPng, type OrgNode, type OrgChartStyle, ORG_CHART_STYLES } from "./org-chart-svg.js";
 import { instanceSettingsService } from "../services/instance-settings.js";
+import {
+  applyInstanceTimerHeartbeatDefaultsToRuntimeConfig,
+  stripTimerHeartbeatIfRoleIneligible,
+} from "../services/agent-timer-heartbeat-config.js";
 import { runClaudeLogin } from "@paperclipai/adapter-claude-local/server";
 import {
   DEFAULT_ACPX_LOCAL_AGENT,
@@ -872,21 +877,22 @@ export function agentRoutes(
     };
   }
 
-  function normalizeNewAgentRuntimeConfig(runtimeConfig: unknown): Record<string, unknown> {
+  function normalizeNewAgentRuntimeConfig(
+    runtimeConfig: unknown,
+    role: string,
+    experimental: InstanceExperimentalSettings,
+  ): Record<string, unknown> {
     const parsedRuntimeConfig = asRecord(runtimeConfig);
     const normalizedRuntimeConfig = parsedRuntimeConfig ? { ...parsedRuntimeConfig } : {};
     const parsedHeartbeat = asRecord(normalizedRuntimeConfig.heartbeat);
     const heartbeat = parsedHeartbeat ? { ...parsedHeartbeat } : {};
 
-    if (parseBooleanLike(heartbeat.enabled) == null) {
-      heartbeat.enabled = false;
-    }
     if (parseNumberLike(heartbeat.maxConcurrentRuns) == null) {
       heartbeat.maxConcurrentRuns = AGENT_DEFAULT_MAX_CONCURRENT_RUNS;
     }
 
     normalizedRuntimeConfig.heartbeat = heartbeat;
-    return normalizedRuntimeConfig;
+    return applyInstanceTimerHeartbeatDefaultsToRuntimeConfig(normalizedRuntimeConfig, role, experimental, "create");
   }
 
   function listRuntimeModelProfileAdapterConfigs(runtimeConfig: unknown): Array<{
@@ -1642,6 +1648,9 @@ export function agentRoutes(
       .innerJoin(companies, eq(agentsTable.companyId, companies.id))
       .orderBy(companies.name, agentsTable.name);
 
+    const experimental = await instanceSettings.getExperimental();
+    const timerRoleSet = new Set(experimental.timerHeartbeatEligibleAgentRoles);
+
     const items: InstanceSchedulerHeartbeatAgent[] = rows
       .map((row) => {
         const policy = parseSchedulerHeartbeatPolicy(row.runtimeConfig);
@@ -1663,7 +1672,11 @@ export function agentRoutes(
           adapterType: row.adapterType,
           intervalSec: policy.intervalSec,
           heartbeatEnabled: policy.enabled,
-          schedulerActive: statusEligible && policy.enabled && policy.intervalSec > 0,
+          schedulerActive:
+            statusEligible &&
+            timerRoleSet.has(row.role) &&
+            policy.enabled &&
+            policy.intervalSec > 0,
           lastHeartbeatAt: row.lastHeartbeatAt,
         };
       })
@@ -1984,10 +1997,11 @@ export function agentRoutes(
       adapterType: hireInput.adapterType,
       adapterConfig: desiredSkillAssignment.adapterConfig,
     });
+    const experimental = await instanceSettings.getExperimental();
     const normalizedRuntimeConfig = await normalizeRuntimeConfigAdapterConfigsForPersistence(
       companyId,
       hireInput.adapterType,
-      normalizeNewAgentRuntimeConfig(hireInput.runtimeConfig),
+      normalizeNewAgentRuntimeConfig(hireInput.runtimeConfig, hireInput.role, experimental),
       normalizedAdapterConfig,
     );
     const normalizedHireInput = {
@@ -2170,10 +2184,11 @@ export function agentRoutes(
       adapterType: createInput.adapterType,
       adapterConfig: desiredSkillAssignment.adapterConfig,
     });
+    const experimental = await instanceSettings.getExperimental();
     const normalizedRuntimeConfig = await normalizeRuntimeConfigAdapterConfigsForPersistence(
       companyId,
       createInput.adapterType,
-      normalizeNewAgentRuntimeConfig(createInput.runtimeConfig),
+      normalizeNewAgentRuntimeConfig(createInput.runtimeConfig, createInput.role, experimental),
       normalizedAdapterConfig,
     );
     await assertAgentEnvironmentSelection(companyId, createInput.adapterType, createInput.defaultEnvironmentId);
@@ -2648,6 +2663,21 @@ export function agentRoutes(
         requestedAdapterType,
         requestedRuntimeConfig,
         baseAdapterConfig,
+      );
+    }
+    const experimentalForTimer = await instanceSettings.getExperimental();
+    const nextRoleForTimer = (typeof patchData.role === "string" ? patchData.role : existing.role) as string;
+    if (patchData.runtimeConfig && typeof patchData.runtimeConfig === "object") {
+      patchData.runtimeConfig = stripTimerHeartbeatIfRoleIneligible(
+        patchData.runtimeConfig as Record<string, unknown>,
+        nextRoleForTimer,
+        experimentalForTimer,
+      );
+    } else if (Object.prototype.hasOwnProperty.call(patchData, "role")) {
+      patchData.runtimeConfig = stripTimerHeartbeatIfRoleIneligible(
+        asRecord(existing.runtimeConfig) ? { ...asRecord(existing.runtimeConfig)! } : {},
+        nextRoleForTimer,
+        experimentalForTimer,
       );
     }
     if (touchesAdapterConfiguration || Object.prototype.hasOwnProperty.call(patchData, "defaultEnvironmentId")) {

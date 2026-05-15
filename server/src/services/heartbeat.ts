@@ -2,11 +2,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { and, asc, desc, eq, getTableColumns, gt, inArray, isNull, lt, lte, notInArray, or, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
   AGENT_DEFAULT_MAX_CONCURRENT_RUNS,
+  AGENT_MAX_CONCURRENT_RUNS_CAP,
+  COMPANY_MAX_CONCURRENT_ACTIVE_AGENTS,
   ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY,
   MODEL_PROFILE_KEYS,
   isCodexCliAdapterType,
@@ -184,7 +186,14 @@ const MAX_RUN_EVENT_PAYLOAD_OBJECT_KEYS = 100;
 const MAX_RUN_EVENT_PAYLOAD_DEPTH = 6;
 const HEARTBEAT_MAX_CONCURRENT_RUNS_DEFAULT = AGENT_DEFAULT_MAX_CONCURRENT_RUNS;
 const HEARTBEAT_MAX_CONCURRENT_RUNS_MIN = 1;
-const HEARTBEAT_MAX_CONCURRENT_RUNS_MAX = 50;
+const HEARTBEAT_MAX_CONCURRENT_RUNS_MAX = AGENT_MAX_CONCURRENT_RUNS_CAP;
+
+function heartbeatCompanyClaimLockKey(companyId: string): number {
+  return Number.parseInt(
+    createHash("sha256").update(`paperclip:heartbeat:company_claim:${companyId}`).digest("hex").slice(0, 12),
+    16,
+  );
+}
 const LIVENESS_BOOKKEEPING_ACTIVITY_ACTIONS = [
   "environment.lease_acquired",
   "environment.lease_released",
@@ -5851,16 +5860,57 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     }
 
     const claimedAt = new Date();
-    const claimed = await db
-      .update(heartbeatRuns)
-      .set({
-        status: "running",
-        startedAt: run.startedAt ?? claimedAt,
-        updatedAt: claimedAt,
-      })
-      .where(and(eq(heartbeatRuns.id, run.id), eq(heartbeatRuns.status, "queued")))
-      .returning()
-      .then((rows) => rows[0] ?? null);
+    const claimed = await db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(${heartbeatCompanyClaimLockKey(run.companyId)})`);
+
+      const [{ runningForAgent }] = await tx
+        .select({ runningForAgent: sql<number>`count(*)` })
+        .from(heartbeatRuns)
+        .where(and(eq(heartbeatRuns.agentId, run.agentId), eq(heartbeatRuns.status, "running")));
+      const runningCountForAgent = Number(runningForAgent ?? 0);
+      const policy = parseHeartbeatPolicy(agent);
+      if (runningCountForAgent >= policy.maxConcurrentRuns) {
+        logger.info(
+          {
+            runId: run.id,
+            agentId: run.agentId,
+            runningCountForAgent,
+            max: policy.maxConcurrentRuns,
+          },
+          "claimQueuedRun: per-agent concurrent cap already reached; leaving run queued",
+        );
+        return null;
+      }
+
+      const [{ distinctRunningAgents }] = await tx
+        .select({ distinctRunningAgents: sql<number>`count(distinct ${heartbeatRuns.agentId})` })
+        .from(heartbeatRuns)
+        .where(and(eq(heartbeatRuns.companyId, run.companyId), eq(heartbeatRuns.status, "running")));
+      const distinctWithRunning = Number(distinctRunningAgents ?? 0);
+      if (runningCountForAgent === 0 && distinctWithRunning >= COMPANY_MAX_CONCURRENT_ACTIVE_AGENTS) {
+        logger.info(
+          {
+            runId: run.id,
+            companyId: run.companyId,
+            distinctWithRunning,
+            cap: COMPANY_MAX_CONCURRENT_ACTIVE_AGENTS,
+          },
+          "claimQueuedRun: company concurrent active-agent cap reached; leaving run queued",
+        );
+        return null;
+      }
+
+      return await tx
+        .update(heartbeatRuns)
+        .set({
+          status: "running",
+          startedAt: run.startedAt ?? claimedAt,
+          updatedAt: claimedAt,
+        })
+        .where(and(eq(heartbeatRuns.id, run.id), eq(heartbeatRuns.status, "queued")))
+        .returning()
+        .then((rows) => rows[0] ?? null);
+    });
     if (!claimed) return null;
 
     publishLiveEvent({
@@ -8626,6 +8676,14 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
 
     const policy = parseHeartbeatPolicy(agent);
 
+    if (source === "timer") {
+      const experimental = await instanceSettings.getExperimental();
+      if (!experimental.timerHeartbeatEligibleAgentRoles.includes(agent.role)) {
+        await writeSkippedRequest("heartbeat.timer_role_ineligible");
+        return null;
+      }
+    }
+
     if (source === "timer" && !policy.enabled) {
       await writeSkippedRequest("heartbeat.disabled");
       return null;
@@ -9726,8 +9784,12 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       let enqueued = 0;
       let skipped = 0;
 
+      const experimental = await instanceSettings.getExperimental();
+      const timerHeartbeatRoles = new Set(experimental.timerHeartbeatEligibleAgentRoles);
+
       for (const agent of allAgents) {
         if (agent.status === "paused" || agent.status === "terminated" || agent.status === "pending_approval") continue;
+        if (!timerHeartbeatRoles.has(agent.role)) continue;
         const policy = parseHeartbeatPolicy(agent);
         if (!policy.enabled || policy.intervalSec <= 0) continue;
 

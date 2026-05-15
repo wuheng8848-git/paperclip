@@ -569,7 +569,7 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
       runtimeConfig: {
         heartbeat: {
           wakeOnDemand: true,
-          maxConcurrentRuns: 2,
+          maxConcurrentRuns: 1,
         },
       },
       permissions: {},
