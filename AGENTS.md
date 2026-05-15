@@ -9,13 +9,15 @@ Paperclip 是面向 AI Agent 公司的控制平面。
 
 ## 2. 先读这里
 
-变更代码前，按此顺序阅读（正文以中文为主；**路径文件名**保持英文以便工具与链接稳定）：
+变更代码前，按此顺序阅读（正文以中文为主；**代码路径、包名与 CLI 命令**保持英文；**给人读的文书文件名须含中文、不得纯英文**，见 §5 文档命名）：
 
 1. `doc/01 目标 GOAL.md`（目标与愿景）
 2. `doc/02 产品定义 PRODUCT.md`（产品定义）
 3. `doc/04 实现规格 SPEC-implementation.md`（V1 实现契约）
 4. `doc/05 开发指南 DEVELOPING.md`（开发与本地运行）
 5. `doc/06 数据库 DATABASE.md`（数据库与密钥相关）
+6. [`doc/23 本地开发部署模式检查清单.md`](doc/23%20本地开发部署模式检查清单.md)（本地模式 A/B/C、3100 追查、容器数据自查；AI 拼 URL 前先问人类选哪种模式）
+7. **[`docs/项目计划/最佳实践/运维-回形针本地.md`](docs/项目计划/最佳实践/运维-回形针本地.md)**（本地启动、收尾、`dev:nuke`、环境与 `DATABASE_URL`）
 
 `doc/03 规范 SPEC.md`：长周期产品上下文。
 `doc/04 实现规格 SPEC-implementation.md`：具体 V1 构建契约。
@@ -32,9 +34,11 @@ Paperclip 是面向 AI Agent 公司的控制平面。
 - `doc/`：运维和产品文档
 - `skills/`：随仓库分发的智能体技能（每技能一个目录 + `SKILL.md`）；**集中说明与中文对照见 [`skills/README.md`](skills/README.md)**（此前易缺索引，以自我维护的该文件为准）
 
-## 4. 开发环境（自动数据库）
+## 4. 开发环境
 
-开发时不设置 `DATABASE_URL`，将使用内嵌的 PGlite。
+**本地运维（停止、`dev:nuke`、`.env` 加载顺序、5432 / 54329）：[`docs/项目计划/最佳实践/运维-回形针本地.md`](docs/项目计划/最佳实践/运维-回形针本地.md)。**Cursor 默认还会加载 [`.cursor/rules/paperclip-environment.mdc`](.cursor/rules/paperclip-environment.mdc) 作环境常量速查。
+
+未设置 `DATABASE_URL` 时使用**内嵌 PostgreSQL**（零配置）。若在仓库根 `.env` 配置了 `DATABASE_URL`，则使用**外链**库，须保证该 Postgres 可达；勿在未备份迁移的情况下假定可切回内嵌而不丢数据。
 
 ```sh
 pnpm install
@@ -53,9 +57,9 @@ curl http://localhost:3100/api/health
 curl http://localhost:3100/api/companies
 ```
 
-干净停止本地开发：在启动服务器的终端前台按 **Ctrl+C**，然后在仓库根目录执行 **`pnpm dev:list`** / **`pnpm dev:stop`**。若怀疑子进程泄漏（孤儿 `node` / 内嵌 `postgres` / Codebuddy CLI 等），可用一键 **`pnpm dev:nuke`**（预览：`pnpm dev:nuke -- -DryRun`；保留 Codebuddy：`pnpm dev:nuke -- -KeepCodebuddy`）。若端口 **3100** 仍被占用但注册表为空，请参阅 **`doc/05 开发指南 DEVELOPING.md`**（*停止开发服务*章节）以及中文运维文档 **`docs/项目计划/运维-回形针本地.md`**（*停止与查看状态*）。
+干净停止本地开发：在启动服务器的终端前台按 **Ctrl+C**，然后在仓库根目录执行 **`pnpm dev:list`** / **`pnpm dev:stop`**。若怀疑子进程泄漏（孤儿 `node` / 内嵌 `postgres` / Codebuddy CLI 等），可用一键 **`pnpm dev:nuke`**（预览：`pnpm dev:nuke -- -DryRun`；保留 Codebuddy：`pnpm dev:nuke -- -KeepCodebuddy`）。若端口 **3100** 仍被占用但注册表为空，请参阅 **`doc/05 开发指南 DEVELOPING.md`**（*停止开发服务*章节）以及 **`docs/项目计划/最佳实践/运维-回形针本地.md`** 中「停止与查看状态」。
 
-重置本地开发数据库：
+重置**内嵌**开发数据库（仅在不使用外链 `DATABASE_URL` 时与实例目录 `db/` 同源策略一致时适用；外链库请在 Postgres 侧自行处理）：
 
 ```sh
 rm -rf data/pglite
@@ -85,7 +89,7 @@ pnpm dev
 优先增量更新。保持 `doc/03 规范 SPEC.md` 和 `doc/04 实现规格 SPEC-implementation.md` 一致。
 
 5. **仓库计划文档保持日期化和集中化。**
-在仓库中创建计划文件时，新计划文档应放在 `doc/plans/` 目录下，使用 `YYYY-MM-DD-slug.md` 文件名格式。这不替代 Paperclip issue 计划：如果 Paperclip issue 要求提供计划，请按 `paperclip` skill 更新 issue 的 `plan` 文档，而不是创建仓库 markdown 文件。
+在仓库中创建计划文件时，新计划文档应放在 `doc/plans/` 目录下，使用 **`YYYY-MM-DD-中文主题 可选英文助记.md`** 文件名格式（须含中文主题，与 §5 第 14 条一致）。这不替代 Paperclip issue 计划：如果 Paperclip issue 要求提供计划，请按 `paperclip` skill 更新 issue 的 `plan` 文档，而不是创建仓库 markdown 文件。
 
 6. **未经显式行动许可不写代码。**
 人类**未**给出可当轮执行的许可（如：**批准、干、做、改、实现、写入、落盘、开 PR** 等**同义行动指令**）时，仅凭**问句**或**叙述句**（讨论、背景、推测、brainstorm）**不得**改仓库：**禁止**擅自补丁核心实现（`server/`、`packages/`、适配器注册、控制平面编排等）及代跑会改写工作区的自动化；**可以**做只读检索、解释、方案与风险。**许可可与需求同条消息出现**；含糊的「看看吧」「你觉得呢」不算许可。
@@ -112,6 +116,9 @@ AI 助手与自动化**不得**擅自执行 **`git push`**、**`git push --tags`
 
 13. **本地提交完成后不絮叨远端。**
 `git commit` 成功后，除非人类问起，**不要**再补一句提醒「若要推远端请授权」之类；与第 12 条重复且无增量。
+
+14. **文档文件名须含中文，禁止纯英文 slug。**
+在 `doc/`、`docs/`（含各二级主题目录）**新建或重命名**给人阅读的 Markdown 时，文件名**不得仅为拉丁字母、数字与连字符**（须含至少一段**中文主题**，或与既有专文一致的 **`编号 中文标题 可选英文助记.md`** 形式）。**`doc/plans/`** 下计划文仍保留 **`YYYY-MM-DD-`** 日期前缀，**其后须接中文主题**（再接空格与可选英文助记），不得出现「仅有日期 + 纯英文 slug」的旧式命名。**例外**：根目录与各包内惯例名如 `README.md`、`CHANGELOG.md`、`.agents/skills/**/SKILL.md`；上游或工具强制要求的固定文件名。重命名既有纯英文文书时顺带改站内链接。
 
 ## 6. 数据库变更流程
 

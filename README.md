@@ -352,7 +352,7 @@ pnpm db:migrate       # Apply migrations
 
 `pnpm test` does not run Playwright. Browser suites stay separate and are typically run only when working on those flows or in CI.
 
-See [doc/DEVELOPING.md](doc/DEVELOPING.md) for the full development guide.
+See [doc/05 开发指南 DEVELOPING.md](doc/05 开发指南 DEVELOPING.md) for the full development guide.
 
 <br/>
 

@@ -1,6 +1,6 @@
 # CodeBuddy Fork 运维速查
 
-> Paperclip 自身启动文档已很完整：`doc/DEVELOPING.md`、`docs/项目计划/运维-回形针本地.md`。
+> Paperclip 自身启动文档已很完整：`doc/05 开发指南 DEVELOPING.md`、`docs/项目计划/运维-回形针本地.md`。
 > 本文只收 **fork 特有** 和 **日常高频** 的操作速查。
 
 ---
@@ -24,11 +24,13 @@ curl http://localhost:3100/api/health
 
 ## routic 公司速查
 
-| 项目 | 值 |
-|------|-----|
-| 公司 ID | `cc098628-d91e-4e10-b4e4-000a6c822946` |
-| Agent (Cursor) | `b064fe96` |
-| 开发项目 | `001c415e` |
+
+| 项目             | 值                                      |
+| -------------- | -------------------------------------- |
+| 公司 ID          | `cc098628-d91e-4e10-b4e4-000a6c822946` |
+| Agent (Cursor) | `b064fe96`                             |
+| 开发项目           | `001c415e`                             |
+
 
 ```powershell
 # 一键探查脚本
@@ -61,13 +63,15 @@ curl -s "$BASE/api/issues/{issueId}/runs"
 
 ## test-co 公司速查
 
-| 项目 | 值 |
-|------|-----|
-| 公司 ID | `b274a212-8add-4b6e-8e34-ff5ced668aa4` |
-| CEO | `7cd1f6a5-ed41-4865-ad83-88dac0df7070` |
-| CTO | `3a6d99f8-678a-42ce-ae7b-451fde61791a` |
-| Code | `27017a20-93d7-4e73-b75a-ff5ced668aa4` |
-| 项目 | `fffb42da` → `C:\Users\wuhen\code\paperclip` |
+
+| 项目    | 值                                            |
+| ----- | -------------------------------------------- |
+| 公司 ID | `b274a212-8add-4b6e-8e34-ff5ced668aa4`       |
+| CEO   | `7cd1f6a5-ed41-4865-ad83-88dac0df7070`       |
+| CTO   | `3a6d99f8-678a-42ce-ae7b-451fde61791a`       |
+| Code  | `27017a20-93d7-4e73-b75a-ff5ced668aa4`       |
+| 项目    | `fffb42da` → `C:\Users\wuhen\code\paperclip` |
+
 
 ---
 
@@ -130,7 +134,8 @@ pnpm dev:once
 
 ## 参考
 
-- Paperclip 开发手册：`doc/DEVELOPING.md`
+- Paperclip 开发手册：`doc/05 开发指南 DEVELOPING.md`
 - 中文运维指南：`docs/项目计划/运维-回形针本地.md`
 - 完整实践记录：`C:\Users\wuhen\工具优化\02-智能体-agents\03-Paperclip配置与向导\13.Paperclip 公司创建与项目配置实践记录.md`
 - 进程泄漏需求：`C:\Users\wuhen\工具优化\02-智能体-agents\03-Paperclip配置与向导\CodeBuddy-CLI进程兜底回收机制.md`
+
