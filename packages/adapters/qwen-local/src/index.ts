@@ -14,18 +14,24 @@ export const label = "Qwen Code (local)";
 export const SANDBOX_INSTALL_COMMAND = "npm install -g @qwen-code/qwen-code";
 
 export const models = [
-  { id: "qwen3.6-plus", label: "Qwen 3.6 Plus" },
-  { id: "qwen3.6-coder", label: "Qwen 3.6 Coder" },
-  { id: "qwen3.5-coder", label: "Qwen 3.5 Coder" },
+  { id: "qwen3.6-plus", label: "Qwen 3.6 Plus (Coding Plan)" },
+  { id: "qwen3.5-plus", label: "Qwen 3.5 Plus (Coding Plan)" },
+  { id: "qwen3-coder-plus", label: "Qwen3 Coder Plus (Coding Plan)" },
+  { id: "qwen3-coder-next", label: "Qwen3 Coder Next (Coding Plan)" },
+  { id: "qwen3-max-2026-01-23", label: "Qwen3 Max 2026-01-23 (Coding Plan)" },
+  { id: "glm-5", label: "GLM-5 (Coding Plan)" },
+  { id: "glm-4.7", label: "GLM-4.7 (Coding Plan)" },
+  { id: "kimi-k2.5", label: "Kimi K2.5 (Coding Plan)" },
+  { id: "MiniMax-M2.5", label: "MiniMax M2.5 (Coding Plan)" },
 ];
 
 export const modelProfiles: AdapterModelProfileDefinition[] = [
   {
     key: "cheap",
     label: "Cheap",
-    description: "Use Qwen 3.6 Coder for cost-effective tasks.",
+    description: "Use qwen3-coder-plus for cost-effective coding tasks.",
     adapterConfig: {
-      model: "qwen3.6-coder",
+      model: "qwen3-coder-plus",
     },
     source: "adapter_default",
   },
@@ -38,7 +44,7 @@ Adapter: qwen_local
 Core fields:
 - cwd (string, optional): default absolute working directory fallback for the agent process
 - instructionsFilePath (string, optional): absolute path to a markdown instructions file injected via --system-prompt
-- model (string, optional): Qwen model id (default: qwen3.6-plus)
+- model (string, optional): model id configured in Qwen Code settings (default: qwen3.6-plus)
 - promptTemplate (string, optional): run prompt template
 - maxSessionTurns (number, optional): max turns for one run (passed as --max-session-turns, default: 1)
 - approvalMode (string, optional, default "yolo"): approval mode (plan|default|auto-edit|yolo)
@@ -53,6 +59,9 @@ Operational fields:
 
 Notes:
 - Qwen Code CLI must be installed and authenticated before use.
+- Qwen Code 0.15+ reads models/providers from ~/.qwen/settings.json and optional project .qwen/settings.json.
+- The model selected here must match a modelProviders entry visible to the child qwen process.
+- Coding Plan usually requires security.auth.selectedType=openai, baseUrl=https://coding.dashscope.aliyuncs.com/v1, and BAILIAN_CODING_PLAN_API_KEY available via settings.json env, process env, or adapter config env.
 - This adapter uses headless mode with positional prompt argument and --approval-mode yolo for non-interactive execution.
 - Session resume is supported via -c (--continue) when the previous run produced a session_id.
 `;
