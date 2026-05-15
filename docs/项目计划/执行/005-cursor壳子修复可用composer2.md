@@ -375,8 +375,8 @@ agent login
 - [x] ~~迁移到 routic 公司 + 统一命名规范~~ → 8 个 agent 全部就位（见 §11）
 - [ ] **适配器加 maxTurns 熔断**（P0，见 §9.3）
 - [ ] **心跳调度层：无 issue 不触发**（P0，见 §9.3）
-- [ ] 按选型方案决定哪个角色用 Cursor Composer 2
-- [ ] 监控新账号 Auto+Composer 池消耗
+- [x] ~~按选型方案决定哪个角色用 Cursor Composer 2~~ → **[008-cursor角色选型.md](008-cursor角色选型.md)（2026-05-14）：**订阅到期前 **仅** `开发-Cursor-composer2fast`（Composer 2 Fast）为 Cursor 执行位；完整多角色分工 **到期后再议**。
+- [x] ~~监控新账号 Auto+Composer 池消耗~~ → **[009-cursor池消耗监控.md](009-cursor池消耗监控.md)**：**无需**专门监控。
 
 ### 已创建的测试智能体（Local Swarm POC）
 

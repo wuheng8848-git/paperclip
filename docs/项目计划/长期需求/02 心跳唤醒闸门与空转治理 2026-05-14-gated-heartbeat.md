@@ -46,15 +46,15 @@
 
 ### 真源四 — 工程与产品主契约（`doc/`）+ 路线图辅证
 
-仓库根 `**[AGENTS.md](../../../AGENTS.md)`** 约定：改代码前须读 `**doc/PRODUCT.md`、`doc/SPEC-implementation.md**` 等——这是 **Paperclip 侧主真值**（与 `docs/` 中文运维资料区分）。
+仓库根 `**[AGENTS.md](../../../AGENTS.md)`** 约定：改代码前须读 `**doc/02 产品定义 PRODUCT.md`、`doc/04 实现规格 SPEC-implementation.md**` 等——这是 **Paperclip 侧主真值**（与 `docs/` 中文运维资料区分）。
 
 
 | 读了什么                                                                                                          | 从真源里**实际**能推出的结论                                                                                                                                                                                                 |
 | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `[doc/PRODUCT.md](../../../doc/PRODUCT.md)`（Employees & Agents 示例段）                                           | 文面举例：CEO 的 **adapter config** 可要求**每次 heartbeat**都去「审视高管、看指标、重排优先级、指派 initiative」；工程师偏「看**被指派的**任务」。→ 与 **HB-01（执行者无单不跑）相容，但与「默认把 CEO 也收成无单不跑」不同：产品叙事里顶层设计角色可以是周期性全局清醒**，须用 **HB-04** 显式化，避免误读成「需求和 PRODUCT 打架」。 |
-| `[doc/SPEC-implementation.md](../../../doc/SPEC-implementation.md)`                                           | V1 契约写有 heartbeat / invoke、`agent_wakeup_requests`、导入关定时 heartbeat 等；**未**规定 timer 入队前须先有指派 issue。**HB-01 若采纳 = 契约增量**，日后须回写 SPEC（见 `AGENTS.md` 契约同步）。                                                           |
-| `[doc/plans/2026-03-13-features.md](../../../doc/plans/2026-03-13-features.md)`                               | 含 **「无新工作时 heartbeat 不产生模型调用」** 类愿景句——**效力低于 SPEC**，但证明仓库内**早有同类讨论**，非单人空想。                                                                                                                                      |
-| `[doc/plans/2026-03-13-TOKEN-OPTIMIZATION-PLAN.md](../../../doc/plans/2026-03-13-TOKEN-OPTIMIZATION-PLAN.md)` | 直述 **timer wake 为主路径** 等——与真源三互证，支撑降费动机的**可追溯**叙述。                                                                                                                                                               |
+| `[doc/02 产品定义 PRODUCT.md](../../../doc/02 产品定义 PRODUCT.md)`（Employees & Agents 示例段）                                           | 文面举例：CEO 的 **adapter config** 可要求**每次 heartbeat**都去「审视高管、看指标、重排优先级、指派 initiative」；工程师偏「看**被指派的**任务」。→ 与 **HB-01（执行者无单不跑）相容，但与「默认把 CEO 也收成无单不跑」不同：产品叙事里顶层设计角色可以是周期性全局清醒**，须用 **HB-04** 显式化，避免误读成「需求和 PRODUCT 打架」。 |
+| `[doc/04 实现规格 SPEC-implementation.md](../../../doc/04 实现规格 SPEC-implementation.md)`                                           | V1 契约写有 heartbeat / invoke、`agent_wakeup_requests`、导入关定时 heartbeat 等；**未**规定 timer 入队前须先有指派 issue。**HB-01 若采纳 = 契约增量**，日后须回写 SPEC（见 `AGENTS.md` 契约同步）。                                                           |
+| `[doc/plans/2026-03-13-功能特性清单 features.md](../../../doc/plans/2026-03-13-功能特性清单 features.md)`                               | 含 **「无新工作时 heartbeat 不产生模型调用」** 类愿景句——**效力低于 SPEC**，但证明仓库内**早有同类讨论**，非单人空想。                                                                                                                                      |
+| `[doc/plans/2026-03-13-令牌优化计划 TOKEN-OPTIMIZATION-PLAN.md](../../../doc/plans/2026-03-13-令牌优化计划 TOKEN-OPTIMIZATION-PLAN.md)` | 直述 **timer wake 为主路径** 等——与真源三互证，支撑降费动机的**可追溯**叙述。                                                                                                                                                               |
 
 
 **此处要区分的：** 真源四**不**替实现拍「必须立刻改」；它约束叙事不自相矛盾，并标明 **SPEC 将来要改哪里**。

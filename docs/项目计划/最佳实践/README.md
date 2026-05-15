@@ -5,6 +5,11 @@
 | 文档 | 适用场景 | 主要来源任务单 |
 | --- | --- | --- |
 | [运维-回形针本地.md](运维-回形针本地.md) | 启停、端口、嵌入式 PG | （长期运维） |
+| [CodeBuddy-配置分层与仓库项目设置.md](CodeBuddy-配置分层与仓库项目设置.md) | Paperclip / 项目 `.codebuddy` / CLI / 适配器参数谁覆盖谁 | 001 文档地图 |
+| [CodeBuddy-火山引擎端点与配额.md](CodeBuddy-火山引擎端点与配额.md) | `V-glm-*` → `custom-local:*` 与火山端点、429/额度 | 001 文档地图 |
+| [运维-回形针-并发与CodeBuddy兜底.md](运维-回形针-并发与CodeBuddy兜底.md) | 多 agent 并发、`dev:nuke`、进程兜底阶梯 | 001 文档地图 |
 | [实践-工单运行记录API取证路径.md](实践-工单运行记录API取证路径.md) | 按工单查 runs、深查 run、`issue:forensics` | 020 系列 / ROU-20 |
 | [实践-工单心跳与僵尸run排障.md](实践-工单心跳与僵尸run排障.md) | 僵尸 run、live-runs、反复唤醒、活动对账入口 | 017、022、010、020 |
 | [实践-技能默认包快照与恢复.md](实践-技能默认包快照与恢复.md) | `skills/` 基线分支与标签 | （专文流程） |
+
+**仍落在 `执行/` 的配置真值（未单独拆专文时由此进）：** [005-cursor壳子修复可用composer2.md](../执行/005-cursor壳子修复可用composer2.md)（routic、内置 `cursor`、Composer 2 等）——地图见 [001-适配器修复.md §1.4](../执行/001-适配器修复.md)。

@@ -484,7 +484,7 @@ type ArtifactKind =
 
 - `skills/paperclip/SKILL.md`
 - `docs/API接口/05 事务 issues.md`
-- `doc/SPEC-implementation.md`
+- `doc/04 实现规格 SPEC-implementation.md`
 - 提及 `<plan>` 的相关计划/文档
 
 验收：

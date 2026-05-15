@@ -3,7 +3,7 @@ title: ClipHub
 summary: Paperclip 团队配置市场
 ---
 
-> 替代说明：这个市场计划早于 markdown 优先的公司包方向。有关当前的包格式和导入/导出推出计划，请参阅 `doc/plans/2026-03-13-company-import-export-v2.md` 和 `docs/公司/01 公司规范 companies-spec.md`。
+> 替代说明：这个市场计划早于 markdown 优先的公司包方向。有关当前的包格式和导入/导出推出计划，请参阅 `doc/plans/2026-03-13-公司导入导出第二版 company-import-export-v2.md` 和 `docs/公司/01 公司规范 companies-spec.md`。
 
 > 整个公司 AI 团队的"应用商店"——预构建的 Paperclip 配置、智能体蓝图、技能和治理模板，从第一天起就能交付实际工作。
 
