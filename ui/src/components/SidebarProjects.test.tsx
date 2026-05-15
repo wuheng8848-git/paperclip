@@ -6,9 +6,9 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Project } from "@paperclipai/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Sidebar项目 } from "./Sidebar项目";
+import { SidebarProjects } from "./SidebarProjects";
 
-const mock项目Api = vi.hoisted(() => ({
+const mockProjectsApi = vi.hoisted(() => ({
   list: vi.fn(),
 }));
 
@@ -69,7 +69,7 @@ vi.mock("../context/SidebarContext", () => ({
 }));
 
 vi.mock("../api/projects", () => ({
-  projectsApi: mock项目Api,
+  projectsApi: mockProjectsApi,
 }));
 
 vi.mock("../api/auth", () => ({
@@ -80,7 +80,7 @@ vi.mock("../hooks/useProjectOrder", () => ({
   useProjectOrder: ({ projects }: { projects: Project[] }) => {
     const curatedOrder = ["project-b", "project-a", "project-c"];
     return {
-      ordered项目: [...projects].sort(
+      orderedProjects: [...projects].sort(
         (left, right) => curatedOrder.indexOf(left.id) - curatedOrder.indexOf(right.id),
       ),
       persistOrder: mockPersistOrder,
@@ -157,7 +157,7 @@ function projectLinkLabels(container: HTMLElement) {
     .filter(Boolean);
 }
 
-async function open项目Menu(container: HTMLElement) {
+async function openProjectMenu(container: HTMLElement) {
   const trigger = container.querySelector('button[aria-label="项目区域操作"]');
   expect(trigger).not.toBeNull();
 
@@ -179,7 +179,7 @@ async function chooseSortMode(label: string) {
   await flushReact();
 }
 
-describe("Sidebar项目", () => {
+describe("SidebarProjects", () => {
   let container: HTMLDivElement;
   let root: ReturnType<typeof createRoot> | null;
   let queryClient: QueryClient;
@@ -192,7 +192,7 @@ describe("Sidebar项目", () => {
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
     localStorage.clear();
-    mock项目Api.list.mockResolvedValue([
+    mockProjectsApi.list.mockResolvedValue([
       makeProject({
         id: "project-a",
         urlKey: "alpha",
@@ -235,14 +235,14 @@ describe("Sidebar项目", () => {
     vi.clearAllMocks();
   });
 
-  async function renderSidebar项目() {
+  async function renderSidebarProjects() {
     const currentRoot = createRoot(container);
     root = currentRoot;
 
     await act(async () => {
       currentRoot.render(
         <QueryClientProvider client={queryClient}>
-          <Sidebar项目 />
+          <SidebarProjects />
         </QueryClientProvider>,
       );
     });
@@ -250,16 +250,16 @@ describe("Sidebar项目", () => {
   }
 
   it("keeps top mode in curated order and renders plugin project slots", async () => {
-    await renderSidebar项目();
+    await renderSidebarProjects();
 
     expect(projectLinkLabels(container)).toEqual(["Bravo", "Alpha", "Charlie"]);
     expect(container.querySelector('[data-testid="project-slot-project-b"]')).toBeTruthy();
   });
 
   it("uses the heading for section menu and the plus button for project creation", async () => {
-    await renderSidebar项目();
+    await renderSidebarProjects();
 
-    const sectionMenuTrigger = container.querySelector('button[aria-label="项目 section actions"]');
+    const sectionMenuTrigger = container.querySelector('button[aria-label="项目区域操作"]');
     expect(sectionMenuTrigger?.textContent).toContain("项目");
     expect(sectionMenuTrigger?.querySelector("svg")).toBeNull();
 
@@ -270,7 +270,7 @@ describe("Sidebar项目", () => {
     });
     expect(mockOpenNewProject).toHaveBeenCalledTimes(1);
 
-    await open项目Menu(container);
+    await openProjectMenu(container);
 
     const newProjectItem = Array.from(document.body.querySelectorAll('[data-slot="dropdown-menu-item"]'))
       .find((element) => element.textContent?.includes("新建项目"));
@@ -281,8 +281,8 @@ describe("Sidebar项目", () => {
   });
 
   it("sorts alphabetically and persists the selected mode per company and user", async () => {
-    await renderSidebar项目();
-    await open项目Menu(container);
+    await renderSidebarProjects();
+    await openProjectMenu(container);
     await chooseSortMode("按名称");
 
     expect(projectLinkLabels(container)).toEqual(["Alpha", "Bravo", "Charlie"]);
@@ -290,8 +290,8 @@ describe("Sidebar项目", () => {
   });
 
   it("sorts recent projects by updated time descending", async () => {
-    await renderSidebar项目();
-    await open项目Menu(container);
+    await renderSidebarProjects();
+    await openProjectMenu(container);
     await chooseSortMode("最近更新");
 
     expect(projectLinkLabels(container)).toEqual(["Charlie", "Bravo", "Alpha"]);

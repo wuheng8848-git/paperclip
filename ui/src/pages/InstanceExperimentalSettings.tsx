@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, FlaskConical, Play, Search } from "lucide-react";
+import { Clock, FlaskConical, Heart, Play, Search } from "lucide-react";
 import type {
   IssueGraphLivenessAutoRecoveryPreview,
   PatchInstanceExperimentalSettings,
@@ -125,6 +125,9 @@ export function InstanceExperimentalSettings() {
   const [lookbackHoursDraft, setLookbackHoursDraft] = useState("24");
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [pendingPreview, setPendingPreview] = useState<IssueGraphLivenessAutoRecoveryPreview | null>(null);
+  const [timerRolesDraft, setTimerRolesDraft] = useState("ceo, cto");
+  const [timerIntervalDraft, setTimerIntervalDraft] = useState("300");
+  const [timerDefaultOnDraft, setTimerDefaultOnDraft] = useState(true);
 
   useEffect(() => {
     setBreadcrumbs([
@@ -188,6 +191,14 @@ export function InstanceExperimentalSettings() {
       setLookbackHoursDraft(String(next));
     }
   }, [experimentalQuery.data?.issueGraphLivenessAutoRecoveryLookbackHours]);
+
+  useEffect(() => {
+    const d = experimentalQuery.data;
+    if (!d) return;
+    setTimerRolesDraft(d.timerHeartbeatEligibleAgentRoles.join(", "));
+    setTimerIntervalDraft(String(d.defaultTimerHeartbeatIntervalSec));
+    setTimerDefaultOnDraft(d.enableTimerHeartbeatByDefaultForEligibleRoles);
+  }, [experimentalQuery.data]);
 
   if (experimentalQuery.isLoading) {
     return <div className="text-sm text-muted-foreground">Loading experimental settings...</div>;
@@ -313,6 +324,82 @@ export function InstanceExperimentalSettings() {
             disabled={toggleMutation.isPending}
             aria-label="Toggle guarded dev-server auto-restart"
           />
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-start gap-2 mb-3">
+          <Heart className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+          <div className="space-y-1.5">
+            <h2 className="text-sm font-semibold">Timer heartbeat policy</h2>
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              Which agent roles may receive scheduled (interval) heartbeats from the server. Others still wake on
+              assignment and manual invoke. Adjust while experimenting without redeploying code.
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-4 sm:max-w-xl">
+          <label className="space-y-1.5">
+            <span className="text-xs font-medium text-muted-foreground">Eligible roles (comma-separated)</span>
+            <Input
+              value={timerRolesDraft}
+              onChange={(e) => setTimerRolesDraft(e.target.value)}
+              placeholder="ceo, cto"
+              disabled={toggleMutation.isPending}
+            />
+          </label>
+          <label className="space-y-1.5">
+            <span className="text-xs font-medium text-muted-foreground">Default interval (seconds, min 30)</span>
+            <Input
+              type="number"
+              min={30}
+              max={86400}
+              step={1}
+              value={timerIntervalDraft}
+              onChange={(e) => setTimerIntervalDraft(e.target.value)}
+              disabled={toggleMutation.isPending}
+            />
+          </label>
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Enable timer by default for eligible roles</p>
+              <p className="text-xs text-muted-foreground">
+                New and imported agents in eligible roles get <code className="text-xs">heartbeat.enabled</code> unless
+                explicitly set off in the payload.
+              </p>
+            </div>
+            <ToggleSwitch
+              checked={timerDefaultOnDraft}
+              onCheckedChange={setTimerDefaultOnDraft}
+              disabled={toggleMutation.isPending}
+              aria-label="Toggle default timer heartbeat for eligible roles"
+            />
+          </div>
+          <Button
+            onClick={() => {
+              const roles = timerRolesDraft
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean);
+              const interval = Number.parseInt(timerIntervalDraft, 10);
+              if (roles.length === 0) {
+                setActionError("Add at least one role (e.g. ceo, cto).");
+                return;
+              }
+              if (!Number.isFinite(interval) || interval < 30 || interval > 86400) {
+                setActionError("Interval must be a whole number from 30 to 86400 seconds.");
+                return;
+              }
+              toggleMutation.mutate({
+                timerHeartbeatEligibleAgentRoles: roles,
+                defaultTimerHeartbeatIntervalSec: interval,
+                enableTimerHeartbeatByDefaultForEligibleRoles: timerDefaultOnDraft,
+              });
+            }}
+            disabled={toggleMutation.isPending}
+          >
+            Save timer policy
+          </Button>
         </div>
       </section>
 
