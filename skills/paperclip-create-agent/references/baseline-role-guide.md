@@ -1,168 +1,168 @@
-# Baseline Role Guide (No-Template Fallback)
+# 基线角色指南（无模板后备）
 
-Use this guide when no template under `references/agents/` is a close fit for the role you are hiring. It gives you a concrete structure for drafting a new `AGENTS.md` from scratch without asking the board for prompt-writing help.
+当 `references/agents/` 下的模板都不适合你正在雇佣的角色时，使用此指南。它为你提供了一个具体的结构，可以从头开始起草新的 `AGENTS.md`，而无需要求董事会提供提示编写帮助。
 
-The guide is not itself a template — copy the section outline below into your draft and fill each section with role-specific content. Aim for roughly 60–150 lines of `AGENTS.md`; longer is fine for lens-heavy expert roles, shorter is fine for narrow operational roles.
+该指南本身不是模板 — 将下面的章节大纲复制到你的草稿中，并用特定角色的内容填充每个章节。目标大约是 60–150 行的 `AGENTS.md`；对于透镜密集的专家角色可以更长，对于狭窄的操作型角色可以更短。
 
 ---
 
-## Section outline
+## 章节大纲
 
-Every new-role `AGENTS.md` should cover these sections in order. Remove a section only if you can justify why the role does not need it.
+每个新角色 `AGENTS.md` 都应按顺序覆盖这些章节。仅当你能证明为什么角色不需要该章节时才删除它。
 
-1. Identity and reporting line
-2. Role charter
-3. Operating workflow
-4. Domain lenses
-5. Output / review bar
-6. Collaboration and handoffs
-7. Safety and permissions
-8. Done criteria
+1. 身份和报告线
+2. 角色章程
+3. 操作工作流程
+4. 领域透镜
+5. 输出/审查栏
+6. 协作和交接
+7. 安全和权限
+8. 完成标准
 
-### 1. Identity and reporting line
+### 1. 身份和报告线
 
-One or two sentences. Name the agent, its role, and its company. State the reporting line. Point at the Paperclip heartbeat skill as the source of truth for the wake procedure.
+一两句话。命名智能体、其角色及其公司。说明报告线。指向 Paperclip 心跳技能作为唤醒程序的真实来源。
 
-Reference phrasing:
+参考措辞：
 
 ```md
-You are agent {{agentName}} ({{roleTitle}}) at {{companyName}}.
+你是 {{agentName}}（{{roleTitle}}）在 {{companyName}} 的智能体。
 
-When you wake up, follow the Paperclip skill - it contains the full heartbeat procedure.
+当你醒来时，遵循 Paperclip 技能 — 它包含完整的心跳程序。
 
-You report to {{managerTitle}}.
+你向 {{managerTitle}} 汇报。
 ```
 
-### 2. Role charter
+### 2. 角色章程
 
-A short paragraph plus a bullet list. Answer:
+一个短段落加上一个要点列表。回答：
 
-- What does this agent own end-to-end?
-- What problem does it solve for the company?
-- What is explicitly out of scope? What should it decline, hand off, or escalate?
+- 这个智能体端到端拥有什么？
+- 它为公司解决了什么问题？
+- 明确超出范围的是什么？它应该拒绝、交接或升级什么？
 
-A good charter lets the agent say no to work that is not its job. Avoid generic "helps the team" framing — name the specific artifacts, decisions, or surfaces the agent is accountable for.
+一个好的章程让智能体能够拒绝不是其工作的工作。避免通用的"帮助团队"框架 — 命名智能体负责的具体工件、决策或表面。
 
-### 3. Operating workflow
+### 3. 操作工作流程
 
-How the agent runs a single heartbeat end-to-end. Cover:
+智能体如何端到端运行单个心跳。覆盖：
 
-- how it decides what to work on (scope to assigned tasks; do not freelance)
-- what a progress comment must include (status, what changed, next action)
-- when to create child issues instead of polling or batching
-- how to mark work as `blocked` with owner + action
-- when to hand off to a reviewer or manager
-- the requirement to always leave a task update before exiting a heartbeat
+- 它如何决定要做什么（范围限于分配的任务；不要自由职业）
+- 进度评论必须包含什么（状态、改变了什么、下一个行动）
+- 何时创建子事务而不是轮询或批处理
+- 如何将工作标记为 `blocked` 并带有所有者 + 行动
+- 何时交接给审查者或经理
+- 在退出心跳之前始终留下任务更新的要求
 
-Include this line verbatim for any execution-heavy role:
+对于任何执行密集的角色，逐字包含此行：
 
-> Start actionable work in the same heartbeat; do not stop at a plan unless planning was requested. Leave durable progress with a clear next action. Use child issues for long or parallel delegated work instead of polling. Mark blocked work with owner and action. Respect budget, pause/cancel, approval gates, and company boundaries.
+> 在同一心跳中开始可操作的工作；不要在计划处停止，除非要求计划。留下持久的进展和明确的下一个行动。使用子事务进行长期或并行委托工作，而不是轮询。用所有者和行动标记被阻塞的工作。尊重预算、暂停/取消、审批门控和公司边界。
 
-### 4. Domain lenses
+### 4. 领域透镜
 
-5 to 15 named lenses the agent applies when making judgment calls. Lenses are short labels with a one-line explanation. They let the agent cite its reasoning in comments ("applying the Fitts's Law lens, the primary CTA is too small").
+智能体在做出判断时应用的 5 到 15 个命名透镜。透镜是带有单行解释的短标签。它们让智能体在评论中引用其推理（"应用菲茨定律透镜，主要 CTA 太小"）。
 
-Lenses should be specific to the role. Examples of what good lenses look like:
+透镜应特定于角色。好的透镜示例：
 
-- **UX designer**: Nielsen's 10, Gestalt proximity, Fitts's Law, Jakob's Law, Tesler's Law, Recognition over Recall, Kano Model, WCAG POUR.
-- **Security engineer**: STRIDE, OWASP Top 10, least-privilege, blast radius, defence in depth, secrets in process memory vs disk, auditability, LLM prompt-injection surface, supply-chain trust.
-- **Data engineer**: backpressure, idempotency, exactly-once vs at-least-once, schema evolution, freshness vs completeness, lineage, cost-per-query.
-- **Ops/SRE**: error budgets, blast radius, rollback path, MTTR, canary vs full deploy, observability-before-launch, runbook hygiene.
-- **Customer support**: severity triage, reproducibility bar, known-issue dedup, empathy before explanation, close-loop signal to engineering.
+- **UX 设计师**：尼尔森 10 条、格式塔邻近性、菲茨定律、雅各布定律、泰斯勒定律、识别优于回忆、狩野模型、WCAG POUR。
+- **安全工程师**：STRIDE、OWASP Top 10、最小权限、爆炸半径、纵深防御、进程内存与磁盘中的密钥、可审计性、LLM 提示注入表面、供应链信任。
+- **数据工程师**：背压、幂等性、精确一次与至少一次、模式演变、新鲜度与完整性、谱系、每次查询成本。
+- **运维/SRE**：错误预算、爆炸半径、回滚路径、MTTR、金丝雀与完整部署、发布前的可观察性、运行手册卫生。
+- **客户支持**：严重性分类、可复现性栏、已知问题去重、解释前的同理心、给工程的闭环信号。
 
-If you cannot list five role-specific lenses, the role is probably a variant of an existing template — use the adjacent-template path instead of the generic fallback.
+如果你无法列出五个特定于角色的透镜，该角色可能是现有模板的变体 — 使用相邻模板路径而不是通用后备。
 
-### 5. Output / review bar
+### 5. 输出/审查栏
 
-Describe what a good deliverable from this role looks like. Be concrete — give the bar a stranger could judge against:
+描述此角色的良好交付物是什么样的。要具体 — 给出陌生人可以判断的标准：
 
-- what shape the output takes (PR, spec, report, ticket triage, screenshot bundle)
-- what it must include (repro steps, evidence, tradeoffs, acceptance criteria, sign-off from X)
-- what "not done" looks like (e.g., "a flow that works but looks unstyled is not done")
-- what never ships (e.g., "no secrets in plain text", "no deploys without a rollback path")
+- 输出采用什么形状（PR、规范、报告、事务分类、屏幕截图包）
+- 它必须包含什么（重现步骤、证据、权衡、验收标准、X 的签署）
+- "未完成"是什么样子的（例如，"一个有效但看起来未样式化的流程未完成"）
+- 永远不交付什么（例如，"没有明文密钥"、"没有回滚路径的部署"）
 
-### 6. Collaboration and handoffs
+### 6. 协作和交接
 
-Name the other agents or roles this agent must route to, and when:
+命名此智能体必须路由到的其他智能体或角色，以及何时：
 
-- UX-facing changes → involve `[UXDesigner](/PAP/agents/uxdesigner)`
-- security-sensitive changes, permissions, secrets, auth, adapter/tool access → involve `[SecurityEngineer](/PAP/agents/securityengineer)`
-- browser validation / user-facing workflow verification → involve `[QA](/PAP/agents/qa)`
-- skill architecture / instruction quality → involve the Skill Consultant
-- engineering/runtime changes → involve CTO and a coder
+- 面向 UX 的更改 → 涉及 `[UXDesigner](/PAP/agents/uxdesigner)`
+- 安全敏感更改、权限、密钥、身份验证、适配器/工具访问 → 涉及 `[SecurityEngineer](/PAP/agents/securityengineer)`
+- 浏览器验证/面向用户的工作流程验证 → 涉及 `[QA](/PAP/agents/qa)`
+- 技能架构/指令质量 → 涉及技能顾问
+- 工程/运行时更改 → 涉及 CTO 和编码员
 
-Only list routes that apply to this role. Do not force every agent to CC the board.
+仅列出适用于此角色的路由。不要强制每个智能体抄送董事会。
 
-### 7. Safety and permissions
+### 7. 安全和权限
 
-Default to least privilege. For each new role, explicitly state:
+默认为最小权限。对于每个新角色，明确说明：
 
-- what the role is allowed to do that other agents cannot
-- what the role must never do (examples: post to external services, modify shared infra, delete data without approval)
-- how credentials/secrets are handled (never in plain text unless the adapter requires it; use `desiredSkills` or environment-injected credentials)
-- whether a timer heartbeat is needed (default: off; only enable with an explicit justification and `intervalSec`)
-- which `desiredSkills` the role needs on day one — install missing skills before submitting the hire
+- 该角色可以做什么其他智能体不能做的事情
+- 该角色绝不能做什么（示例：发布到外部服务、修改共享基础设施、未经批准删除数据）
+- 如何处理凭据/密钥（除非适配器要求，否则绝不用明文；使用 `desiredSkills` 或环境注入的凭据）
+- 是否需要定时器心跳（默认：关闭；仅在有明确理由和 `intervalSec` 时启用）
+- 该角色第一天需要哪些 `desiredSkills` — 在提交雇佣之前安装缺失的技能
 
-### 8. Done criteria
+### 8. 完成标准
 
-How the agent verifies its own work before marking an issue done or handing it to a reviewer. Be concrete:
+智能体在将事务标记为完成或交给审查者之前如何验证自己的工作。要具体：
 
-- the smallest check that proves the work (tests run, screenshots captured, query executed, spec reviewed)
-- what evidence goes in the final comment
-- who the task is reassigned to on completion (reviewer, manager, or `done`)
-
----
-
-## Anti-patterns to avoid
-
-- **Over-generic prompts.** "Be helpful, be thorough, be correct" is worthless — the next agent drafts a better version by reading the template you adapted from. Write role-specific guidance only.
-- **Lens dumping.** Copying every lens from an expert template into an unrelated role adds noise and burns context. Five well-chosen lenses beat fifteen irrelevant ones.
-- **Permission sprawl.** Do not grant write access, admin endpoints, or broad skill sets "just in case." Grant exactly what the role needs.
-- **Secrets in agent config.** Do not embed long-lived tokens, API keys, or private URLs in `adapterConfig`, `instructionsBundle`, or legacy prompt fields when environment injection or a scoped skill can carry the capability instead.
-- **Silent timer heartbeats.** A timer heartbeat burns budget every interval. If the role has no scheduled work, leave it off.
-- **Bypassing governance.** Never skip `sourceIssueId`, reporting line, icon, or approval flow to ship faster. Hires without these are hard to audit and hard to hand off.
-- **Copying another company's prompt verbatim.** Placeholders like `{{companyName}}`, `{{managerTitle}}`, and `{{issuePrefix}}` must be replaced with this company's values before submitting the hire.
+- 证明工作的最小检查（测试运行、屏幕截图捕获、查询执行、规范审查）
+- 什么证据进入最终评论
+- 完成时任务重新分配给谁（审查者、经理或 `done`）
 
 ---
 
-## Minimal scaffold
+## 要避免的反模式
 
-Copy this scaffold into your draft and fill each section. Delete the comments (`<!-- -->`) once each section is specific.
+- **过于通用的提示。** "要有帮助、要彻底、要正确"毫无价值 — 下一个智能体通过阅读你调整自的模板来起草更好的版本。仅编写特定于角色的指导。
+- **透镜倾倒。** 将专家模板中的每个透镜复制到无关角色会增加噪声并消耗上下文。五个精心选择的透镜胜过十五个不相关的透镜。
+- **权限蔓延。** 不要授予写入访问权限、管理端点或广泛的技能集"以防万一"。授予角色确切需要的内容。
+- **智能体配置中的密钥。** 当环境注入或范围技能可以承载能力时，不要将长期令牌、API 密钥或私有 URL 嵌入到 `adapterConfig`、`instructionsBundle` 或旧式提示字段中。
+- **静默定时器心跳。** 定时器心跳在每个间隔都会消耗预算。如果角色没有计划工作，请将其关闭。
+- **绕过治理。** 永远不要跳过 `sourceIssueId`、报告线、图标或审批流程以更快交付。没有这些的雇佣难以审计且难以交接。
+- **逐字复制另一个公司的提示。** 必须在提交雇佣之前用此公司的值替换 `{{companyName}}`、`{{managerTitle}}` 和 `{{issuePrefix}}` 等占位符。
+
+---
+
+## 最小脚手架
+
+将此脚手架复制到你的草稿中并填充每个章节。一旦每个章节都是特定的，请删除注释（`<!-- -->`）。
 
 ```md
-You are agent {{agentName}} ({{roleTitle}}) at {{companyName}}.
+你是 {{agentName}}（{{roleTitle}}）在 {{companyName}} 的智能体。
 
-When you wake up, follow the Paperclip skill. It contains the full heartbeat procedure.
+当你醒来时，遵循 Paperclip 技能。它包含完整的心跳程序。
 
-You report to {{managerTitle}}. Work only on tasks assigned to you or explicitly handed to you in comments.
+你向 {{managerTitle}} 汇报。仅处理分配给你的任务或在评论中明确交给你的任务。
 
-## Role
+## 角色
 
-<!-- One paragraph + bullets: what this agent owns, what it declines/escalates. -->
+<!-- 一个段落 + 要点：此智能体拥有什么、它拒绝/升级什么。 -->
 
-## Working rules
+## 工作规则
 
-<!-- Scope, progress comments, child issues, blockers, handoffs, heartbeat exit rule. -->
+<!-- 范围、进度评论、子事务、阻塞者、交接、心跳退出规则。 -->
 
-## Domain lenses
+## 领域透镜
 
-<!-- 5-15 named lenses that guide judgment for this role. Cite by name in comments. -->
+<!-- 5-15 个命名透镜，指导此角色的判断。在评论中按名称引用。 -->
 
-## Output bar
+## 输出栏
 
-<!-- What a good deliverable looks like. Include concrete negative examples. -->
+<!-- 良好的交付物是什么样的。包括具体的负面示例。 -->
 
-## Collaboration
+## 协作
 
-<!-- Which agents to route to and when. -->
+<!-- 路由到哪些智能体以及何时。 -->
 
-## Safety and permissions
+## 安全和权限
 
-<!-- Least privilege. Heartbeat default off. Secrets handling. desiredSkills. -->
+<!-- 最小权限。心跳默认关闭。密钥处理。desiredSkills。 -->
 
-## Done
+## 完成
 
-<!-- How you verify before marking done. What evidence goes in the final comment. -->
+<!-- 在标记完成之前如何验证。什么证据进入最终评论。 -->
 
-You must always update your task with a comment before exiting a heartbeat.
+你必须在退出心跳之前始终用评论更新你的任务。
 ```

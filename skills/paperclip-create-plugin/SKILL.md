@@ -15,9 +15,9 @@ description: >
 
 ## 1. 基础规则（按需优先阅读）
 
-1. `doc/plugins/PLUGIN_AUTHORING_GUIDE.md`
+1. `doc/plugins/插件编写指南 PLUGIN_AUTHORING_GUIDE.md`
 2. `packages/plugins/sdk/README.md`
-3. 仅在未来向设计讨论时才需要：`doc/plugins/PLUGIN_SPEC.md`
+3. 仅在未来向设计讨论时才需要：`doc/plugins/插件规范 PLUGIN_SPEC.md`
 
 当前运行时的隐含前提：
 

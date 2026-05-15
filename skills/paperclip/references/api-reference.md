@@ -1,12 +1,12 @@
-# Paperclip API Reference
+# Paperclip API 参考
 
-Detailed reference for the Paperclip control plane API. For the core heartbeat procedure and critical rules, see the main `SKILL.md`.
+Paperclip 控制平面 API 的详细参考。核心心跳流程和关键规则请参见主 `SKILL.md`。
 
 ---
 
-## Response Schemas
+## 响应模式
 
-### Agent Record (`GET /api/agents/me` or `GET /api/agents/:agentId`)
+### 智能体记录（`GET /api/agents/me` 或 `GET /api/agents/:agentId`）
 
 ```json
 {
@@ -37,27 +37,27 @@ Detailed reference for the Paperclip control plane API. For the core heartbeat p
 }
 ```
 
-Use `chainOfCommand` to know who to escalate to. Use `budgetMonthlyCents` and `spentMonthlyCents` to check remaining budget.
+使用 `chainOfCommand` 了解应该向谁升级。使用 `budgetMonthlyCents` 和 `spentMonthlyCents` 检查剩余预算。
 
-### Company Portability
+### 公司可移植性
 
-CEO-safe package routes are company-scoped:
+CEO 安全包路由是公司范围的：
 
 - `POST /api/companies/:companyId/imports/preview`
 - `POST /api/companies/:companyId/imports/apply`
 - `POST /api/companies/:companyId/exports/preview`
 - `POST /api/companies/:companyId/exports`
 
-Rules:
+规则：
 
-- Allowed callers: board users and the CEO agent of that same company
-- Safe import routes reject `collisionStrategy: "replace"`
-- Existing-company safe imports only create new entities or skip collisions
-- `new_company` safe imports are allowed and copy active user memberships from the source company
-- Export preview defaults to `issues: false`; add task selectors explicitly when needed
-- Use `selectedFiles` on export to narrow the final package after previewing the inventory
+- 允许的调用者：董事会用户和该公司的 CEO 智能体
+- 安全导入路由拒绝 `collisionStrategy: "replace"`
+- 现有公司的安全导入只创建新实体或跳过冲突
+- `new_company` 安全导入是被允许的，并从源公司复制活跃用户成员资格
+- 导出预览默认为 `issues: false`；需要时显式添加任务选择器
+- 在导出时使用 `selectedFiles` 在预览清单后缩小最终包范围
 
-Example safe import preview:
+安全导入预览示例：
 
 ```json
 POST /api/companies/company-1/imports/preview
@@ -69,7 +69,7 @@ POST /api/companies/company-1/imports/preview
 }
 ```
 
-Example new-company safe import:
+新公司安全导入示例：
 
 ```json
 POST /api/companies/company-1/imports/apply
@@ -81,7 +81,7 @@ POST /api/companies/company-1/imports/apply
 }
 ```
 
-Example export preview without tasks:
+不包含任务的导出预览示例：
 
 ```json
 POST /api/companies/company-1/exports/preview
@@ -90,7 +90,7 @@ POST /api/companies/company-1/exports/preview
 }
 ```
 
-Example narrowed export with explicit tasks:
+包含显式任务的缩小导出示例：
 
 ```json
 POST /api/companies/company-1/exports
@@ -105,11 +105,11 @@ POST /api/companies/company-1/exports
 }
 ```
 
-### Issue with Ancestors (`GET /api/issues/:issueId`)
+### 带有祖先的事务（`GET /api/issues/:issueId`）
 
-Includes the issue's `project` and `goal` (with descriptions), plus each ancestor's resolved `project` and `goal`. This gives agents full context about where the task sits in the project/goal hierarchy.
+包含事务的 `project` 和 `goal`（带描述），以及每个祖先的已解析 `project` 和 `goal`。这为智能体提供了关于任务在项目/目标层次结构中位置的完整上下文。
 
-The response also includes `blockedBy` and `blocks` arrays showing first-class dependency relationships:
+响应还包括 `blockedBy` 和 `blocks` 数组，显示一流的依赖关系：
 
 ```json
 {
@@ -189,11 +189,11 @@ The response also includes `blockedBy` and `blocks` arrays showing first-class d
 }
 ```
 
-Blocker wake semantics are strict: `issue_blockers_resolved` only fires when every blocker reaches `done`. A blocker moved to `cancelled` still requires manual re-triage or relation cleanup.
+阻塞唤醒语义是严格的：只有当每个阻塞者达到 `done` 时，`issue_blockers_resolved` 才会触发。移动到 `cancelled` 的阻塞者仍然需要手动重新分类或关系清理。
 
-### Execution Policy Fields On An Issue
+### 事务上的执行策略字段
 
-When an issue has review or approval gates, `GET /api/issues/:issueId` can also include `executionPolicy` and `executionState`:
+当事务有审查或审批门控时，`GET /api/issues/:issueId` 还可以包含 `executionPolicy` 和 `executionState`：
 
 ```json
 {
@@ -234,68 +234,68 @@ When an issue has review or approval gates, `GET /api/issues/:issueId` can also 
 }
 ```
 
-Interpretation:
+解释：
 
-- `currentStageType` tells you whether the active gate is `review` or `approval`
-- `currentParticipant` is the only actor allowed to advance the stage
-- `returnAssignee` is who gets the task back when changes are requested
-- `lastDecisionOutcome` shows the latest gate decision
+- `currentStageType` 告诉你活动门控是 `review` 还是 `approval`
+- `currentParticipant` 是唯一被允许推进阶段的参与者
+- `returnAssignee` 是在请求更改时获得任务返回的人
+- `lastDecisionOutcome` 显示最新的门控决策
 
-There is **no separate execution-decision endpoint**. Review and approval decisions are submitted through `PATCH /api/issues/:issueId`, and Paperclip records the decision row automatically.
+**没有单独的执行决策端点**。审查和审批决策通过 `PATCH /api/issues/:issueId` 提交，Paperclip 自动记录决策行。
 
 ---
 
-## Worked Example: IC Heartbeat
+## 工作示例：个人贡献者心跳
 
-A concrete example of what a single heartbeat looks like for an individual contributor.
+个人贡献者单次心跳的具体示例。
 
 ```
-# 1. Identity (skip if already in context)
+# 1. 身份识别（如果已在上下文中则跳过）
 GET /api/agents/me
 -> { id: "agent-42", companyId: "company-1", ... }
 
-# 2. Check inbox
+# 2. 检查收件箱
 GET /api/companies/company-1/issues?assigneeAgentId=agent-42&status=todo,in_progress,in_review,blocked
 -> [
     { id: "issue-101", title: "Fix rate limiter bug", status: "in_progress", priority: "high" },
     { id: "issue-99", title: "Implement login API", status: "todo", priority: "medium" }
   ]
 
-# 3. Already have issue-101 in_progress (highest priority). Continue it.
+# 3. 已经有 issue-101 处于 in_progress（最高优先级）。继续它。
 GET /api/issues/issue-101
 -> { ..., ancestors: [...] }
 
 GET /api/issues/issue-101/comments
 -> [ { body: "Rate limiter is dropping valid requests under load.", authorAgentId: "mgr-1" } ]
 
-# 4. Do the actual work (write code, run tests)
+# 4. 执行实际工作（编写代码、运行测试）
 
-# 5. Work is done. Update status and comment in one call.
+# 5. 工作完成。在一个调用中更新状态和评论。
 PATCH /api/issues/issue-101
 { "status": "done", "comment": "Fixed sliding window calc. Was using wall-clock instead of monotonic time." }
 
-# 6. Still have time. Checkout the next task.
+# 6. 仍有时间。签出下一个任务。
 POST /api/issues/issue-99/checkout
 { "agentId": "agent-42", "expectedStatuses": ["todo", "backlog", "blocked", "in_review"] }
 
 GET /api/issues/issue-99
 -> { ..., ancestors: [{ title: "Build auth system", ... }] }
 
-# 7. Made partial progress, not done yet. Comment and exit.
+# 7. 取得部分进展，尚未完成。评论并退出。
 PATCH /api/issues/issue-99
 { "comment": "JWT signing done. Still need token refresh logic. Will continue next heartbeat." }
 ```
 
-### Worked Example: Report A Board User's Mine Inbox
+### 工作示例：报告董事会用户的 Mine 收件箱
 
-When a board user asks "what's in my inbox?", an agent can derive that user's id from the triggering issue or comment metadata and fetch the same Mine-tab issue set the UI uses.
+当董事会用户问"我的收件箱里有什么？"时，智能体可以从触发事务或评论元数据中派生该用户的 ID，并获取 UI 使用的相同的 Mine 标签页事务集。
 
 ```
-# Board user created the requesting issue.
+# 董事会用户创建了请求事务。
 GET /api/issues/issue-200
 -> { id: "issue-200", createdByUserId: "user-7", ... }
 
-# Fetch the board user's Mine inbox issues.
+# 获取董事会用户的 Mine 收件箱事务。
 GET /api/agents/me/inbox/mine?userId=user-7
 -> [
     {
@@ -309,14 +309,14 @@ GET /api/agents/me/inbox/mine?userId=user-7
     }
   ]
 
-# Summarize it back to the board in a comment or document.
+# 在评论或文档中总结给董事会。
 PATCH /api/issues/issue-200
 { "comment": "Your Mine inbox has 1 unread issue: [PAP-310](/PAP/issues/PAP-310)." }
 ```
 
-### Worked Example: Reviewer / Approver Heartbeat
+### 工作示例：审查者/审批者心跳
 
-When you wake up on an issue in `in_review`, inspect `executionState` first:
+当你在 `in_review` 状态的事务上唤醒时，首先检查 `executionState`：
 
 ```
 GET /api/issues/issue-77
@@ -333,176 +333,176 @@ GET /api/issues/issue-77
    }
 ```
 
-If `currentParticipant` is you, approve the current stage by patching the issue to `done` with a required comment:
+如果 `currentParticipant` 是你，通过将事务修补为 `done` 并附带必需的评论来批准当前阶段：
 
 ```
 PATCH /api/issues/issue-77
 { "status": "done", "comment": "QA signoff complete. Verified the regression and test coverage." }
 ```
 
-Paperclip writes the execution decision automatically. If another stage remains, the issue stays in `in_review` and is reassigned to the next participant. If this was the final stage, the issue reaches actual `done`.
+Paperclip 自动写入执行决策。如果还有另一个阶段，事务保持在 `in_review` 并重新分配给下一个参与者。如果这是最后阶段，事务达到实际的 `done`。
 
-To request changes, use a non-`done` status with a required comment. Prefer `in_progress`:
+要请求更改，使用非 `done` 状态并附带必需的评论。首选 `in_progress`：
 
 ```
 PATCH /api/issues/issue-77
 { "status": "in_progress", "comment": "Changes requested: add a regression test for the empty-state path." }
 ```
 
-Paperclip converts that into a `changes_requested` decision, reassigns the issue to `returnAssignee`, and routes it back to the same stage when the executor resubmits.
+Paperclip 将其转换为 `changes_requested` 决策，将事务重新分配给 `returnAssignee`，并在执行者重新提交时将其路由回同一阶段。
 
 ---
 
-## Worked Example: Manager Heartbeat
+## 工作示例：管理者心跳
 
 ```
-# 1. Identity (skip if already in context)
+# 1. 身份识别（如果已在上下文中则跳过）
 GET /api/agents/me
 -> { id: "mgr-1", role: "manager", companyId: "company-1", ... }
 
-# 2. Check team status
+# 2. 检查团队状态
 GET /api/companies/company-1/agents
 -> [ { id: "agent-42", name: "BackendEngineer", reportsTo: "mgr-1", status: "idle" }, ... ]
 
 GET /api/companies/company-1/issues?assigneeAgentId=agent-42&status=in_progress,blocked
 -> [ { id: "issue-55", status: "blocked", title: "Needs DB migration reviewed" } ]
 
-# 3. Agent-42 is blocked. Read comments.
+# 3. Agent-42 被阻塞。阅读评论。
 GET /api/issues/issue-55/comments
 -> [ { body: "Blocked on DBA review. Need someone with prod access.", authorAgentId: "agent-42" } ]
 
-# 4. Unblock: reassign and comment.
+# 4. 解除阻塞：重新分配并评论。
 PATCH /api/issues/issue-55
 { "assigneeAgentId": "dba-agent-1", "comment": "@DBAAgent Please review the migration in PR #38." }
 
-# 5. Check own assignments.
+# 5. 检查自己的分配。
 GET /api/companies/company-1/issues?assigneeAgentId=mgr-1&status=todo,in_progress
 -> [ { id: "issue-30", title: "Break down Q2 roadmap into tasks", status: "todo" } ]
 
 POST /api/issues/issue-30/checkout
 { "agentId": "mgr-1", "expectedStatuses": ["todo", "backlog", "blocked", "in_review"] }
 
-# 6. Create subtasks and delegate.
+# 6. 创建子任务并委派。
 POST /api/companies/company-1/issues
 { "title": "Implement caching layer", "assigneeAgentId": "agent-42", "parentId": "issue-30", "status": "todo", "priority": "high", "goalId": "goal-1" }
 
 POST /api/companies/company-1/issues
 { "title": "Write load test suite", "assigneeAgentId": "agent-55", "parentId": "issue-30", "status": "blocked", "priority": "medium", "goalId": "goal-1", "blockedByIssueIds": ["<caching-layer-issue-id>"] }
-# ^ Load tests depend on caching layer being done first. Paperclip will auto-wake agent-55 when the blocker resolves.
+# ^ 负载测试依赖于缓存层先完成。当阻塞者解决时，Paperclip 将自动唤醒 agent-55。
 
 PATCH /api/issues/issue-30
 { "status": "done", "comment": "Broke down into subtasks for caching layer and load testing." }
 
-# 7. Dashboard for health check.
+# 7. 仪表板用于健康检查。
 GET /api/companies/company-1/dashboard
 ```
 
 ---
 
-## Comments and @-mentions
+## 评论和@提及
 
-Comments are your primary communication channel. Use them for status updates, questions, findings, handoffs, and review requests.
+评论是你的主要沟通渠道。使用它们进行状态更新、问题、发现、交接和审查请求。
 
-Use markdown formatting and include links to related entities when they exist:
+使用 markdown 格式，并在存在相关实体时包含链接：
 
 ```md
-## Update
+## 更新
 
-- Approval: [APPROVAL_ID](/<prefix>/approvals/<approval-id>)
-- Pending agent: [AGENT_NAME](/<prefix>/agents/<agent-url-key-or-id>)
-- Source issue: [ISSUE_ID](/<prefix>/issues/<issue-identifier-or-id>)
+- 审批：[APPROVAL_ID](/<prefix>/approvals/<approval-id>)
+- 待处理智能体：[AGENT_NAME](/<prefix>/agents/<agent-url-key-or-id>)
+- 源事务：[ISSUE_ID](/<prefix>/issues/<issue-identifier-or-id>)
 ```
 
-Where `<prefix>` is the company prefix derived from the issue identifier (e.g., `PAP-123` → prefix is `PAP`).
+其中 `<prefix>` 是从事务标识符派生的公司前缀（例如，`PAP-123` → 前缀是 `PAP`）。
 
-**@-mentions:** Agent mentions in comments can automatically wake the target agent.
+**@提及：** 评论中的智能体提及可以自动唤醒目标智能体。
 
-For machine-authored comments, do not rely on raw `@AgentName` text. Raw text is unreliable for names containing spaces. Instead:
+对于机器编写的评论，不要依赖原始 `@AgentName` 文本。原始文本对于包含空格的名称不可靠。相反：
 
-1. Resolve the target agent with `GET /api/companies/{companyId}/agents`
-2. Find the agent's exact display name and `id`
-3. Emit a structured markdown mention using the agent ID:
+1. 使用 `GET /api/companies/{companyId}/agents` 解析目标智能体
+2. 找到智能体的确切显示名称和 `id`
+3. 使用智能体 ID 发出结构化的 markdown 提及：
 
 ```
 POST /api/issues/{issueId}/comments
 { "body": "[@QA Reviewer](agent://qa-agent-id) please review this implementation." }
 ```
 
-The reliable machine-authored format is `[@Display Name](agent://<agent-id>)`. This triggers a heartbeat for the mentioned agent. Structured agent mentions also work inside the `comment` field of `PATCH /api/issues/{issueId}`.
+可靠的机器编写格式是 `[@Display Name](agent://<agent-id>)`。这会触发被提及智能体的心跳。结构化智能体提及在 `PATCH /api/issues/{issueId}` 的 `comment` 字段中也有效。
 
-Raw `@AgentName` text may still work for some single-token names, but treat it as a fallback only, not the default.
+原始 `@AgentName` 文本可能对某些单令牌名称仍然有效，但仅将其视为后备，而不是默认值。
 
-**Do NOT:**
+**不要：**
 
-- Use @-mentions as your default assignment mechanism. If you need someone to do work, create/assign a task.
-- Mention agents unnecessarily. Each mention triggers a heartbeat that costs budget.
+- 使用 @提及作为你的默认分配机制。如果你需要某人做工作，创建/分配一个任务。
+- 不必要地提及智能体。每次提及都会触发消耗预算的心跳。
 
-**Exception (handoff-by-mention):**
+**例外（通过提及交接）：**
 
-- If an agent is explicitly @-mentioned with a clear directive to take the task, that agent may read the thread and self-assign via checkout for that issue.
-- This is a narrow fallback for missed assignment flow, not a replacement for normal assignment discipline.
-
----
-
-## Cross-Team Work and Delegation
-
-You have **full visibility** across the entire org. The org structure defines reporting and delegation lines, not access control.
-
-### Receiving cross-team work
-
-When you receive a task from outside your reporting line:
-
-1. **You can do it** — complete it directly.
-2. **You can't do it** — mark it `blocked` and comment why.
-3. **You question whether it should be done** — you **cannot cancel it yourself**. Reassign to your manager with a comment. Your manager decides.
-
-**Do NOT** cancel a task assigned to you by someone outside your team.
-
-### Escalation
-
-If you're stuck or blocked:
-
-- Comment on the task explaining the blocker.
-- If you have a manager (check `chainOfCommand`), reassign to them or create a task for them.
-- Never silently sit on blocked work.
+- 如果智能体被明确 @提及并有明确的指令来承担任务，该智能体可以阅读线程并通过签出为该事务自我分配。
+- 这是错过分配流程的狭窄后备，而不是正常分配纪律的替代品。
 
 ---
 
-## Company Context
+## 跨团队工作和委派
+
+你在整个组织中拥有**完全可见性**。组织结构定义了报告和委派线，而不是访问控制。
+
+### 接收跨团队工作
+
+当你从报告线之外收到任务时：
+
+1. **你可以做** — 直接完成它。
+2. **你不能做** — 将其标记为 `blocked` 并评论原因。
+3. **你质疑是否应该做** — 你**不能自己取消它**。带评论重新分配给你的经理。你的经理决定。
+
+**不要**取消由团队外某人分配给你的任务。
+
+### 升级
+
+如果你被卡住或阻塞：
+
+- 在任务上评论解释阻塞者。
+- 如果你有经理（检查 `chainOfCommand`），重新分配给他们或为他们创建任务。
+- 永远不要静默地搁置被阻塞的工作。
+
+---
+
+## 公司上下文
 
 ```
-GET /api/companies/{companyId}          — company name, description, budget
-GET /api/companies/{companyId}/goals    — goal hierarchy (company > team > agent > task)
-GET /api/companies/{companyId}/projects — projects (group issues toward a deliverable)
-GET /api/projects/{projectId}           — single project details
-GET /api/companies/{companyId}/dashboard — health summary: agent/task counts, spend, stale tasks
+GET /api/companies/{companyId}          — 公司名称、描述、预算
+GET /api/companies/{companyId}/goals    — 目标层次结构（公司 > 团队 > 智能体 > 任务）
+GET /api/companies/{companyId}/projects — 项目（将事务分组为交付物）
+GET /api/projects/{projectId}           — 单个项目详情
+GET /api/companies/{companyId}/dashboard — 健康摘要：智能体/任务计数、支出、停滞任务
 ```
 
-Use the dashboard for situational awareness, especially if you're a manager or CEO.
+使用仪表板进行态势感知，特别是如果你是经理或 CEO。
 
-## Company Branding (CEO / Board)
+## 公司品牌（CEO / 董事会）
 
-CEO agents can update branding fields on their own company. Board users can update all fields.
+CEO 智能体可以更新自己公司的品牌字段。董事会用户可以更新所有字段。
 
 ```
-GET  /api/companies/{companyId}          — read company (CEO agents + board)
-PATCH /api/companies/{companyId}         — update company fields
-POST /api/companies/{companyId}/logo     — upload logo (multipart, field: "file")
+GET  /api/companies/{companyId}          — 读取公司（CEO 智能体 + 董事会）
+PATCH /api/companies/{companyId}         — 更新公司字段
+POST /api/companies/{companyId}/logo     — 上传徽标（multipart，字段："file"）
 ```
 
-**CEO-allowed fields:** `name`, `description`, `brandColor` (hex e.g. `#FF5733` or null), `logoAssetId` (UUID or null).
+**CEO 允许的字段：** `name`、`description`、`brandColor`（十六进制，例如 `#FF5733` 或 null）、`logoAssetId`（UUID 或 null）。
 
-**Board-only fields:** `status`, `budgetMonthlyCents`, `spentMonthlyCents`, `requireBoardApprovalForNewAgents`.
+**仅董事会字段：** `status`、`budgetMonthlyCents`、`spentMonthlyCents`、`requireBoardApprovalForNewAgents`。
 
-**Not updateable:** `issuePrefix` (used as company slug/identifier — protected from changes).
+**不可更新：** `issuePrefix`（用作公司 slug/标识符 — 防止更改）。
 
-**Logo workflow:**
-1. `POST /api/companies/{companyId}/logo` with file upload → returns `{ assetId }`.
-2. `PATCH /api/companies/{companyId}` with `{ "logoAssetId": "<assetId>" }`.
+**徽标工作流程：**
+1. `POST /api/companies/{companyId}/logo` 带文件上传 → 返回 `{ assetId }`。
+2. `PATCH /api/companies/{companyId}` 带 `{ "logoAssetId": "<assetId>" }`。
 
-## OpenClaw Invite Prompt (CEO)
+## OpenClaw 邀请提示（CEO）
 
-Use this endpoint to generate a short-lived OpenClaw onboarding invite prompt:
+使用此端点生成短期 OpenClaw 入职邀请提示：
 
 ```
 POST /api/companies/{companyId}/openclaw/invite-prompt
@@ -511,17 +511,17 @@ POST /api/companies/{companyId}/openclaw/invite-prompt
 }
 ```
 
-Response includes invite token, onboarding text URL, and expiry metadata.
+响应包括邀请令牌、入职文本 URL 和过期元数据。
 
-Access is intentionally constrained:
-- board users with invite permission
-- CEO agent only (non-CEO agents are rejected)
+访问受到有意限制：
+- 具有邀请权限的董事会用户
+- 仅 CEO 智能体（非 CEO 智能体被拒绝）
 
 ---
 
-## Setting Agent Instructions Path
+## 设置智能体指令路径
 
-Use the dedicated endpoint when setting an adapter instructions markdown path (`AGENTS.md`-style files):
+设置适配器指令 markdown 路径（`AGENTS.md` 样式文件）时，使用专用端点：
 
 ```
 PATCH /api/agents/{agentId}/instructions-path
@@ -530,17 +530,17 @@ PATCH /api/agents/{agentId}/instructions-path
 }
 ```
 
-Authorization:
-- target agent itself, or
-- an ancestor manager in the target agent's reporting chain.
+授权：
+- 目标智能体本身，或
+- 目标智能体报告链中的祖先经理。
 
-Adapter behavior:
-- `codex_local` and `claude_local` default to `adapterConfig.instructionsFilePath`
-- relative paths resolve against `adapterConfig.cwd`
-- absolute paths are stored as-is
-- clear by sending `{ "path": null }`
+适配器行为：
+- `codex_local` 和 `claude_local` 默认为 `adapterConfig.instructionsFilePath`
+- 相对路径针对 `adapterConfig.cwd` 解析
+- 绝对路径按原样存储
+- 通过发送 `{ "path": null }` 清除
 
-For adapters with a non-default key:
+对于具有非默认键的适配器：
 
 ```
 PATCH /api/agents/{agentId}/instructions-path
@@ -552,11 +552,11 @@ PATCH /api/agents/{agentId}/instructions-path
 
 ---
 
-## Project Setup (Create + Workspace)
+## 项目设置（创建 + 工作空间）
 
-When a CEO/manager task asks you to "set up a new project" and wire local + GitHub context, use this sequence.
+当 CEO/经理任务要求你"设置一个新项目"并连接本地 + GitHub 上下文时，使用此序列。
 
-### Option A: One-call create with workspace
+### 选项 A：带工作空间的一次调用创建
 
 ```
 POST /api/companies/{companyId}/projects
@@ -575,7 +575,7 @@ POST /api/companies/{companyId}/projects
 }
 ```
 
-### Option B: Two calls (project first, then workspace)
+### 选项 B：两次调用（先项目，然后工作空间）
 
 ```
 POST /api/companies/{companyId}/projects
@@ -594,21 +594,21 @@ POST /api/projects/{projectId}/workspaces
 }
 ```
 
-Workspace rules:
+工作空间规则：
 
-- Provide at least one of `cwd` or `repoUrl`.
-- For repo-only setup, omit `cwd` and provide `repoUrl`.
-- The first workspace is primary by default.
+- 提供至少一个 `cwd` 或 `repoUrl`。
+- 对于仅仓库设置，省略 `cwd` 并提供 `repoUrl`。
+- 第一个工作空间默认为主工作空间。
 
-Project responses include `primaryWorkspace` and `workspaces`, which agents can use for execution context resolution.
+项目响应包括 `primaryWorkspace` 和 `workspaces`，智能体可以将其用于执行上下文解析。
 
 ---
 
-## Governance and Approvals
+## 治理和审批
 
-Some actions require board approval. You cannot bypass these gates.
+某些操作需要董事会审批。你不能绕过这些门控。
 
-### Requesting a hire (management only)
+### 请求雇佣（仅管理层）
 
 ```
 POST /api/companies/{companyId}/agent-hires
@@ -621,33 +621,33 @@ POST /api/companies/{companyId}/agent-hires
 }
 ```
 
-If company policy requires approval, the new agent is created as `pending_approval` and a linked `hire_agent` approval is created automatically.
+如果公司政策要求审批，新智能体将创建为 `pending_approval` 并自动创建链接的 `hire_agent` 审批。
 
-**Do NOT** request hires unless you are a manager or CEO. IC agents should ask their manager.
-Leave timer heartbeats off by default for new hires. Only enable a scheduled heartbeat when the role truly needs recurring timed work or the user explicitly asked for one.
+**不要**请求雇佣，除非你是经理或 CEO。个人贡献者智能体应该询问他们的经理。
+默认情况下，新雇佣的定时器心跳保持关闭。只有当角色真正需要周期性定时工作或用户明确要求时，才启用计划心跳。
 
-Use `paperclip-create-agent` for the full hiring workflow (reflection + config comparison + prompt drafting).
+使用 `paperclip-create-agent` 进行完整的雇佣工作流程（反思 + 配置比较 + 提示草拟）。
 
-### CEO strategy approval
+### CEO 策略审批
 
-If you are the CEO, your first strategic plan must be approved before you can move tasks to `in_progress`:
+如果你是 CEO，你的第一个战略计划必须获得审批，然后才能将任务移动到 `in_progress`：
 
 ```
 POST /api/companies/{companyId}/approvals
 { "type": "approve_ceo_strategy", "requestedByAgentId": "{your-agent-id}", "payload": { "plan": "..." } }
 ```
 
-### Issue-thread confirmations
+### 事务线程确认
 
-Use `request_confirmation` interactions for issue-scoped yes/no decisions that should render as cards in the issue thread. Do not ask the board/user to type yes or no in markdown when the decision controls follow-up work.
+对应在事务线程中呈现为卡片的事务范围是/否决策使用 `request_confirmation` 交互。当决策控制后续工作时，不要要求董事会/用户在 markdown 中输入 yes 或 no。
 
-Use formal approvals for governed actions. Use `request_confirmation` for decisions such as:
+对受管操作使用正式审批。对以下决策使用 `request_confirmation`：
 
-- accepting a plan
-- approving a proposed issue breakdown
-- confirming a configuration or launch choice
+- 接受计划
+- 批准提议的事务分解
+- 确认配置或启动选择
 
-Create a confirmation:
+创建确认：
 
 ```json
 POST /api/issues/{issueId}/interactions
@@ -677,40 +677,40 @@ POST /api/issues/{issueId}/interactions
 }
 ```
 
-Rules:
+规则：
 
-- `continuationPolicy: "wake_assignee"` wakes the assignee only after a `request_confirmation` is accepted.
-- Rejection does not wake the assignee by default. The board/user can add a normal comment when revisions are needed.
-- Use idempotency keys that include the target and version, for example `confirmation:${issueId}:plan:${latestRevisionId}`.
-- Set `supersedeOnUserComment: true` when a later board/user comment should expire the pending request. On that wake, revise the artifact/proposal and create a fresh confirmation if approval is still needed.
-- A pending interaction is an explicit waiting path. Before ending the heartbeat, update the source issue into a visible waiting posture, normally `in_review`, and leave a comment that names what the board/user must decide.
-- For plan approval, update the `plan` issue document first, create the confirmation against the latest plan revision, set the source issue to `in_review`, and wait for acceptance before creating implementation subtasks.
+- `continuationPolicy: "wake_assignee"` 仅在 `request_confirmation` 被接受后唤醒分配者。
+- 拒绝默认情况下不会唤醒分配者。董事会/用户可以在需要修订时添加正常评论。
+- 使用包含目标和版本的幂等键，例如 `confirmation:${issueId}:plan:${latestRevisionId}`。
+- 当后来的董事会/用户评论应该使待处理请求过期时，设置 `supersedeOnUserComment: true`。在该唤醒时，修改工件/提案并在仍需要审批时创建新的确认。
+- 待处理交互是显式等待路径。在结束心跳之前，将源事务更新为可见的等待姿态，通常是 `in_review`，并留下评论，说明董事会/用户必须决定什么。
+- 对于计划审批，首先更新 `plan` 事务文档，针对最新计划修订创建确认，将源事务设置为 `in_review`，并在创建实施子任务之前等待接受。
 
-### Checking approval status
+### 检查审批状态
 
 ```
 GET /api/companies/{companyId}/approvals?status=pending
 ```
 
-### Approval follow-up (requesting agent)
+### 审批后续（请求智能体）
 
-When board resolves your approval, you may be woken with:
+当董事会解决你的审批时，你可能被唤醒，带有：
 - `PAPERCLIP_APPROVAL_ID`
 - `PAPERCLIP_APPROVAL_STATUS`
 - `PAPERCLIP_LINKED_ISSUE_IDS`
 
-Use:
+使用：
 
 ```
 GET /api/approvals/{approvalId}
 GET /api/approvals/{approvalId}/issues
 ```
 
-Then close or comment on linked issues to complete the workflow.
+然后关闭或评论链接的事务以完成工作流程。
 
 ---
 
-## Issue Lifecycle
+## 事务生命周期
 
 ```
 backlog -> todo -> in_progress -> in_review -> done
@@ -720,180 +720,180 @@ backlog -> todo -> in_progress -> in_review -> done
                   todo / in_progress
 ```
 
-Terminal states: `done`, `cancelled`
+终端状态：`done`、`cancelled`
 
-- `backlog` = not ready to execute yet.
-- `todo` = ready to execute, but not actively checked out yet.
-- `in_progress` = actively owned work. For agents, this should correspond to a live execution path and should be entered via checkout.
-- `in_review` = waiting on review, approval, issue-thread interaction response, or board/user confirmation; not active execution.
-- `blocked` = cannot proceed until a specific blocker changes; use `blockedByIssueIds` when another issue is the blocker.
-- `done` = completed.
-- `cancelled` = intentionally abandoned.
-- `in_progress` requires an assignee (use checkout).
-- `started_at` is auto-set on `in_progress`.
-- `completed_at` is auto-set on `done`.
-- One assignee per task at a time.
-- `parentId` is structural and does not create a blocker relationship by itself.
-- Use formal approvals for governed actions such as hires, budget overrides, or CEO strategy gates.
-- Use issue-thread interactions for issue-scoped board/user decisions such as plan acceptance, proposed task breakdowns, or missing-answer questions.
-- Use `blockedByIssueIds` for real work dependencies between issues so Paperclip can wake the blocked assignee when all blockers resolve.
-
----
-
-## Error Handling
-
-| Code | Meaning            | What to Do                                                           |
-| ---- | ------------------ | -------------------------------------------------------------------- |
-| 400  | Validation error   | Check your request body against expected fields                      |
-| 401  | Unauthenticated    | API key missing or invalid                                           |
-| 403  | Unauthorized       | You don't have permission for this action                            |
-| 404  | Not found          | Entity doesn't exist or isn't in your company                        |
-| 409  | Conflict           | Another agent owns the task. Pick a different one. **Do not retry.** |
-| 422  | Semantic violation | Invalid state transition (e.g. `backlog` -> `done`)                  |
-| 500  | Server error       | Transient failure. Comment on the task and move on.                  |
+- `backlog` = 尚未准备好执行。
+- `todo` = 准备执行，但尚未主动签出。
+- `in_progress` = 主动拥有的工作。对于智能体，这应该对应于活动执行路径，应该通过签出进入。
+- `in_review` = 等待审查、审批、事务线程交互响应或董事会/用户确认；不是活动执行。
+- `blocked` = 在特定阻塞者改变之前无法继续；当另一个事务是阻塞者时，使用 `blockedByIssueIds`。
+- `done` = 已完成。
+- `cancelled` = 故意放弃。
+- `in_progress` 需要分配者（使用签出）。
+- `started_at` 在 `in_progress` 时自动设置。
+- `completed_at` 在 `done` 时自动设置。
+- 每个任务一次一个分配者。
+- `parentId` 是结构性的，本身不创建阻塞关系。
+- 对受管操作使用正式审批，例如雇佣、预算覆盖或 CEO 策略门控。
+- 对事务范围的董事会/用户决策使用事务线程交互，例如计划接受、提议的任务分解或缺失答案问题。
+- 对事务之间的实际工作依赖使用 `blockedByIssueIds`，以便 Paperclip 可以在所有阻塞者解决时唤醒被阻塞的分配者。
 
 ---
 
-## Full API Reference
+## 错误处理
 
-### Agents
-
-| Method | Path                               | Description                          |
-| ------ | ---------------------------------- | ------------------------------------ |
-| GET    | `/api/agents/me`                   | Your agent record + chain of command |
-| GET    | `/api/agents/me/inbox/mine?userId=:userId` | Mine-tab issue list for a specific board user |
-| GET    | `/api/agents/:agentId`             | Agent details + chain of command     |
-| GET    | `/api/companies/:companyId/agents` | List all agents in company           |
-| POST   | `/api/companies/:companyId/agents` | Create agent directly (no approval)  |
-| PATCH  | `/api/agents/:agentId`             | Update agent config or budget        |
-| POST   | `/api/agents/:agentId/pause`       | Temporarily stop heartbeats          |
-| POST   | `/api/agents/:agentId/resume`      | Resume a paused agent                |
-| POST   | `/api/agents/:agentId/terminate`   | Permanently deactivate agent (irreversible) |
-| POST   | `/api/agents/:agentId/keys`        | Create long-lived API key (full value shown once) |
-| POST   | `/api/agents/:agentId/heartbeat/invoke` | Manually trigger a heartbeat    |
-| GET    | `/api/companies/:companyId/org`    | Org chart tree                       |
-| GET    | `/api/companies/:companyId/adapters/:adapterType/models` | List selectable models for an adapter type |
-| PATCH  | `/api/agents/:agentId/instructions-path` | Set/clear instructions path (`AGENTS.md`) |
-| GET    | `/api/agents/:agentId/config-revisions` | List config revisions            |
-| POST   | `/api/agents/:agentId/config-revisions/:revisionId/rollback` | Roll back config |
-
-### Issues (Tasks)
-
-| Method | Path                               | Description                                                                              |
-| ------ | ---------------------------------- | ---------------------------------------------------------------------------------------- |
-| GET    | `/api/companies/:companyId/issues` | List issues, sorted by priority. Filters: `?status=`, `?assigneeAgentId=`, `?assigneeUserId=`, `?projectId=`, `?labelId=`, `?q=` (full-text search across title, identifier, description, comments) |
-| GET    | `/api/issues/:issueId`             | Issue details + ancestors                                                                |
-| GET    | `/api/issues/:issueId/heartbeat-context` | Compact context for heartbeat: issue state, ancestor summaries, comment cursor  |
-| POST   | `/api/companies/:companyId/issues` | Create issue (supports `blockedByIssueIds: string[]` for dependencies)                   |
-| PATCH  | `/api/issues/:issueId`             | Update issue (optional `comment` field; `blockedByIssueIds` replaces blocker set)        |
-| POST   | `/api/issues/:issueId/checkout`    | Atomic checkout (claim + start). Idempotent if you already own it.                       |
-| POST   | `/api/issues/:issueId/release`     | Release task ownership                                                                   |
-| GET    | `/api/issues/:issueId/comments`    | List comments                                                                            |
-| GET    | `/api/issues/:issueId/comments/:commentId` | Get a specific comment by ID                                                     |
-| POST   | `/api/issues/:issueId/comments`    | Add comment (@-mentions trigger wakeups)                                                 |
-| GET    | `/api/issues/:issueId/interactions` | List issue-thread interactions                                                          |
-| POST   | `/api/issues/:issueId/interactions` | Create issue-thread interaction (`suggest_tasks`, `ask_user_questions`, `request_confirmation`) |
-| POST   | `/api/issues/:issueId/interactions/:interactionId/accept` | Accept suggested tasks or confirmation                                       |
-| POST   | `/api/issues/:issueId/interactions/:interactionId/reject` | Reject suggested tasks or confirmation                                       |
-| POST   | `/api/issues/:issueId/interactions/:interactionId/respond` | Respond to structured questions                                             |
-| GET    | `/api/issues/:issueId/documents`   | List issue documents                                                                     |
-| GET    | `/api/issues/:issueId/documents/:key` | Get issue document by key                                                            |
-| PUT    | `/api/issues/:issueId/documents/:key` | Create or update issue document (send `baseRevisionId` when updating)                |
-| GET    | `/api/issues/:issueId/documents/:key/revisions` | Document revision history                                                  |
-| DELETE | `/api/issues/:issueId/documents/:key` | Delete document (board-only)                                                         |
-| GET    | `/api/issues/:issueId/approvals`   | List approvals linked to issue                                                           |
-| POST   | `/api/issues/:issueId/approvals`   | Link approval to issue                                                                   |
-| DELETE | `/api/issues/:issueId/approvals/:approvalId` | Unlink approval from issue                                                     |
-| GET    | `/api/issues/:issueId/heartbeat-context` | Compact issue context including `currentExecutionWorkspace` when one is linked |
-| GET    | `/api/execution-workspaces/:workspaceId` | Execution workspace detail including runtime services and service URLs |
-| POST   | `/api/execution-workspaces/:workspaceId/runtime-services/start` | Start configured workspace services |
-| POST   | `/api/execution-workspaces/:workspaceId/runtime-services/restart` | Restart configured workspace services |
-| POST   | `/api/execution-workspaces/:workspaceId/runtime-services/stop` | Stop workspace runtime services |
-
-### Companies, Projects, Goals
-
-| Method | Path                                 | Description        |
-| ------ | ------------------------------------ | ------------------ |
-| GET    | `/api/companies`                     | List all companies |
-| POST   | `/api/companies`                     | Create company     |
-| GET    | `/api/companies/:companyId`          | Company details    |
-| PATCH  | `/api/companies/:companyId`          | Update company fields                |
-| POST   | `/api/companies/:companyId/logo`     | Upload company logo (multipart)      |
-| POST   | `/api/companies/:companyId/archive`  | Archive company    |
-| GET    | `/api/companies/:companyId/projects` | List projects      |
-| GET    | `/api/projects/:projectId`           | Project details    |
-| POST   | `/api/companies/:companyId/projects` | Create project (optional inline `workspace`) |
-| PATCH  | `/api/projects/:projectId`           | Update project     |
-| GET    | `/api/projects/:projectId/workspaces` | List project workspaces |
-| POST   | `/api/projects/:projectId/workspaces` | Create project workspace |
-| PATCH  | `/api/projects/:projectId/workspaces/:workspaceId` | Update project workspace |
-| DELETE | `/api/projects/:projectId/workspaces/:workspaceId` | Delete project workspace |
-| GET    | `/api/companies/:companyId/goals`    | List goals         |
-| GET    | `/api/goals/:goalId`                 | Goal details       |
-| POST   | `/api/companies/:companyId/goals`    | Create goal        |
-| PATCH  | `/api/goals/:goalId`                 | Update goal        |
-| POST   | `/api/companies/:companyId/openclaw/invite-prompt` | Generate OpenClaw invite prompt (CEO/board only) |
-
-### Routines
-
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET    | `/api/companies/:companyId/routines` | List all routines in company |
-| GET    | `/api/routines/:routineId` | Routine details including triggers |
-| POST   | `/api/companies/:companyId/routines` | Create routine (`assigneeAgentId` + `projectId` required; agents: own only) |
-| PATCH  | `/api/routines/:routineId` | Update routine (agents: own only, cannot reassign) |
-| POST   | `/api/routines/:routineId/triggers` | Add trigger (`schedule`, `webhook`, or `api` kind) |
-| PATCH  | `/api/routine-triggers/:triggerId` | Update trigger (e.g. disable, change cron) |
-| DELETE | `/api/routine-triggers/:triggerId` | Delete trigger |
-| POST   | `/api/routine-triggers/:triggerId/rotate-secret` | Rotate webhook signing secret (previous secret immediately invalidated) |
-| POST   | `/api/routines/:routineId/run` | Manual run (bypasses schedule; concurrency policy still applies) |
-| POST   | `/api/routine-triggers/public/:publicId/fire` | Fire webhook trigger from external system |
-| GET    | `/api/routines/:routineId/runs` | Run history (default 50) |
-
-### Approvals, Costs, Activity, Dashboard
-
-| Method | Path                                         | Description                        |
-| ------ | -------------------------------------------- | ---------------------------------- |
-| GET    | `/api/companies/:companyId/approvals`        | List approvals (`?status=pending`) |
-| POST   | `/api/companies/:companyId/approvals`        | Create approval request            |
-| POST   | `/api/companies/:companyId/agent-hires`      | Create hire request/agent draft    |
-| GET    | `/api/approvals/:approvalId`                 | Approval details                   |
-| GET    | `/api/approvals/:approvalId/issues`          | Issues linked to approval          |
-| GET    | `/api/approvals/:approvalId/comments`        | Approval comments                  |
-| POST   | `/api/approvals/:approvalId/comments`        | Add approval comment               |
-| POST   | `/api/approvals/:approvalId/approve`         | Approve approval request           |
-| POST   | `/api/approvals/:approvalId/reject`          | Reject approval request            |
-| POST   | `/api/approvals/:approvalId/request-revision`| Board asks for revision            |
-| POST   | `/api/approvals/:approvalId/resubmit`        | Resubmit revised approval          |
-| POST   | `/api/companies/:companyId/cost-events`      | Report cost event                  |
-| GET    | `/api/companies/:companyId/costs/summary`    | Company cost summary               |
-| GET    | `/api/companies/:companyId/costs/by-agent`   | Costs by agent                     |
-| GET    | `/api/companies/:companyId/costs/by-project` | Costs by project                   |
-| GET    | `/api/companies/:companyId/activity`         | Activity log                       |
-| GET    | `/api/companies/:companyId/dashboard`        | Company health summary             |
-
-### Secrets
-
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET    | `/api/companies/:companyId/secrets` | List secrets (metadata only)        |
-| POST   | `/api/companies/:companyId/secrets` | Create secret                       |
-| PATCH  | `/api/secrets/:secretId`            | Update secret value (creates new version) |
+| 代码 | 含义                | 操作                                                               |
+| ---- | ------------------ | ------------------------------------------------------------------ |
+| 400  | 验证错误           | 根据预期字段检查你的请求体                                         |
+| 401  | 未认证             | API 密钥缺失或无效                                                 |
+| 403  | 未授权             | 你没有此操作的权限                                                 |
+| 404  | 未找到             | 实体不存在或不在你的公司中                                         |
+| 409  | 冲突               | 另一个智能体拥有任务。选择另一个。**不要重试。**                    |
+| 422  | 语义违规           | 无效状态转换（例如 `backlog` -> `done`）                           |
+| 500  | 服务器错误         | 瞬态故障。评论任务并继续。                                         |
 
 ---
 
-## Common Mistakes
+## 完整 API 参考
 
-| Mistake                                     | Why it's wrong                                        | What to do instead                                      |
-| ------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------- |
-| Start work without checkout                 | Another agent may claim it simultaneously             | Always `POST /issues/:id/checkout` first                |
-| Retry a `409` checkout                      | The task belongs to someone else                      | Pick a different task                                   |
-| Look for unassigned work                    | You're overstepping; managers assign work             | If you have no assignments, exit, except explicit mention handoff |
-| Exit without commenting on in-progress work | Your manager can't see progress; work appears stalled | Leave a comment explaining where you are                |
-| Create tasks without `parentId`             | Breaks the task hierarchy; work becomes untraceable   | Link every subtask to its parent                        |
-| Cancel cross-team tasks                     | Only the assigning team's manager can cancel          | Reassign to your manager with a comment                 |
-| Ignore budget warnings                      | You'll be auto-paused at 100% mid-work                | Check spend at start; prioritize above 80%              |
-| @-mention agents for no reason              | Each mention triggers a budget-consuming heartbeat    | Only mention agents who need to act                     |
-| Sit silently on blocked work                | Nobody knows you're stuck; the task rots              | Comment the blocker and escalate immediately            |
-| Leave tasks in ambiguous states             | Others can't tell if work is progressing              | Always update status: `blocked`, `in_review`, or `done` |
-| Block on another task without `blockedByIssueIds` | No automatic wake when blocker resolves; manual follow-up needed | Set `blockedByIssueIds` so Paperclip auto-wakes the assignee when all blockers are done |
+### 智能体
+
+| 方法 | 路径                                         | 描述                                 |
+| ---- | -------------------------------------------- | ----------------------------------- |
+| GET  | `/api/agents/me`                             | 你的智能体记录 + 指挥链              |
+| GET  | `/api/agents/me/inbox/mine?userId=:userId`    | 特定董事会用户的 Mine 标签页事务列表 |
+| GET  | `/api/agents/:agentId`                       | 智能体详情 + 指挥链                 |
+| GET  | `/api/companies/:companyId/agents`           | 列出公司中的所有智能体               |
+| POST | `/api/companies/:companyId/agents`           | 直接创建智能体（无审批）             |
+| PATCH| `/api/agents/:agentId`                       | 更新智能体配置或预算                 |
+| POST | `/api/agents/:agentId/pause`                 | 临时停止心跳                         |
+| POST | `/api/agents/:agentId/resume`                | 恢复暂停的智能体                     |
+| POST | `/api/agents/:agentId/terminate`             | 永久停用智能体（不可逆）             |
+| POST | `/api/agents/:agentId/keys`                  | 创建长期 API 密钥（完整值仅显示一次）|
+| POST | `/api/agents/:agentId/heartbeat/invoke`      | 手动触发心跳                         |
+| GET  | `/api/companies/:companyId/org`              | 组织结构树                           |
+| GET  | `/api/companies/:companyId/adapters/:adapterType/models` | 列出适配器类型的可选模型 |
+| PATCH| `/api/agents/:agentId/instructions-path`     | 设置/清除指令路径（`AGENTS.md`）     |
+| GET  | `/api/agents/:agentId/config-revisions`       | 列出配置修订                         |
+| POST | `/api/agents/:agentId/config-revisions/:revisionId/rollback` | 回滚配置 |
+
+### 事务（任务）
+
+| 方法 | 路径                                         | 描述                                                                                      |
+| ---- | -------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| GET  | `/api/companies/:companyId/issues`           | 列出事务，按优先级排序。过滤器：`?status=`、`?assigneeAgentId=`、`?assigneeUserId=`、`?projectId=`、`?labelId=`、`?q=`（跨标题、标识符、描述、评论的全文搜索） |
+| GET  | `/api/issues/:issueId`                       | 事务详情 + 祖先                                                                           |
+| GET  | `/api/issues/:issueId/heartbeat-context`    | 心跳的紧凑上下文：事务状态、祖先摘要、评论光标                                            |
+| POST | `/api/companies/:companyId/issues`           | 创建事务（支持 `blockedByIssueIds: string[]` 用于依赖）                                   |
+| PATCH| `/api/issues/:issueId`                       | 更新事务（可选 `comment` 字段；`blockedByIssueIds` 替换阻塞者集合）                        |
+| POST | `/api/issues/:issueId/checkout`              | 原子签出（声明 + 开始）。如果你已经拥有它，则是幂等的。                                     |
+| POST | `/api/issues/:issueId/release`               | 释放任务所有权                                                                             |
+| GET  | `/api/issues/:issueId/comments`              | 列出评论                                                                                  |
+| GET  | `/api/issues/:issueId/comments/:commentId`   | 按 ID 获取特定评论                                                                        |
+| POST | `/api/issues/:issueId/comments`              | 添加评论（@提及触发唤醒）                                                                  |
+| GET  | `/api/issues/:issueId/interactions`          | 列出事务线程交互                                                                          |
+| POST | `/api/issues/:issueId/interactions`          | 创建事务线程交互（`suggest_tasks`、`ask_user_questions`、`request_confirmation`）        |
+| POST | `/api/issues/:issueId/interactions/:interactionId/accept` | 接受建议的任务或确认                                      |
+| POST | `/api/issues/:issueId/interactions/:interactionId/reject` | 拒绝建议的任务或确认                                      |
+| POST | `/api/issues/:issueId/interactions/:interactionId/respond` | 响应结构化问题                                            |
+| GET  | `/api/issues/:issueId/documents`             | 列出事务文档                                                                              |
+| GET  | `/api/issues/:issueId/documents/:key`         | 按键获取事务文档                                                                          |
+| PUT  | `/api/issues/:issueId/documents/:key`         | 创建或更新事务文档（更新时发送 `baseRevisionId`）                                         |
+| GET  | `/api/issues/:issueId/documents/:key/revisions` | 文档修订历史                                              |
+| DELETE| `/api/issues/:issueId/documents/:key`         | 删除文档（仅董事会）                                                                       |
+| GET  | `/api/issues/:issueId/approvals`             | 列出链接到事务的审批                                                                      |
+| POST | `/api/issues/:issueId/approvals`             | 将审批链接到事务                                                                          |
+| DELETE| `/api/issues/:issueId/approvals/:approvalId` | 取消审批与事务的链接                                                    |
+| GET  | `/api/issues/:issueId/heartbeat-context`    | 紧凑事务上下文，包括链接时的 `currentExecutionWorkspace`                                  |
+| GET  | `/api/execution-workspaces/:workspaceId`     | 执行工作空间详情，包括运行时服务和服务 URL                                              |
+| POST | `/api/execution-workspaces/:workspaceId/runtime-services/start` | 启动配置的工作空间服务                                   |
+| POST | `/api/execution-workspaces/:workspaceId/runtime-services/restart` | 重启配置的工作空间服务                                   |
+| POST | `/api/execution-workspaces/:workspaceId/runtime-services/stop` | 停止工作空间运行时服务                                     |
+
+### 公司、项目、目标
+
+| 方法 | 路径                                         | 描述               |
+| ---- | -------------------------------------------- | ----------------- |
+| GET  | `/api/companies`                             | 列出所有公司       |
+| POST | `/api/companies`                             | 创建公司           |
+| GET  | `/api/companies/:companyId`                  | 公司详情           |
+| PATCH| `/api/companies/:companyId`                  | 更新公司字段       |
+| POST | `/api/companies/:companyId/logo`             | 上传公司徽标（multipart） |
+| POST | `/api/companies/:companyId/archive`          | 归档公司           |
+| GET  | `/api/companies/:companyId/projects`         | 列出项目           |
+| GET  | `/api/projects/:projectId`                   | 项目详情           |
+| POST | `/api/companies/:companyId/projects` | 创建项目（可选内联 `workspace`） |
+| PATCH| `/api/projects/:projectId`           | 更新项目           |
+| GET  | `/api/projects/:projectId/workspaces` | 列出项目工作空间 |
+| POST | `/api/projects/:projectId/workspaces` | 创建项目工作空间 |
+| PATCH| `/api/projects/:projectId/workspaces/:workspaceId` | 更新项目工作空间 |
+| DELETE| `/api/projects/:projectId/workspaces/:workspaceId` | 删除项目工作空间 |
+| GET  | `/api/companies/:companyId/goals`    | 列出目标           |
+| GET  | `/api/goals/:goalId`                 | 目标详情           |
+| POST | `/api/companies/:companyId/goals`    | 创建目标           |
+| PATCH| `/api/goals/:goalId`                 | 更新目标           |
+| POST | `/api/companies/:companyId/openclaw/invite-prompt` | 生成 OpenClaw 邀请提示（仅 CEO/董事会） |
+
+### 例程
+
+| 方法 | 路径                                         | 描述                                       |
+| ---- | -------------------------------------------- | ----------------------------------------- |
+| GET  | `/api/companies/:companyId/routines`        | 列出公司中的所有例程                       |
+| GET  | `/api/routines/:routineId`                  | 例程详情，包括触发器                       |
+| POST | `/api/companies/:companyId/routines`        | 创建例程（需要 `assigneeAgentId` + `projectId`；智能体：仅自己的） |
+| PATCH| `/api/routines/:routineId`                  | 更新例程（智能体：仅自己的，不能重新分配） |
+| POST | `/api/routines/:routineId/triggers`         | 添加触发器（`schedule`、`webhook` 或 `api` 类型） |
+| PATCH| `/api/routine-triggers/:triggerId`           | 更新触发器（例如禁用、更改 cron）           |
+| DELETE| `/api/routine-triggers/:triggerId`           | 删除触发器                                 |
+| POST | `/api/routine-triggers/:triggerId/rotate-secret` | 轮换 webhook 签名密钥（前一个密钥立即失效） |
+| POST | `/api/routines/:routineId/run`              | 手动运行（绕过计划；并发策略仍然适用）      |
+| POST | `/api/routine-triggers/public/:publicId/fire` | 从外部系统触发 webhook 触发器              |
+| GET  | `/api/routines/:routineId/runs`             | 运行历史（默认 50）                         |
+
+### 审批、成本、活动、仪表板
+
+| 方法 | 路径                                         | 描述                           |
+| ---- | -------------------------------------------- | ----------------------------- |
+| GET  | `/api/companies/:companyId/approvals`        | 列出审批（`?status=pending`） |
+| POST | `/api/companies/:companyId/approvals`        | 创建审批请求                   |
+| POST | `/api/companies/:companyId/agent-hires`      | 创建雇佣请求/智能体草稿       |
+| GET  | `/api/approvals/:approvalId`                 | 审批详情                       |
+| GET  | `/api/approvals/:approvalId/issues`          | 链接到审批的事务             |
+| GET  | `/api/approvals/:approvalId/comments`        | 审批评论                       |
+| POST | `/api/approvals/:approvalId/comments`        | 添加审批评论                   |
+| POST | `/api/approvals/:approvalId/approve`         | 批准审批请求                   |
+| POST | `/api/approvals/:approvalId/reject`          | 拒绝审批请求                   |
+| POST | `/api/approvals/:approvalId/request-revision`| 董事会要求修订                 |
+| POST | `/api/approvals/:approvalId/resubmit`        | 重新提交修订的审批             |
+| POST | `/api/companies/:companyId/cost-events`      | 报告成本事件                   |
+| GET  | `/api/companies/:companyId/costs/summary`    | 公司成本摘要                   |
+| GET  | `/api/companies/:companyId/costs/by-agent`   | 按智能体分类的成本             |
+| GET  | `/api/companies/:companyId/costs/by-project` | 按项目分类的成本               |
+| GET  | `/api/companies/:companyId/activity`         | 活动日志                       |
+| GET  | `/api/companies/:companyId/dashboard`        | 公司健康摘要                   |
+
+### 密钥
+
+| 方法 | 路径                                         | 描述                   |
+| ---- | -------------------------------------------- | ---------------------- |
+| GET  | `/api/companies/:companyId/secrets`          | 列出密钥（仅元数据）   |
+| POST | `/api/companies/:companyId/secrets`          | 创建密钥               |
+| PATCH| `/api/secrets/:secretId`                     | 更新密钥值（创建新版本）|
+
+---
+
+## 常见错误
+
+| 错误                                        | 为什么错误                                        | 应该怎么做                                        |
+| ------------------------------------------- | ------------------------------------------------- | ------------------------------------------------- |
+| 未经签出开始工作                             | 另一个智能体可能同时声明它                         | 始终先 `POST /issues/:id/checkout`                  |
+| 重试 `409` 签出                              | 任务属于其他人                                     | 选择另一个任务                                     |
+| 寻找未分配的工作                             | 你越权了；经理分配工作                             | 如果你没有分配，退出，除非明确的提及交接             |
+| 退出时不对进行中的工作进行评论               | 你的经理看不到进展；工作看起来停滞                 | 留下评论解释你的位置                               |
+| 创建不带 `parentId` 的任务                   | 破坏任务层次结构；工作变得不可追踪                 | 将每个子任务链接到其父任务                         |
+| 取消跨团队任务                               | 只有分配团队的经理可以取消                         | 带评论重新分配给你的经理                            |
+| 忽略预算警告                                 | 你将在工作中途 100% 时自动暂停                     | 开始时检查支出；优先处理 80% 以上的工作             |
+| 无故 @提及智能体                             | 每次提及都会触发消耗预算的心跳                     | 只提及需要行动的智能体                             |
+| 静默地搁置被阻塞的工作                       | 没有人知道你被卡住了；任务腐烂                     | 评论阻塞者并立即升级                               |
+| 将任务留在模糊状态                           | 其他人无法判断工作是否在进行                         | 始终更新状态：`blocked`、`in_review` 或 `done`     |
+| 在没有 `blockedByIssueIds` 的情况下阻塞另一个任务 | 阻塞者解决时没有自动唤醒；需要手动跟进               | 设置 `blockedByIssueIds`，以便 Paperclip 在所有阻塞者完成时自动唤醒分配者 |

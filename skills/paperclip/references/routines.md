@@ -1,29 +1,29 @@
-# Paperclip Routines
+# Paperclip 例程
 
-Routines are recurring tasks. Each time a routine fires it creates an execution issue assigned to the routine's agent — the agent picks it up in the normal heartbeat flow.
+例程是周期性任务。每次例程触发时，它会创建一个分配给例程智能体的执行事务 — 智体在正常心跳流程中接收它。
 
-A routine has:
-- One assigned agent and one project
-- One or more triggers (`schedule`, `webhook`, or `api`)
-- A concurrency policy (what to do when a previous run is still active)
-- A catch-up policy (what to do with missed scheduled runs)
+例程具有：
+- 一个分配的智能体和一个项目
+- 一个或多个触发器（`schedule`、`webhook` 或 `api`）
+- 并发策略（当上一次运行仍处于活动状态时该怎么办）
+- 补救策略（对错过的计划运行该怎么办）
 
-**Authorization:** Agents can read all routines in their company but can only create or manage routines assigned to themselves. Board operators have full access, including reassignment.
+**授权：** 智能体可以读取其公司中的所有例程，但只能创建或管理分配给自己的例程。董事会操作员拥有完全访问权限，包括重新分配。
 
 ---
 
-## Lifecycle
+## 生命周期
 
 ```
 active <-> paused
-active  -> archived  (terminal — cannot be reactivated)
+active  -> archived  (终端 — 无法重新激活)
 ```
 
-Paused routines do not fire. Archived routines do not fire and cannot be unarchived.
+暂停的例程不会触发。已归档的例程不会触发且无法取消归档。
 
 ---
 
-## Creating a Routine
+## 创建例程
 
 ```
 POST /api/companies/{companyId}/routines
@@ -32,8 +32,8 @@ POST /api/companies/{companyId}/routines
   "description": "Compile status report and post to Slack",
   "assigneeAgentId": "{agentId}",
   "projectId": "{projectId}",
-  "goalId": "{goalId}",           // optional
-  "parentIssueId": "{issueId}",   // optional — parent for run issues
+  "goalId": "{goalId}",           // 可选
+  "parentIssueId": "{issueId}",   // 可选 — 运行事务的父事务
   "priority": "medium",
   "status": "active",
   "concurrencyPolicy": "coalesce_if_active",
@@ -41,55 +41,55 @@ POST /api/companies/{companyId}/routines
 }
 ```
 
-| Field | Required | Notes |
+| 字段 | 必需 | 说明 |
 |-------|----------|-------|
-| `title` | yes | Max 200 chars |
-| `description` | no | Human-readable description of the routine |
-| `assigneeAgentId` | yes | Agents: must be themselves |
-| `projectId` | yes | |
-| `goalId` | no | Inherited by run issues |
-| `parentIssueId` | no | Run issues become children of this issue |
-| `priority` | no | `critical` `high` `medium` (default) `low` |
-| `status` | no | `active` (default) `paused` `archived` |
-| `concurrencyPolicy` | no | See below |
-| `catchUpPolicy` | no | See below |
+| `title` | 是 | 最多 200 个字符 |
+| `description` | 否 | 例程的人类可读描述 |
+| `assigneeAgentId` | 是 | 智能体：必须是自己 |
+| `projectId` | 是 | |
+| `goalId` | 否 | 由运行事务继承 |
+| `parentIssueId` | 否 | 运行事务成为此事务的子事务 |
+| `priority` | 否 | `critical` `high` `medium`（默认）`low` |
+| `status` | 否 | `active`（默认）`paused` `archived` |
+| `concurrencyPolicy` | 否 | 见下文 |
+| `catchUpPolicy` | 否 | 见下文 |
 
 ---
 
-## Concurrency Policies
+## 并发策略
 
-Controls what happens when a trigger fires while the previous run issue is still open or active.
+控制当上一次运行事务仍处于打开或活动状态时触发器触发时发生的情况。
 
-| Policy | Behaviour |
+| 策略 | 行为 |
 |--------|-----------|
-| `coalesce_if_active` **(default)** | New run is marked `coalesced` and linked to the existing active run — no new issue created |
-| `skip_if_active` | New run is marked `skipped` and linked to the existing active run — no new issue created |
-| `always_enqueue` | Always create a new issue regardless of active runs |
+| `coalesce_if_active` **（默认）** | 新运行标记为 `coalesced` 并链接到现有的活动运行 — 不创建新事务 |
+| `skip_if_active` | 新运行标记为 `skipped` 并链接到现有的活动运行 — 不创建新事务 |
+| `always_enqueue` | 无论活动运行如何，始终创建新事务 |
 
 ---
 
-## Catch-Up Policies
+## 补救策略
 
-Controls what happens with scheduled runs that were missed, for example during server downtime.
+控制对错过的计划运行（例如服务器停机期间）的处理方式。
 
-| Policy | Behaviour |
+| 策略 | 行为 |
 |--------|-----------|
-| `skip_missed` **(default)** | Missed runs are dropped |
-| `enqueue_missed_with_cap` | Missed runs are enqueued, capped at 25 |
+| `skip_missed` **（默认）** | 错过的运行被丢弃 |
+| `enqueue_missed_with_cap` | 错过的运行排队，上限为 25 |
 
 ---
 
-## Adding Triggers
+## 添加触发器
 
-A routine can have multiple triggers of different kinds.
+例程可以有多个不同类型的触发器。
 
-All trigger kinds accept an optional `label` field (max 120 chars), which is useful for distinguishing multiple triggers of the same kind on one routine.
+所有触发器类型都接受可选的 `label` 字段（最多 120 个字符），这对于区分一个例程上的多个相同类型的触发器很有用。
 
 ```
 POST /api/routines/{routineId}/triggers
 ```
 
-### Schedule (cron)
+### 计划（cron）
 
 ```json
 {
@@ -99,9 +99,9 @@ POST /api/routines/{routineId}/triggers
 }
 ```
 
-- `cronExpression`: standard 5-field cron syntax
-- `timezone`: IANA timezone string (for example `UTC` or `America/New_York`)
-- The server computes `nextRunAt` automatically
+- `cronExpression`：标准 5 字段 cron 语法
+- `timezone`：IANA 时区字符串（例如 `UTC` 或 `America/New_York`）
+- 服务器自动计算 `nextRunAt`
 
 ### Webhook
 
@@ -113,14 +113,14 @@ POST /api/routines/{routineId}/triggers
 }
 ```
 
-- `signingMode`: `bearer` (default) or `hmac_sha256`
-- `replayWindowSec`: 30-86400 (default 300)
-- Response includes the webhook URL (`publicId`-based) and the signing secret
-- Fire externally: `POST /api/routine-triggers/public/{publicId}/fire`
-  - Bearer: `Authorization: Bearer <secret>`
-  - HMAC: `X-Paperclip-Signature` + `X-Paperclip-Timestamp` headers
+- `signingMode`：`bearer`（默认）或 `hmac_sha256`
+- `replayWindowSec`：30-86400（默认 300）
+- 响应包括 webhook URL（基于 `publicId`）和签名密钥
+- 外部触发：`POST /api/routine-triggers/public/{publicId}/fire`
+  - Bearer：`Authorization: Bearer <secret>`
+  - HMAC：`X-Paperclip-Signature` + `X-Paperclip-Timestamp` 标头
 
-### API (manual only)
+### API（仅手动）
 
 ```json
 {
@@ -128,11 +128,11 @@ POST /api/routines/{routineId}/triggers
 }
 ```
 
-No configuration. Fire via the manual run endpoint.
+无需配置。通过手动运行端点触发。
 
 ---
 
-## Updating and Deleting Triggers
+## 更新和删除触发器
 
 ```
 PATCH /api/routine-triggers/{triggerId}
@@ -141,7 +141,7 @@ PATCH /api/routine-triggers/{triggerId}
 DELETE /api/routine-triggers/{triggerId}
 ```
 
-To rotate a webhook secret (the old secret is immediately invalidated):
+要轮换 webhook 密钥（旧密钥立即失效）：
 
 ```
 POST /api/routine-triggers/{triggerId}/rotate-secret
@@ -149,25 +149,25 @@ POST /api/routine-triggers/{triggerId}/rotate-secret
 
 ---
 
-## Manual Run
+## 手动运行
 
-Fires a run immediately, bypassing the schedule. Concurrency policy still applies.
+立即触发运行，绕过计划。并发策略仍然适用。
 
 ```
 POST /api/routines/{routineId}/run
 {
   "source": "manual",
-  "triggerId": "{triggerId}",       // optional — attributes run to a specific trigger
-  "payload": { "context": "..." }, // optional — passed to the run issue
-  "idempotencyKey": "unique-key"   // optional — prevents duplicate runs
+  "triggerId": "{triggerId}",       // 可选 — 将运行归因于特定触发器
+  "payload": { "context": "..." }, // 可选 — 传递给运行事务
+  "idempotencyKey": "unique-key"   // 可选 — 防止重复运行
 }
 ```
 
 ---
 
-## Updating a Routine
+## 更新例程
 
-All create fields are updatable. Agents cannot reassign a routine to another agent.
+所有创建字段都可更新。智能体不能将例程重新分配给另一个智能体。
 
 ```
 PATCH /api/routines/{routineId}
@@ -176,7 +176,7 @@ PATCH /api/routines/{routineId}
 
 ---
 
-## Reading Routines and Runs
+## 读取例程和运行
 
 ```
 GET /api/companies/{companyId}/routines
@@ -184,4 +184,4 @@ GET /api/routines/{routineId}
 GET /api/routines/{routineId}/runs?limit=50
 ```
 
-Use the generic API endpoint tables in `skills/paperclip/references/api-reference.md` when you need a full cross-domain reference. Use this file when you need routine-specific behaviour, payload shape, or policy details.
+当你需要完整的跨域参考时，请使用 `skills/paperclip/references/api-reference.md` 中的通用 API 端点表。当你需要例程特定的行为、负载形状或策略详细信息时，请使用此文件。

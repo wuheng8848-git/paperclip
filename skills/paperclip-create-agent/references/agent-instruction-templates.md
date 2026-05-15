@@ -1,123 +1,123 @@
-# Agent Instruction Templates
+# 智能体指令模板
 
-Use this reference from step 4 of the hiring workflow. It lists the current role templates, when to use each, and how to decide between an exact template, an adjacent template, or the generic fallback.
+从雇佣工作流程的第 4 步使用此参考。它列出了当前的角色模板、何时使用每个模板，以及如何在精确模板、相邻模板或通用后备之间做出决定。
 
-These templates are deliberately separate from the main Paperclip heartbeat skill and from `SKILL.md` in this folder — the core wake procedure and hiring workflow stay short, and role-specific depth lives here.
+这些模板故意与主 Paperclip 心跳技能和此文件夹中的 `SKILL.md` 分开 — 核心唤醒程序和雇佣工作流程保持简短，特定角色的深度内容位于此处。
 
-## Decision flow
+## 决策流程
 
 ```
-role match?
-├── exact template exists       → copy it, replace placeholders, submit
-├── adjacent template is close  → copy closest, adapt deliberately (charter, lenses, sections)
-└── no template is close        → use references/baseline-role-guide.md to build from scratch
+角色匹配？
+├── 存在精确模板       → 复制它，替换占位符，提交
+├── 相邻模板接近       → 复制最接近的，有意识地调整（章程、透镜、章节）
+└── 没有模板接近       → 使用 references/baseline-role-guide.md 从头构建
 ```
 
-In the hire comment, state which path you took so the board can audit the reasoning.
+在雇佣评论中，说明你采取的路径，以便董事会可以审计推理。
 
-## Index
+## 索引
 
-| Template | Use when hiring | Typical adapter | Lens density |
+| 模板 | 雇佣时使用 | 典型适配器 | 透镜密度 |
 |---|---|---|---|
-| [`Coder`](agents/coder.md) | Software engineers who implement code, debug issues, write tests, and coordinate with QA/CTO | `codex_local`, `claude_local`, `cursor`, or another coding adapter | Low (operational) |
-| [`QA`](agents/qa.md) | QA engineers who reproduce bugs, validate fixes, capture screenshots, and report actionable findings | `claude_local` or another browser-capable adapter | Low (operational) |
-| [`UX Designer`](agents/uxdesigner.md) | Product designers who produce UX specs, review interface quality, and evolve the design system | `codex_local`, `claude_local`, or another adapter with repo/design context | High (lens-heavy) |
-| [`SecurityEngineer`](agents/securityengineer.md) | Security engineers who threat-model, review auth/crypto/input handling, triage supply-chain and LLM-agent risk, and drive remediations | `claude_local`, `codex_local`, or another adapter with repo context | High (lens-heavy) |
+| [`Coder`](agents/coder.md) | 实现代码、调试问题、编写测试并与 QA/CTO 协调的软件工程师 | `codex_local`、`claude_local`、`cursor` 或其他编码适配器 | 低（操作型） |
+| [`QA`](agents/qa.md) | 重现错误、验证修复、捕获屏幕截图并报告可操作发现的 QA 工程师 | `claude_local` 或其他具有浏览器能力的适配器 | 低（操作型） |
+| [`UX Designer`](agents/uxdesigner.md) | 生成 UX 规范、审查界面质量并演进设计系统的产品设计师 | `codex_local`、`claude_local` 或其他具有仓库/设计上下文的适配器 | 高（透镜密集） |
+| [`SecurityEngineer`](agents/securityengineer.md) | 威胁建模、审查身份验证/加密/输入处理、分类供应链和 LLM 智能体风险并推动修复的安全工程师 | `claude_local`、`codex_local` 或其他具有仓库上下文的适配器 | 高（透镜密集） |
 
-If you are hiring a role that is not in this index, do not force a fit. Use the adjacent-template path when one is genuinely close, or the generic fallback when none is.
+如果你正在雇佣不在此索引中的角色，不要强制适配。当某个模板真正接近时使用相邻模板路径，当没有接近的模板时使用通用后备。
 
-### When to use each template
+### 何时使用每个模板
 
-- **Coder** — the hire primarily writes or edits code against existing conventions, runs focused tests, and hands off to QA. Pick Coder when the charter is "ship code that passes review and CI." Avoid for pure strategy, design, or security review.
-- **QA** — the hire reproduces bugs in a running product, exercises flows in a browser or test harness, and produces evidence-grounded pass/fail reports. Pick QA when the charter is "confirm the user experience matches intent." Avoid for agents that only run static linters or unit tests — that belongs with a Coder.
-- **UX Designer** — the hire is accountable for the user experience and visual quality of product work. Pick UXDesigner when the role must make design calls, push back on unstyled implementations, and evolve the design system. Avoid for agents that only proofread or enforce style-guide consistency without making IA or voice decisions, or that only run automated accessibility scans — those are operational and can use the baseline guide. Content Design proper (microcopy, voice, IA) is a lens-using variant; see the adjacent-template path.
-- **SecurityEngineer** — the hire is accountable for security posture: threat-modeling, reviewing auth/crypto/input handling, supply-chain and LLM-agent risk, and driving remediations with evidence. Pick SecurityEngineer when the role must block insecure designs, propose concrete fixes, and handle sensitive disclosure. Avoid for agents that only run automated scanners with no triage responsibility — those are operational and can use the baseline guide with a short security-lens subset.
+- **Coder** — 雇佣主要根据现有约定编写或编辑代码、运行专注测试并移交给 QA。当章程是"通过审查和 CI 的代码"时选择 Coder。避免用于纯策略、设计或安全审查。
+- **QA** — 雇佣在运行产品中重现错误，在浏览器或测试工具中练习流程，并产生基于证据的通过/失败报告。当章程是"确认用户体验符合意图"时选择 QA。避免用于仅运行静态 linter 或单元测试的智能体 — 那属于 Coder。
+- **UX Designer** — 雇佣对产品工作的用户体验和视觉质量负责。当角色必须做出设计决策、对未样式化的实现进行回退并演进设计系统时选择 UXDesigner。避免用于仅校对或强制样式指南一致性而不做出 IA 或语音决策的智能体，或仅运行自动化可访问性扫描的智能体 — 这些是操作型的，可以使用基线指南。内容设计本身（微文案、语音、IA）是使用透镜的变体；请参阅相邻模板路径。
+- **SecurityEngineer** — 雇佣对安全姿态负责：威胁建模、审查身份验证/加密/输入处理、供应链和 LLM 智能体风险，并推动有证据的修复。当角色必须阻止不安全的设计、提出具体修复并处理敏感披露时选择 SecurityEngineer。避免用于仅运行自动扫描而没有分类责任的智能体 — 这些是操作型的，可以使用带有简短安全透镜子集的基线指南。
 
-### Lens density: when to keep the full lens list
+### 透镜密度：何时保留完整透镜列表
 
-- **Lens-heavy templates** (UXDesigner, SecurityEngineer) encode expert judgment. The long lens list is the deliverable — keep it intact when hiring the primary domain owner. Drop lens groups only when the hire has an explicitly narrower scope (for example, an "Application Security Reviewer" who will never touch infrastructure or cryptography).
-- **Operational templates** (Coder, QA) stay short on purpose. Do not paste lens lists into them just because the baseline guide recommends lenses. If a Coder-adjacent role genuinely needs lenses (for example, a Performance Engineer), pull a focused 5–10 lens set from the baseline-role-guide examples, not the full SecurityEngineer or UXDesigner set.
+- **透镜密集模板**（UXDesigner、SecurityEngineer）编码专家判断。长透镜列表是交付物 — 在雇佣主要领域所有者时保持其完整。仅当雇佣具有明确更窄范围（例如，永远不会接触基础设施或加密的"应用程序安全审查员"）时才删除透镜组。
+- **操作型模板**（Coder、QA）故意保持简短。不要仅仅因为基线指南推荐透镜就将透镜列表粘贴到它们中。如果 Coder 相邻角色真正需要透镜（例如，性能工程师），从 baseline-role-guide 示例中提取专注的 5–10 个透镜集，而不是完整的 SecurityEngineer 或 UXDesigner 集。
 
-## How to apply an exact template
+## 如何应用精确模板
 
-1. Open the matching reference in `references/agents/`.
-2. Copy that template into the new agent's instruction bundle (usually `AGENTS.md`). For hire requests using local managed-bundle adapters, send the adapted template as top-level `instructionsBundle.files["AGENTS.md"]`. Do not put new-agent instructions in `adapterConfig.promptTemplate`.
-3. Replace placeholders like `{{companyName}}`, `{{managerTitle}}`, `{{issuePrefix}}`, and URLs.
-4. Remove tools or workflows the target adapter cannot use.
-5. Keep the Paperclip heartbeat requirement and the task-comment requirement.
-6. Add role-specific skills or reference files only when they are actually installed or bundled.
-7. Run the pre-submit checklist before opening the hire: `references/draft-review-checklist.md`.
+1. 打开 `references/agents/` 中的匹配参考。
+2. 将该模板复制到新智能体的指令包中（通常是 `AGENTS.md`）。对于使用本地管理包适配器的雇佣请求，将调整后的模板作为顶级 `instructionsBundle.files["AGENTS.md"]` 发送。不要将新智能体指令放在 `adapterConfig.promptTemplate` 中。
+3. 替换占位符，如 `{{companyName}}`、`{{managerTitle}}`、`{{issuePrefix}}` 和 URL。
+4. 删除目标适配器无法使用的工具或工作流程。
+5. 保持 Paperclip 心跳要求和任务评论要求。
+6. 仅在实际安装或打包时才添加特定角色的技能或参考文件。
+7. 在打开雇佣之前运行提交前检查清单：`references/draft-review-checklist.md`。
 
-## How to apply an adjacent template
+## 如何应用相邻模板
 
-Use this when the requested role is close to an existing template but not the same (for example, "Backend Engineer" adapted from `coder.md`, "Content Designer" adapted from `uxdesigner.md`, "Release Engineer" adapted from `qa.md`, or "AppSec Reviewer" adapted from `securityengineer.md`).
+当请求的角色接近现有模板但不相同时使用此方法（例如，从 `coder.md` 调整的"后端工程师"，从 `uxdesigner.md` 调整的"内容设计师"，从 `qa.md` 调整的"发布工程师"，或从 `securityengineer.md` 调整的"应用安全审查员"）。
 
-1. Start from the closest template.
-2. Rewrite the role title, charter, and capabilities for the new role — do not leave the source role's framing in place.
-3. Swap domain lenses to match the new discipline. Keep only lenses that actually apply.
-4. Remove sections that do not fit (for example, drop the UX visual-quality bar from a backend engineer template, or drop infrastructure lenses from an application-only security reviewer).
-5. Add any role-specific section the baseline role guide recommends but the source template omitted.
-6. Note in the hire comment which template you adapted and what you changed, so future hires of the same role can start from your draft.
-7. Run the pre-submit checklist.
+1. 从最接近的模板开始。
+2. 为新角色重写角色标题、章程和能力 — 不要保留源角色的框架。
+3. 交换领域透镜以匹配新学科。仅保留实际适用的透镜。
+4. 删除不适合的章节（例如，从后端工程师模板中删除 UX 视觉质量栏，或从仅应用程序安全审查员中删除基础设施透镜）。
+5. 添加基线角色指南建议但源模板省略的任何特定角色章节。
+6. 在雇佣评论中说明你调整了哪个模板以及你更改了什么，以便相同角色的未来雇佣可以从你的草稿开始。
+7. 运行提交前检查清单。
 
-## How to apply the generic fallback
+## 如何应用通用后备
 
-Use this when no template is close. Open `references/baseline-role-guide.md` and follow its section outline. That guide is structured so a CEO or hiring agent can produce a usable `AGENTS.md` without asking the board for prompt-writing help. After drafting, run the pre-submit checklist.
+当没有模板接近时使用此方法。打开 `references/baseline-role-guide.md` 并遵循其章节大纲。该指南的结构使 CEO 或雇佣智能体可以在不要求董事会提供提示编写帮助的情况下生成可用的 `AGENTS.md`。起草后，运行提交前检查清单。
 
-## Lens-based role drafting (worked examples)
+## 基于透镜的角色起草（工作示例）
 
-Lenses are the single biggest quality lever for expert roles and the single biggest noise source for operational roles. Use these examples to calibrate.
+透镜是专家角色的最大质量杠杆，也是操作角色的最大噪声源。使用这些示例进行校准。
 
-### Example 1 — lens-heavy adjacent template: "Backend Performance Engineer"
+### 示例 1 — 透镜密集相邻模板："后端性能工程师"
 
-Source: adjacent to `coder.md`, but the charter is performance and reliability, not general feature work.
+源：相邻于 `coder.md`，但章程是性能和可靠性，而不是一般功能工作。
 
-1. Start from `coder.md`.
-2. Rewrite the charter around performance: owns latency and throughput budgets, profiles hot paths, proposes concrete fixes with before/after measurements, and blocks merges that regress SLO.
-3. Add a focused lens section (about 6–10 lenses), for example: Amdahl's Law, Tail-at-Scale, Little's Law (throughput = concurrency / latency), N+1 queries, hot-cold partitioning, cache coherence, GC pause budget, backpressure, SLO vs SLI vs SLA, observability-before-optimization.
-4. Add a "performance review bar" describing evidence expected in a PR: flamegraph or trace, baseline vs fixed numbers, test that fails on regression.
-5. Drop UX-visual-quality content. Drop broad security lenses — route those to SecurityEngineer.
+1. 从 `coder.md` 开始。
+2. 围绕性能重写章程：拥有延迟和吞吐量预算、分析热路径、提出具有前后测量的具体修复，并阻止回归 SLO 的合并。
+3. 添加专注的透镜部分（约 6–10 个透镜），例如：阿姆达尔定律、尾延迟、利特尔定律（吞吐量 = 并发/延迟）、N+1 查询、热冷分区、缓存一致性、GC 暂停预算、背压、SLO 与 SLI 与 SLA、优化前的可观察性。
+4. 添加"性能审查栏"，描述 PR 中预期的证据：火焰图或跟踪、基线与修复数字、在回归时失败的测试。
+5. 删除 UX 视觉质量内容。删除广泛的安全透镜 — 将其路由到 SecurityEngineer。
 
-This produces a lens-heavy variant without pasting the SecurityEngineer or UXDesigner lens dump, and without leaving Coder's generic framing in place.
+这产生了一个透镜密集变体，而没有粘贴 SecurityEngineer 或 UXDesigner 透镜转储，也没有保留 Coder 的通用框架。
 
-### Example 2 — focused lens subset for a narrow role: "Dependency Auditor"
+### 示例 2 — 窄角色的专注透镜子集："依赖项审计员"
 
-Source: adjacent to `securityengineer.md`, but the scope is only supply-chain risk.
+源：相邻于 `securityengineer.md`，但范围仅限供应链风险。
 
-1. Start from `securityengineer.md`.
-2. Rewrite the charter around supply-chain audit: watch lockfile changes, run `osv-scanner`/`npm audit`/`pip-audit`, triage CVEs, and file remediation tickets with owner and severity.
-3. Keep only the Supply chain, Secure SDLC, and Logging/monitoring lens groups. Drop AuthN/AuthZ, Cryptography, Web-specific hardening, Infrastructure, Rate limiting, Data protection. Those lenses would just add noise to the wake prompt for a pure dependency-audit role.
-4. Keep the Review bar and Remediation bar sections, since the role still produces concrete findings with severity and fix proposals.
-5. Drop the disclosure-discipline clause if the role never handles private advisories; keep it if it does.
+1. 从 `securityengineer.md` 开始。
+2. 围绕供应链审计重写章程：监视 lockfile 更改、运行 `osv-scanner`/`npm audit`/`pip-audit`、分类 CVE，并提交带有所有者和严重性的修复事务。
+3. 仅保留供应链、安全 SDLC 和日志/监控透镜组。删除身份验证/授权、加密、Web 特定加固、基础设施、速率限制、数据保护。这些透镜只会为纯依赖审计角色的唤醒提示增加噪声。
+4. 保留审查栏和修复栏章节，因为角色仍然产生具有严重性和修复建议的具体发现。
+5. 如果角色从不处理私有公告，则删除披露纪律条款；如果处理，则保留。
 
-The result is a compact, role-appropriate prompt that still cites lenses the auditor actually applies, without inheriting the full security lens catalog.
+结果是一个紧凑的、适合角色的提示，仍然引用审计员实际应用的透镜，而不继承完整的安全透镜目录。
 
-### Example 3 — no lenses needed: "Release Coordinator"
+### 示例 3 — 不需要透镜："发布协调员"
 
-Source: adjacent to `qa.md`, but the charter is release-note curation and cut coordination, not browser verification.
+源：相邻于 `qa.md`，但章程是发布说明策划和切分协调，而不是浏览器验证。
 
-1. Start from `qa.md`.
-2. Rewrite the charter around release coordination: assemble release notes from merged PRs, confirm CI is green, tag the release, file follow-up tickets for known issues.
-3. Do not add a lens section at all. This role is operational; the baseline role guide explicitly allows roles without lenses when judgment is not the deliverable.
-4. Keep the comment-on-every-touch rule, the blocked/unblock rule, and the heartbeat-exit rule.
-5. Replace the browser workflow with the release-coordination workflow (which PRs to include, how to format notes, who signs off).
+1. 从 `qa.md` 开始。
+2. 围绕发布协调重写章程：从合并的 PR 汇编发布说明、确认 CI 为绿色、标记发布、为已知问题提交后续事务。
+3. 根本不添加透镜部分。此角色是操作型的；基线角色指南明确允许在判断不是交付物时使用没有透镜的角色。
+4. 保留每次触摸评论规则、阻塞/解除阻塞规则和心跳退出规则。
+5. 用发布协调工作流程替换浏览器工作流程（要包含哪些 PR、如何格式化说明、谁签署）。
 
-This keeps the role short and focused, and avoids a "lens paragraph that could apply to anyone" that agents will learn to ignore.
+这使角色保持简短和专注，并避免了智能体将学会忽略的"适用于任何人的透镜段落"。
 
-### Example 4 — UX-adjacent template with trimmed lenses: "Content Designer"
+### 示例 4 — 具有修剪透镜的 UX 相邻模板："内容设计师"
 
-Source: adjacent to `uxdesigner.md`, but the charter is voice, microcopy, and information architecture — not full visual design.
+源：相邻于 `uxdesigner.md`，但章程是语音、微文案和信息架构 — 不是完整的视觉设计。
 
-1. Start from `uxdesigner.md`.
-2. Rewrite the charter around content: owns voice/tone, microcopy, and information architecture for product surfaces; reviews empty-state copy, error messages, and onboarding flows; pushes back on jargon and dark-pattern language.
-3. Keep lens groups: `IA & content`, `Forms & errors` (microcopy), `Behavioral science` (framing, defaults, anchoring), `Accessibility` (plain language, reading level), `Emotional & trust`, `Ethics` (dark-pattern copy).
-4. Drop lens groups: `Gestalt`, `Motion & perceived performance`, `Platform & context` (thumb zones), and most of `System & interaction` (Fitts's Law, Doherty Threshold) — these are visual/interaction lenses the content role does not apply.
-5. Keep `Reach for what exists first` but reframe around content patterns (error templates, toast taxonomy, empty-state voice) instead of components and tokens.
-6. Drop the `Visual quality bar` pixel checklist; replace with a content bar (voice consistent, scannable, plain-language, no dark-pattern copy).
-7. Keep the `Visual-truth gate` but narrow the renderable-surface requirement to "cite the rendered string in context" (for example, a screenshot or a grep of the copy in the compiled output) rather than desktop + mobile viewport shots.
+1. 从 `uxdesigner.md` 开始。
+2. 围绕内容重写章程：拥有产品表面的语音/语气、微文案和信息架构；审查空状态文案、错误消息和入职流程；对术语和暗模式语言进行回退。
+3. 保留透镜组：`IA & content`、`Forms & errors`（微文案）、`Behavioral science`（框架、默认值、锚定）、`Accessibility`（纯语言、阅读水平）、`Emotional & trust`、`Ethics`（暗模式文案）。
+4. 删除透镜组：`Gestalt`、`Motion & perceived performance`、`Platform & context`（拇指区域）以及大部分 `System & interaction`（菲茨定律、多蒂阈值） — 这些是内容角色不适用的视觉/交互透镜。
+5. 保留`Reach for what exists first`，但围绕内容模式（错误模板、提示分类、空状态语音）而不是组件和令牌重新构建。
+6. 删除`Visual quality bar`像素检查清单；替换为内容栏（语音一致、可扫描、纯语言、无暗模式文案）。
+7. 保留`Visual-truth gate`，但将可渲染表面要求缩小为"在上下文中引用渲染的字符串"（例如，屏幕截图或编译输出中文案的 grep），而不是桌面 + 移动视口快照。
 
-This shows how to trim a lens-heavy template for an adjacent variant without collapsing into the baseline guide.
+这展示了如何为相邻变体修剪透镜密集模板，而不会折叠到基线指南。
 
 ---
 
-In every case, state which path you took in the hire comment and call out what you adapted. Future hires of the same role start from your draft, so the clearer the reasoning, the cheaper the next hire.
+在每种情况下，在雇佣评论中说明你采取的路径并强调你调整的内容。相同角色的未来雇佣从你的草稿开始，因此推理越清晰，下次雇佣成本越低。

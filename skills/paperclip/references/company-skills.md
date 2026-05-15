@@ -1,26 +1,26 @@
-# Company Skills Workflow
+# 公司技能工作流
 
-Use this reference when a board user, CEO, or manager asks you to find a skill, install it into the company library, or assign it to an agent.
+当董事会用户、CEO 或经理要求你查找技能、将其安装到公司库或将其分配给智能体时，使用此参考。
 
-## What Exists
+## 存在的内容
 
-- Company skill library: install, inspect, update, and read imported skills for the whole company.
-- Agent skill assignment: add or remove company skills on an existing agent.
-- Hire/create composition: pass `desiredSkills` when creating or hiring an agent so the same assignment model applies immediately.
+- 公司技能库：为整个公司安装、检查、更新和读取导入的技能。
+- 智能体技能分配：在现有智能体上添加或删除公司技能。
+- 雇佣/创建组合：在创建或雇佣智能体时传递 `desiredSkills`，以便立即应用相同的分配模型。
 
-The canonical model is:
+规范模型是：
 
-1. install the skill into the company
-2. assign the company skill to the agent
-3. optionally do step 2 during hire/create with `desiredSkills`
+1. 将技能安装到公司
+2. 将公司技能分配给智能体
+3. 可选择在雇佣/创建期间通过 `desiredSkills` 执行步骤 2
 
-## Permission Model
+## 权限模型
 
-- Company skill reads: any same-company actor
-- Company skill mutations: board, CEO, or an agent with the effective `agents:create` capability
-- Agent skill assignment: same permission model as updating that agent
+- 公司技能读取：任何同公司参与者
+- 公司技能变更：董事会、CEO 或具有有效 `agents:create` 能力的智能体
+- 智能体技能分配：与更新该智能体相同的权限模型
 
-## Core Endpoints
+## 核心端点
 
 - `GET /api/companies/:companyId/skills`
 - `GET /api/companies/:companyId/skills/:skillId`
@@ -32,22 +32,22 @@ The canonical model is:
 - `POST /api/companies/:companyId/agent-hires`
 - `POST /api/companies/:companyId/agents`
 
-## Install A Skill Into The Company
+## 将技能安装到公司
 
-Import using a **skills.sh URL**, a key-style source string, a GitHub URL, or a local path.
+使用 **skills.sh URL**、键样式源字符串、GitHub URL 或本地路径导入。
 
-### Source types (in order of preference)
+### 源类型（按优先级）
 
-| Source format | Example | When to use |
+| 源格式 | 示例 | 何时使用 |
 |---|---|---|
-| **skills.sh URL** | `https://skills.sh/google-labs-code/stitch-skills/design-md` | When a user gives you a `skills.sh` link. This is the managed skill registry — **always prefer it when available**. |
-| **Key-style string** | `google-labs-code/stitch-skills/design-md` | Shorthand for the same skill — `org/repo/skill-name` format. Equivalent to the skills.sh URL. |
-| **GitHub URL** | `https://github.com/vercel-labs/agent-browser` | When the skill is in a GitHub repo but not on skills.sh. |
-| **Local path** | `/abs/path/to/skill-dir` | When the skill is on disk (dev/testing only). |
+| **skills.sh URL** | `https://skills.sh/google-labs-code/stitch-skills/design-md` | 当用户给你 `skills.sh` 链接时。这是托管技能注册表 — **如果有，始终优先使用它**。 |
+| **键样式字符串** | `google-labs-code/stitch-skills/design-md` | 同一技能的简写 — `org/repo/skill-name` 格式。等同于 skills.sh URL。 |
+| **GitHub URL** | `https://github.com/vercel-labs/agent-browser` | 当技能在 GitHub 仓库中但不在 skills.sh 上时。 |
+| **本地路径** | `/abs/path/to/skill-dir` | 当技能在磁盘上时（仅开发/测试）。 |
 
-**Critical:** If a user gives you a `https://skills.sh/...` URL, use that URL or its key-style equivalent (`org/repo/skill-name`) as the `source`. Do **not** convert it to a GitHub URL — skills.sh is the managed registry and the source of truth for versioning, discovery, and updates.
+**关键：** 如果用户给你 `https://skills.sh/...` URL，使用该 URL 或其键样式等效项（`org/repo/skill-name`）作为 `source`。**不要**将其转换为 GitHub URL — skills.sh 是托管注册表，是版本控制、发现和更新的真实来源。
 
-### Example: skills.sh import (preferred)
+### 示例：skills.sh 导入（首选）
 
 ```sh
 curl -sS -X POST "$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/skills/import" \
@@ -58,7 +58,7 @@ curl -sS -X POST "$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/skills/
   }'
 ```
 
-Or equivalently using the key-style string:
+或等效地使用键样式字符串：
 
 ```sh
 curl -sS -X POST "$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/skills/import" \
@@ -69,7 +69,7 @@ curl -sS -X POST "$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/skills/
   }'
 ```
 
-### Example: GitHub import
+### 示例：GitHub 导入
 
 ```sh
 curl -sS -X POST "$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/skills/import" \
@@ -80,13 +80,13 @@ curl -sS -X POST "$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/skills/
   }'
 ```
 
-You can also use source strings such as:
+你也可以使用源字符串，例如：
 
 - `google-labs-code/stitch-skills/design-md`
 - `vercel-labs/agent-browser/agent-browser`
 - `npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browser`
 
-If the task is to discover skills from the company project workspaces first:
+如果任务是从公司项目工作空间首先发现技能：
 
 ```sh
 curl -sS -X POST "$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/skills/scan-projects" \
@@ -95,14 +95,14 @@ curl -sS -X POST "$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/skills/
   -d '{}'
 ```
 
-## Inspect What Was Installed
+## 检查已安装的内容
 
 ```sh
 curl -sS "$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/skills" \
   -H "Authorization: Bearer $PAPERCLIP_API_KEY"
 ```
 
-Read the skill entry and its `SKILL.md`:
+读取技能条目及其 `SKILL.md`：
 
 ```sh
 curl -sS "$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/skills/<skill-id>" \
@@ -112,15 +112,15 @@ curl -sS "$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/skills/<skill-i
   -H "Authorization: Bearer $PAPERCLIP_API_KEY"
 ```
 
-## Assign Skills To An Existing Agent
+## 将技能分配给现有智能体
 
-`desiredSkills` accepts:
+`desiredSkills` 接受：
 
-- exact company skill key
-- exact company skill id
-- exact slug when it is unique in the company
+- 精确的公司技能键
+- 精确的公司技能 ID
+- 在公司中唯一时的精确 slug
 
-The server persists canonical company skill keys.
+服务器持久化规范的公司技能键。
 
 ```sh
 curl -sS -X POST "$PAPERCLIP_API_URL/api/agents/<agent-id>/skills/sync" \
@@ -133,16 +133,16 @@ curl -sS -X POST "$PAPERCLIP_API_URL/api/agents/<agent-id>/skills/sync" \
   }'
 ```
 
-If you need the current state first:
+如果你首先需要当前状态：
 
 ```sh
 curl -sS "$PAPERCLIP_API_URL/api/agents/<agent-id>/skills" \
   -H "Authorization: Bearer $PAPERCLIP_API_KEY"
 ```
 
-## Include Skills During Hire Or Create
+## 在雇佣或创建期间包含技能
 
-Use the same company skill keys or references in `desiredSkills` when hiring or creating an agent:
+在雇佣或创建智能体时，在 `desiredSkills` 中使用相同的公司技能键或引用：
 
 ```sh
 curl -sS -X POST "$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/agent-hires" \
@@ -161,7 +161,7 @@ curl -sS -X POST "$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/agent-h
   }'
 ```
 
-For direct create without approval:
+对于无需审批的直接创建：
 
 ```sh
 curl -sS -X POST "$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/agents" \
@@ -180,14 +180,14 @@ curl -sS -X POST "$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/agents"
   }'
 ```
 
-## Notes
+## 注意事项
 
-- Built-in Paperclip runtime skills are still added automatically when required by the adapter.
-- If a reference is missing or ambiguous, the API returns `422`.
-- Prefer linking back to the relevant issue, approval, and agent when you comment about skill changes.
-- Use company portability routes when you need whole-package import/export, not just a skill:
+- 内置的 Paperclip 运行时技能在适配器需要时仍然会自动添加。
+- 如果引用缺失或模糊，API 返回 `422`。
+- 当你评论技能更改时，优先链接回相关的事务、审批和智能体。
+- 当你需要整包导入/导出而不仅仅是技能时，使用公司可移植性路由：
   - `POST /api/companies/:companyId/imports/preview`
   - `POST /api/companies/:companyId/imports/apply`
   - `POST /api/companies/:companyId/exports/preview`
   - `POST /api/companies/:companyId/exports`
-- Use skill-only import when the task is specifically to add a skill to the company library without importing the surrounding company/team/package structure.
+- 当任务专门是将技能添加到公司库而不导入周围的公司/团队/包结构时，使用仅技能导入。

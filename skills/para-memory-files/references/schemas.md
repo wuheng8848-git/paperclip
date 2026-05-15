@@ -1,15 +1,15 @@
-# Schemas and Memory Decay
+# 模式和记忆衰减
 
-## Atomic Fact Schema (items.yaml)
+## 原子事实模式（items.yaml）
 
 ```yaml
 - id: entity-001
-  fact: "The actual fact"
+  fact: "实际事实"
   category: relationship | milestone | status | preference
   timestamp: "YYYY-MM-DD"
   source: "YYYY-MM-DD"
   status: active # active | superseded
-  superseded_by: null # e.g. entity-002
+  superseded_by: null # 例如 entity-002
   related_entities:
     - companies/acme
     - people/jeff
@@ -17,19 +17,19 @@
   access_count: 0
 ```
 
-## Memory Decay
+## 记忆衰减
 
-Facts decay in retrieval priority over time so stale info does not crowd out recent context.
+事实在检索优先级上随时间衰减，以便陈旧信息不会挤出最近的上下文。
 
-**Access tracking:** When a fact is used in conversation, bump `access_count` and set `last_accessed` to today. During heartbeat extraction, scan the session for referenced entity facts and update their access metadata.
+**访问跟踪：** 当事实在对话中使用时，增加 `access_count` 并将 `last_accessed` 设置为今天。在心跳提取期间，扫描会话中引用的实体事实并更新其访问元数据。
 
-**Recency tiers (for summary.md rewriting):**
+**近期分层（用于 summary.md 重写）：**
 
-- **Hot** (accessed in last 7 days) -- include prominently in summary.md.
-- **Warm** (8-30 days ago) -- include at lower priority.
-- **Cold** (30+ days or never accessed) -- omit from summary.md. Still in items.yaml, retrievable on demand.
-- High `access_count` resists decay -- frequently used facts stay warm longer.
+- **热**（最近 7 天内访问）-- 在 summary.md 中突出显示。
+- **温**（8-30 天前）-- 以较低优先级包含。
+- **冷**（30+ 天或从未访问）-- 从 summary.md 中省略。仍在 items.yaml 中，可按需检索。
+- 高 `access_count` 抵抗衰减 -- 经常使用的事实保持温热更长时间。
 
-**Weekly synthesis:** Sort by recency tier, then by access_count within tier. Cold facts drop out of the summary but remain in items.yaml. Accessing a cold fact reheats it.
+**每周综合：** 按近期分层排序，然后按分层内的 access_count 排序。冷事实从摘要中掉出但保留在 items.yaml 中。访问冷事实会重新加热它。
 
-No deletion. Decay only affects retrieval priority via summary.md curation. The full record always lives in items.yaml.
+不删除。衰减仅通过 summary.md 策划影响检索优先级。完整记录始终存在于 items.yaml 中。

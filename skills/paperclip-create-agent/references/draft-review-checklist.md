@@ -1,95 +1,95 @@
-# Draft-Review Checklist
+# 草稿审查检查清单
 
-Walk this checklist before submitting any `agent-hires` request. Fix each item that does not pass — do not submit a draft with open failures.
+在提交任何 `agent-hires` 请求之前，请遍历此检查清单。修复每个未通过的项目 — 不要提交带有未完成失败的草稿。
 
-Use it for every path: exact template, adjacent template, or generic fallback.
-
----
-
-## A. Identity and framing
-
-- [ ] `name`, `role`, and `title` are set and consistent with each other
-- [ ] `AGENTS.md` names the agent, the role, and the company in the first sentence
-- [ ] The first paragraph points at the Paperclip skill as the source of truth for the heartbeat procedure
-- [ ] The reporting line (`reportsTo`) resolves to a real in-company agent id
-- [ ] The `AGENTS.md` states the same reporting line in prose
-
-## B. Role clarity
-
-- [ ] `capabilities` is one concrete sentence about what the agent does — not a vague "assists with X"
-- [ ] The role charter in `AGENTS.md` names what the agent owns end-to-end
-- [ ] The charter names what the agent should decline, hand off, or escalate
-- [ ] A stranger reading `capabilities` plus the role charter can tell in 30 seconds what this agent is for
-
-## C. Operating workflow
-
-- [ ] `AGENTS.md` states the comment-on-every-touch rule
-- [ ] `AGENTS.md` states the "leave a clear next action" rule
-- [ ] `AGENTS.md` covers how to mark work `blocked` with owner + action
-- [ ] `AGENTS.md` covers handoff to reviewer or manager on completion
-- [ ] For execution-heavy roles (coders, operators, designers, security, QA), `AGENTS.md` includes the Paperclip execution contract verbatim:
-  > Start actionable work in the same heartbeat; do not stop at a plan unless planning was requested. Leave durable progress with a clear next action. Use child issues for long or parallel delegated work instead of polling. Mark blocked work with owner and action. Respect budget, pause/cancel, approval gates, and company boundaries.
-
-## D. Domain lenses and judgment
-
-- [ ] Expert roles list 5–15 named lenses with one-line explanations
-- [ ] Lenses are role-specific, not generic productivity advice
-- [ ] Simple operational roles do not carry copy-pasted lenses from expert templates
-
-## E. Output / review bar
-
-- [ ] `AGENTS.md` describes what a good deliverable looks like for this role
-- [ ] Negative examples are included where useful ("a flow that works but looks unstyled is not done")
-- [ ] Evidence expectations are concrete (tests, screenshots, repro steps, spec sections)
-
-## F. Collaboration routing
-
-- [ ] Cross-role handoffs are named only when the role actually touches that domain
-- [ ] UX-facing role or change → routes to `[UXDesigner](/PAP/agents/uxdesigner)`
-- [ ] Security-sensitive role, permissions, secrets, auth, adapters, tool access → routes to `[SecurityEngineer](/PAP/agents/securityengineer)`
-- [ ] Browser validation or user-facing verification → routes to `[QA](/PAP/agents/qa)`
-- [ ] Skill architecture / instruction quality changes → routes to the Skill Consultant when present
-- [ ] Engineering/runtime changes → routes to CTO and a coder
-
-## G. Governance fields
-
-- [ ] `icon` is set to one of `/llms/agent-icons.txt` and fits the role
-- [ ] `sourceIssueId` (or `sourceIssueIds`) is set when the hire was triggered by an issue
-- [ ] `desiredSkills` lists only skills that already exist in the company library, or will be installed first via the company-skills workflow
-- [ ] Adapter config matches this Paperclip instance (cwd, model, credentials) per `/llms/agent-configuration/<adapter>.txt`
-- [ ] Local managed-bundle adapters send custom instructions through top-level `instructionsBundle.files["AGENTS.md"]` and do not set `adapterConfig.promptTemplate` or `bootstrapPromptTemplate`
-- [ ] Placeholders like `{{companyName}}`, `{{managerTitle}}`, `{{issuePrefix}}`, and any URL stubs are replaced with real values
-
-## H. Safety and permissions (least privilege)
-
-- [ ] The hire grants only the access the role needs — no "just in case" permissions
-- [ ] No secrets are embedded in plain text in `adapterConfig`, `instructionsBundle`, or any legacy prompt field; prefer environment-injected credentials or scoped skills
-- [ ] Any `desiredSkills` or adapter settings that expand external-system access, browser/network reach, filesystem scope, or secret-handling capability are individually justified in the hire comment
-- [ ] `runtimeConfig.heartbeat.enabled` is `false` unless the role genuinely needs scheduled recurring work AND `intervalSec` is justified in the hire comment
-- [ ] `AGENTS.md` explicitly names anything the role must never do (external posts, shared infra changes, destructive ops without approval)
-- [ ] If the role may handle private disclosures or security advisories, the hire names a confidential workflow (dedicated skill or documented manual process) instead of relying on normal issue threads
-- [ ] No tool, skill, or capability is listed that this environment cannot actually provide
-
-## I. Done criteria
-
-- [ ] `AGENTS.md` states how the agent verifies its work before marking an issue done
-- [ ] `AGENTS.md` states who the task goes to on completion (reviewer, manager, or `done`)
-- [ ] `AGENTS.md` ends with the "always update your task with a comment" rule
-
-## J. Choice of instruction source was explicit
-
-- [ ] The hire comment states which path was used: exact template, adjacent template, or generic fallback
-- [ ] If an adjacent template was used, the comment names what was adapted (charter rewritten, lenses swapped, sections removed)
-- [ ] If the generic fallback was used, every section of the baseline role guide is present in the draft
+对每条路径使用它：精确模板、相邻模板或通用后备。
 
 ---
 
-## Failure modes to watch for
+## A. 身份和框架
 
-- **Boilerplate pass-through.** If `AGENTS.md` reads like it could apply to any role, the charter and lenses are too generic — rewrite them.
-- **Quiet permission sprawl.** A big `desiredSkills` list or an open-ended adapter config usually means "just in case" access. Trim to what the charter needs.
-- **Capability expansion without review.** Browser, external-system, wide-filesystem, or secret-handling access hidden inside adapter config or `desiredSkills` must be called out explicitly in the hire comment.
-- **Timer-heartbeat-by-default.** If you enabled a timer heartbeat, the hire comment must state why schedule-based wake is required.
-- **No confidential path for sensitive work.** Roles that may receive private advisories or incident details need a private workflow, not normal issue comments.
-- **Missing governance fields.** A hire without `sourceIssueId`, `icon`, or a resolvable reporting line is hard to audit later.
-- **Unreplaced placeholders.** `{{companyName}}`, `{{managerTitle}}`, and URL stubs in a submitted draft are the most common rejected-hire defect — grep the draft for `{{` before submitting.
+- [ ] `name`、`role` 和 `title` 已设置且彼此一致
+- [ ] `AGENTS.md` 在第一句中命名智能体、角色和公司
+- [ ] 第一段指向 Paperclip 技能作为心跳程序的真实来源
+- [ ] 报告线（`reportsTo`）解析为真实的公司内智能体 ID
+- [ ] `AGENTS.md` 在散文中陈述相同的报告线
+
+## B. 角色清晰度
+
+- [ ] `capabilities` 是关于智能体做什么的具体句子 — 不是模糊的"协助 X"
+- [ ] `AGENTS.md` 中的角色章程命名智能体端到端拥有什么
+- [ ] 章程命名智能体应该拒绝、交接或升级什么
+- [ ] 陌生人阅读 `capabilities` 加上角色章程可以在 30 秒内说出此智能体的用途
+
+## C. 操作工作流程
+
+- [ ] `AGENTS.md` 陈述每次触摸评论规则
+- [ ] `AGENTS.md` 陈述"留下明确的下一个行动"规则
+- [ ] `AGENTS.md` 覆盖如何将工作标记为 `blocked` 并带有所有者 + 行动
+- [ ] `AGENTS.md` 覆盖完成时交接给审查者或经理
+- [ ] 对于执行密集角色（编码员、操作员、设计师、安全、QA），`AGENTS.md` 逐字包含 Paperclip 执行合约：
+  > 在同一心跳中开始可操作的工作；不要在计划处停止，除非要求计划。留下持久的进展和明确的下一个行动。使用子事务进行长期或并行委托工作，而不是轮询。用所有者和行动标记被阻塞的工作。尊重预算、暂停/取消、审批门控和公司边界。
+
+## D. 领域透镜和判断
+
+- [ ] 专家角色列出 5–15 个命名透镜，并带有单行解释
+- [ ] 透镜特定于角色，而不是通用生产力建议
+- [ ] 简单的操作型角色不携带从专家模板复制粘贴的透镜
+
+## E. 输出/审查栏
+
+- [ ] `AGENTS.md` 描述此角色的良好交付物是什么样的
+- [ ] 在有用的地方包含负面示例（"一个有效但看起来未样式化的流程未完成"）
+- [ ] 证据期望是具体的（测试、屏幕截图、重现步骤、规范章节）
+
+## F. 协作路由
+
+- [ ] 仅当角色实际接触该领域时才命名跨角色交接
+- [ ] 面向 UX 的角色或更改 → 路由到 `[UXDesigner](/PAP/agents/uxdesigner)`
+- [ ] 安全敏感角色、权限、密钥、身份验证、适配器、工具访问 → 路由到 `[SecurityEngineer](/PAP/agents/securityengineer)`
+- [ ] 浏览器验证或面向用户的验证 → 路由到 `[QA](/PAP/agents/qa)`
+- [ ] 技能架构/指令质量更改 → 存在时路由到技能顾问
+- [ ] 工程/运行时更改 → 路由到 CTO 和编码员
+
+## G. 治理字段
+
+- [ ] `icon` 设置为 `/llms/agent-icons.txt` 之一并适合该角色
+- [ ] 当雇佣由事务触发时，设置 `sourceIssueId`（或 `sourceIssueIds`）
+- [ ] `desiredSkills` 仅列出已存在于公司库中的技能，或将首先通过公司技能工作流程安装的技能
+- [ ] 适配器配置根据 `/llms/agent-configuration/<adapter>.txt` 匹配此 Paperclip 实例（cwd、模型、凭据）
+- [ ] 本地管理包适配器通过顶级 `instructionsBundle.files["AGENTS.md"]` 发送自定义指令，并且不设置 `adapterConfig.promptTemplate` 或 `bootstrapPromptTemplate`
+- [ ] `{{companyName}}`、`{{managerTitle}}`、`{{issuePrefix}}` 和任何 URL 存根等占位符被替换为实际值
+
+## H. 安全和权限（最小权限）
+
+- [ ] 雇佣仅授予角色需要的访问权限 — 没有"以防万一"权限
+- [ ] 没有密钥以明文嵌入到 `adapterConfig`、`instructionsBundle` 或任何旧式提示字段中；优先使用环境注入的凭据或范围技能
+- [ ] 任何扩展外部系统访问、浏览器/网络范围、文件系统范围或密钥处理能力的 `desiredSkills` 或适配器设置都在雇佣评论中单独证明
+- [ ] `runtimeConfig.heartbeat.enabled` 为 `false`，除非角色真正需要计划的周期性工作并且在雇佣评论中证明了 `intervalSec`
+- [ ] `AGENTS.md` 明确命名角色绝不能做的事情（外部发布、共享基础设施更改、未经批准的破坏性操作）
+- [ ] 如果角色可能处理私有披露或安全公告，雇佣命名机密工作流程（专用技能或记录的手动流程），而不是依赖正常事务线程
+- [ ] 没有列出此环境实际上无法提供的任何工具、技能或能力
+
+## I. 完成标准
+
+- [ ] `AGENTS.md` 陈述智能体在将事务标记为完成之前如何验证其工作
+- [ ] `AGENTS.md` 陈述完成时任务去向谁（审查者、经理或 `done`）
+- [ ] `AGENTS.md` 以"始终用评论更新你的任务"规则结束
+
+## J. 指令源的选择是明确的
+
+- [ ] 雇佣评论陈述使用了哪条路径：精确模板、相邻模板或通用后备
+- [ ] 如果使用了相邻模板，评论命名了调整的内容（重写章程、交换透镜、删除章节）
+- [ ] 如果使用了通用后备，基线角色指南的每个章节都存在于草稿中
+
+---
+
+## 要注意的失败模式
+
+- **样板通过。** 如果 `AGENTS.md` 读起来可以适用于任何角色，则章程和透镜过于通用 — 重写它们。
+- **静默权限蔓延。** 大的 `desiredSkills` 列表或开放式适配器配置通常意味着"以防万一"访问。修剪到章程需要的内容。
+- **未经审查的能力扩展。** 隐藏在适配器配置或 `desiredSkills` 中的浏览器、外部系统、宽文件系统或密钥处理访问必须在雇佣评论中明确指出。
+- **默认定时器心跳。** 如果你启用了定时器心跳，雇佣评论必须说明为什么需要基于计划的唤醒。
+- **敏感工作没有机密路径。** 可能接收私有公告或事件详细信息的角色需要私有工作流程，而不是正常事务评论。
+- **缺少治理字段。** 没有 `sourceIssueId`、`icon` 或可解析报告线的雇佣以后难以审计。
+- **未替换的占位符。`{{companyName}}`、`{{managerTitle}}` 和提交草稿中的 URL 存根是最常见的拒绝雇佣缺陷 — 在提交之前在草稿中 grep `{{`。

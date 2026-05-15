@@ -1,31 +1,31 @@
-# Issue Workspace Runtime Controls
+# 事务工作空间运行时控制
 
-Use this reference when an issue has an isolated execution workspace and you need to inspect or run that workspace's services, especially for QA/browser verification.
+当事务具有隔离的执行工作空间并且你需要检查或运行该工作空间的服务时，特别是对于 QA/浏览器验证，使用此参考。
 
-## Discover the Workspace
+## 发现工作空间
 
-Start from the issue, not from memory:
+从事务开始，而不是从记忆开始：
 
 ```sh
 curl -sS -H "Authorization: Bearer $PAPERCLIP_API_KEY" \
   "$PAPERCLIP_API_URL/api/issues/$PAPERCLIP_TASK_ID/heartbeat-context"
 ```
 
-Read `currentExecutionWorkspace`:
+读取 `currentExecutionWorkspace`：
 
-- `id` — execution workspace id for control endpoints
-- `cwd` / `branchName` — local checkout context
-- `status` / `closedAt` — whether the workspace is usable
-- `runtimeServices[]` — current services, including `serviceName`, `status`, `healthStatus`, `url`, `port`, and `runtimeServiceId`
+- `id` — 用于控制端点的执行工作空间 ID
+- `cwd` / `branchName` — 本地签出上下文
+- `status` / `closedAt` — 工作空间是否可用
+- `runtimeServices[]` — 当前服务，包括 `serviceName`、`status`、`healthStatus`、`url`、`port` 和 `runtimeServiceId`
 
-If `currentExecutionWorkspace` is `null`, the issue does not currently have a realized execution workspace. For child/follow-up work, create the child with `parentId` or use `inheritExecutionWorkspaceFromIssueId` so Paperclip preserves workspace continuity.
+如果 `currentExecutionWorkspace` 为 `null`，则事务当前没有已实现的执行工作空间。对于子/后续工作，使用 `parentId` 创建子事务或使用 `inheritExecutionWorkspaceFromIssueId`，以便 Paperclip 保持工作空间连续性。
 
-## Control Services
+## 控制服务
 
-Prefer Paperclip-managed runtime service controls over manual `pnpm dev &` or ad-hoc background processes. These endpoints keep service state, URLs, logs, and ownership visible to other agents and the board.
+优先使用 Paperclip 管理的运行时服务控制，而不是手动的 `pnpm dev &` 或临时后台进程。这些端点使服务状态、URL、日志和所有权对其他智能体和董事会可见。
 
 ```sh
-# Start all configured services; waits for configured readiness checks.
+# 启动所有配置的服务；等待配置的就绪检查。
 curl -sS -X POST \
   -H "Authorization: Bearer $PAPERCLIP_API_KEY" \
   -H "X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID" \
@@ -33,7 +33,7 @@ curl -sS -X POST \
   "$PAPERCLIP_API_URL/api/execution-workspaces/<workspace-id>/runtime-services/start" \
   -d '{}'
 
-# Restart all configured services.
+# 重启所有配置的服务。
 curl -sS -X POST \
   -H "Authorization: Bearer $PAPERCLIP_API_KEY" \
   -H "X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID" \
@@ -41,7 +41,7 @@ curl -sS -X POST \
   "$PAPERCLIP_API_URL/api/execution-workspaces/<workspace-id>/runtime-services/restart" \
   -d '{}'
 
-# Stop all running services.
+# 停止所有运行中的服务。
 curl -sS -X POST \
   -H "Authorization: Bearer $PAPERCLIP_API_KEY" \
   -H "X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID" \
@@ -50,7 +50,7 @@ curl -sS -X POST \
   -d '{}'
 ```
 
-To target a configured service, pass one of:
+要定位配置的服务，传递以下之一：
 
 ```json
 { "workspaceCommandId": "web" }
@@ -58,23 +58,23 @@ To target a configured service, pass one of:
 { "serviceIndex": 0 }
 ```
 
-The response includes an updated `workspace.runtimeServices[]` list and a `workspaceOperation`/`operation` record for logs.
+响应包括更新的 `workspace.runtimeServices[]` 列表和用于日志的 `workspaceOperation`/`operation` 记录。
 
-## Read the URL
+## 读取 URL
 
-After `start` or `restart`, read the service URL from:
+在 `start` 或 `restart` 之后，从以下位置读取服务 URL：
 
-- response `workspace.runtimeServices[].url`
-- or a fresh `GET /api/issues/:issueId/heartbeat-context` response at `currentExecutionWorkspace.runtimeServices[].url`
+- 响应 `workspace.runtimeServices[].url`
+- 或新的 `GET /api/issues/:issueId/heartbeat-context` 响应中的 `currentExecutionWorkspace.runtimeServices[].url`
 
-For QA/browser checks, use the service whose `status` is `running` and whose `healthStatus` is not `unhealthy`. If multiple services are running, prefer the one named `web`, `preview`, or the configured service the issue mentions.
+对于 QA/浏览器检查，使用 `status` 为 `running` 且 `healthStatus` 不是 `unhealthy` 的服务。如果多个服务正在运行，优先使用名为 `web`、`preview` 的服务或事务提到的配置服务。
 
-## MCP Tools
+## MCP 工具
 
-When the Paperclip MCP tools are available, prefer these issue-scoped tools:
+当 Paperclip MCP 工具可用时，优先使用这些事务范围工具：
 
-- `paperclipGetIssueWorkspaceRuntime` — reads `currentExecutionWorkspace` and service URLs for an issue.
-- `paperclipControlIssueWorkspaceServices` — starts, stops, or restarts the current issue workspace services.
-- `paperclipWaitForIssueWorkspaceService` — waits until a selected service is running and returns its URL when exposed.
+- `paperclipGetIssueWorkspaceRuntime` — 读取事务的 `currentExecutionWorkspace` 和服务 URL。
+- `paperclipControlIssueWorkspaceServices` — 启动、停止或重启当前事务工作空间服务。
+- `paperclipWaitForIssueWorkspaceService` — 等到选定的服务运行并在暴露时返回其 URL。
 
-These tools resolve the issue's workspace id for you, so QA agents do not need to know the lower-level execution workspace endpoint first.
+这些工具为你解析事务的工作空间 ID，因此 QA 智能体不需要首先知道较低级别的执行工作空间端点。
