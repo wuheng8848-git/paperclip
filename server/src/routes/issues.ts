@@ -751,6 +751,28 @@ function buildExecutionStageWakeup(input: {
   return null;
 }
 
+function assertUserCreatedIssueHasProject(req: Request, projectId: unknown) {
+  const actor = getActorInfo(req);
+  if (actor.actorType !== "user") return;
+  if (typeof projectId === "string" && projectId.trim().length > 0) return;
+  throw unprocessable("Project is required to create an issue.");
+}
+
+function assertUserCreatedChildIssueHasProject(
+  req: Request,
+  parent: { projectId: string | null },
+  bodyProjectId: unknown,
+) {
+  const actor = getActorInfo(req);
+  if (actor.actorType !== "user") return;
+  const fromBody = typeof bodyProjectId === "string" && bodyProjectId.trim().length > 0;
+  const fromParent = typeof parent.projectId === "string" && parent.projectId.trim().length > 0;
+  if (fromBody || fromParent) return;
+  throw unprocessable(
+    "Project is required to create an issue (assign a project on the parent issue or pass projectId).",
+  );
+}
+
 export function issueRoutes(
   db: Db,
   storage: StorageService,
@@ -2298,6 +2320,7 @@ export function issueRoutes(
     await assertIssueEnvironmentSelection(companyId, req.body.executionWorkspaceSettings?.environmentId);
 
     const actor = getActorInfo(req);
+    assertUserCreatedIssueHasProject(req, req.body.projectId);
     const executionPolicy = applyActorMonitorScheduledBy(
       normalizeIssueExecutionPolicy(req.body.executionPolicy),
       actor.actorType,
@@ -2393,6 +2416,7 @@ export function issueRoutes(
     await assertIssueEnvironmentSelection(parent.companyId, req.body.executionWorkspaceSettings?.environmentId);
 
     const actor = getActorInfo(req);
+    assertUserCreatedChildIssueHasProject(req, parent, req.body.projectId);
     const executionPolicy = applyActorMonitorScheduledBy(
       normalizeIssueExecutionPolicy(req.body.executionPolicy),
       actor.actorType,

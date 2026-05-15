@@ -638,10 +638,10 @@ describe.sequential("agent skill routes", () => {
         adapterType: "claude_local",
       }),
       expect.objectContaining({
-        "AGENTS.md": expect.stringContaining("You are the CEO."),
-        "HEARTBEAT.md": expect.stringContaining("CEO Heartbeat Checklist"),
-        "SOUL.md": expect.stringContaining("CEO Persona"),
-        "TOOLS.md": expect.stringContaining("# Tools"),
+        "AGENTS.md": expect.stringContaining("你是首席执行官（CEO）。"),
+        "HEARTBEAT.md": expect.stringContaining("CEO 心搏清单"),
+        "SOUL.md": expect.stringContaining("CEO 人设"),
+        "TOOLS.md": expect.stringContaining("TOOLS.md"),
       }),
       { entryFile: "AGENTS.md", replaceExisting: false },
     );

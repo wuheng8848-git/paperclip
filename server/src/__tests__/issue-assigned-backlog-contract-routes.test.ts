@@ -114,6 +114,7 @@ function makeIssue(input: {
   status?: string;
   parentId?: string | null;
   assigneeAgentId?: string | null;
+  projectId?: string | null;
 }) {
   return {
     id: input.id,
@@ -129,10 +130,13 @@ function makeIssue(input: {
     createdByAgentId: null,
     createdByUserId: "local-board",
     executionWorkspaceId: null,
+    projectId: input.projectId ?? null,
     labels: [],
     labelIds: [],
   };
 }
+
+const boardCreateProjectId = "33333333-3333-4333-8333-333333333333";
 
 function expectClearAssignedStatusValidation(res: request.Response) {
   expect([400, 422]).toContain(res.status);
@@ -147,6 +151,7 @@ describe("assigned backlog creation contract", () => {
       title: "Parent issue",
       status: "blocked",
       assigneeAgentId,
+      projectId: boardCreateProjectId,
     }));
     mockIssueService.create.mockImplementation(async (_companyId: string, data: Record<string, unknown>) =>
       makeIssue({
@@ -176,6 +181,7 @@ describe("assigned backlog creation contract", () => {
       .send({
         title: "Assigned executable work",
         assigneeAgentId,
+        projectId: boardCreateProjectId,
       });
 
     if (res.status !== 201) {
@@ -191,6 +197,7 @@ describe("assigned backlog creation contract", () => {
         title: "Assigned executable work",
         assigneeAgentId,
         status: "todo",
+        projectId: boardCreateProjectId,
       }),
     );
     expect(res.body).toEqual(expect.objectContaining({
@@ -217,6 +224,19 @@ describe("assigned backlog creation contract", () => {
         }),
       }),
     );
+  });
+
+  it("rejects board create when projectId is omitted", async () => {
+    const res = await request(await createApp())
+      .post("/api/companies/company-1/issues")
+      .send({
+        title: "Needs a project",
+        assigneeAgentId,
+      });
+
+    expect(res.status).toBe(422);
+    expect(String(res.body?.error ?? "")).toMatch(/Project is required/i);
+    expect(mockIssueService.create).not.toHaveBeenCalled();
   });
 
   it("does not let a parent-blocking assigned child become an unwoken backlog leaf by default", async () => {
@@ -279,6 +299,7 @@ describe("assigned backlog creation contract", () => {
         title: "Parked assigned work",
         assigneeAgentId,
         status: "backlog",
+        projectId: boardCreateProjectId,
       });
 
     expect(res.status).toBe(201);
@@ -288,6 +309,7 @@ describe("assigned backlog creation contract", () => {
         title: "Parked assigned work",
         assigneeAgentId,
         status: "backlog",
+        projectId: boardCreateProjectId,
       }),
     );
     expect(res.body).toEqual(expect.objectContaining({

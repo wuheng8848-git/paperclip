@@ -131,6 +131,7 @@ function createIssueApp() {
 }
 
 const sandboxEnvironmentId = "11111111-1111-4111-8111-111111111111";
+const issueCreateProjectId = "33333333-3333-4333-8333-333333333333";
 
 async function closeServer(server: Server | null) {
   if (!server) return;
@@ -264,6 +265,7 @@ describe.sequential("execution environment route guards", () => {
       .post("/api/companies/company-1/issues")
       .send({
         title: "Sandboxed Issue",
+        projectId: issueCreateProjectId,
         executionWorkspaceSettings: {
           environmentId: sandboxEnvironmentId,
         },
@@ -286,6 +288,7 @@ describe.sequential("execution environment route guards", () => {
       .post("/api/companies/company-1/issues")
       .send({
         title: "Unsupported Driver Issue",
+        projectId: issueCreateProjectId,
         executionWorkspaceSettings: {
           environmentId: sandboxEnvironmentId,
         },
@@ -309,6 +312,7 @@ describe.sequential("execution environment route guards", () => {
       .post("/api/companies/company-1/issues")
       .send({
         title: "Fake Sandbox Issue",
+        projectId: issueCreateProjectId,
         executionWorkspaceSettings: {
           environmentId: sandboxEnvironmentId,
         },
@@ -339,6 +343,7 @@ describe.sequential("execution environment route guards", () => {
       .post("/api/companies/company-1/issues")
       .send({
         title: "Plugin Sandbox Issue",
+        projectId: issueCreateProjectId,
         executionWorkspaceSettings: {
           environmentId: sandboxEnvironmentId,
         },

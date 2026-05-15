@@ -495,6 +495,10 @@ export const newIssue = {
   thinkingHigh: "高",
   thinkingXHigh: "极高",
   thinkingMax: "最高",
+  /** Board UX: root issues must belong to a project (agents may still omit). */
+  projectRequiredToast: "请先选择所属项目。",
+  projectRequiredHint: "创建事务前必须选择一个项目。",
+  noProjectsToCreateHint: "当前团队还没有可用项目，请先创建项目后再建事务。",
 } as const;
 
 export const newAgent = {
@@ -753,6 +757,8 @@ export const issueDetailUi = {
   productivityReviewChip: "生产力复盘",
   planningModeChip: "规划中",
   blockedParkedChip: "被搁置阻塞",
+  /** Header pill when this issue has queued/running adapter work */
+  liveRunChip: "实时",
   routineChip: "例行",
   noProjectChip: "无项目",
   toastAcceptedDraftsSkipped: (created: number, skipped: number) =>

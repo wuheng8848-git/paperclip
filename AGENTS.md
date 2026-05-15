@@ -132,6 +132,12 @@ AI 助手与自动化**不得**擅自执行 **`git push`**、**`git push --tags`
 
 更进一步：**不得以**「显得周全」「帮读者补齐」「各篇对齐口径」「避免遗漏」「顺便同步多篇」等为动机，在非项目计划树下作**铺开式**或**与当轮交付物无直接耦合**的多文件改写——无论话题是运维、环境还是别的；这类内容归入 **`docs/项目计划/`**（或总则 **`AGENTS.md`** 单行提示）即可，**不得**为满足助手自己的「周全感」大面积动 **`doc/`** 与 **`docs/`**（非 **`docs/项目计划/`**）。
 
+16. **Paperclip 实例：新建公司须人类拍板。**
+本工作区协作默认：已连实例上的 Paperclip **公司（租户）**由人类收敛为**既定集合**；除非人类当轮给出**可当轮执行的许可**（批准、同意新建公司、`POST /api/companies`、开好某某公司等同义指令），助手**不得**经看板、`paperclip*` CLI、`company-creator` skill 或自动化脚本**再建新公司**。人类本人在 Web UI 自建不在此禁令内；本条**不**等同于产品上的服务端硬锁（若要禁止一切新建，须另起功能需求改 `server/`）。Cursor 侧重与措辞另见 **[`.cursor/rules/routic-project.mdc`](.cursor/rules/routic-project.mdc)**「Paperclip 新公司门槛」；项目计划入口摘要见 **[`docs/项目计划/README.md`](docs/项目计划/README.md)**。
+
+17. **`test-co` 沙箱 / `routic` 正式环境的迁移门禁。**
+**`test-co`** 公司为**测试租户**：新增或调整的**适配器**、**模型与壳子组合**、**智能体指令 / 模版 / skill 挂载**等与执行平面相关的配置，须先在 **`test-co` 端到端验证**（_issue → checkout → heartbeat → run → 可观测结论 / 工单收口_），在人类**明示同意迁入**后再同步到 **`routic`** 正式公司及对应工单。助手不得把 **`routic`** 当作未经验证的**首批实验靶场**，除非人类当轮自担风险并说清回滚口径。摘要亦见 **[`.cursor/rules/routic-project.mdc`](.cursor/rules/routic-project.mdc)**、**[`docs/项目计划/README.md`](docs/项目计划/README.md)**。
+
 ## 6. 数据库变更流程
 
 修改数据模型时：

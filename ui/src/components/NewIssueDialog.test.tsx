@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NewIssueDialog } from "./NewIssueDialog";
+import { newIssue } from "../lib/i18n";
 
 const dialogState = vi.hoisted(() => ({
   newIssueOpen: true,
@@ -328,11 +329,11 @@ describe("NewIssueDialog", () => {
     const { root } = renderDialog(container);
     await flush();
 
-    expect(container.textContent).toContain("New sub-issue");
-    expect(container.textContent).toContain("Sub-issue of");
+    expect(container.textContent).toContain(newIssue.subIssue);
+    expect(container.textContent).toContain(newIssue.subIssueOf);
     expect(container.textContent).toContain("PAP-1");
     expect(container.textContent).toContain("Parent issue");
-    expect(container.textContent).toContain("Create Sub-Issue");
+    expect(container.textContent).toContain(newIssue.createSub);
 
     act(() => root.unmount());
 
@@ -340,9 +341,9 @@ describe("NewIssueDialog", () => {
     const rerendered = renderDialog(container);
     await flush();
 
-    expect(container.textContent).toContain("New issue");
-    expect(container.textContent).toContain("Create Issue");
-    expect(container.textContent).not.toContain("Sub-issue of");
+    expect(container.textContent).toContain(newIssue.newIssue);
+    expect(container.textContent).toContain(newIssue.create);
+    expect(container.textContent).not.toContain(newIssue.subIssueOf);
 
     act(() => rerendered.root.unmount());
   });
@@ -386,7 +387,7 @@ describe("NewIssueDialog", () => {
     await flush();
 
     const submitButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Create Sub-Issue"));
+      .find((button) => button.textContent?.includes(newIssue.createSub));
     expect(submitButton).not.toBeUndefined();
     await waitForAssertion(() => {
       expect(submitButton?.hasAttribute("disabled")).toBe(false);
@@ -425,7 +426,7 @@ describe("NewIssueDialog", () => {
     expect(planningButton?.className).toContain("bg-accent");
 
     const submitButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Create Issue"));
+      .find((button) => button.textContent?.includes(newIssue.create));
     expect(submitButton).not.toBeUndefined();
     await vi.waitFor(() => {
       expect(submitButton?.hasAttribute("disabled")).toBe(false);
@@ -441,6 +442,7 @@ describe("NewIssueDialog", () => {
       expect.objectContaining({
         title: "Planned from defaults",
         workMode: "planning",
+        projectId: "project-1",
       }),
     );
 
@@ -495,14 +497,15 @@ describe("NewIssueDialog", () => {
     const { root } = renderDialog(container);
     await flush();
 
-    expect(container.textContent).toContain("New issue");
-    expect(container.textContent).not.toContain("New sub-issue");
+    expect(container.textContent).toContain(newIssue.newIssue);
+    expect(container.textContent).not.toContain(newIssue.subIssue);
     await waitForAssertion(() => {
-      expect(container.textContent).toContain("Reusing PAP-100");
+      expect(container.textContent).toContain("PAP-100");
+      expect(container.textContent).toContain("复用 ");
     });
 
     const submitButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Create Issue"));
+      .find((button) => button.textContent?.includes(newIssue.create));
     expect(submitButton).not.toBeUndefined();
 
     await act(async () => {
@@ -542,8 +545,8 @@ describe("NewIssueDialog", () => {
     const { root } = renderDialog(container);
     await flush();
 
-    const titleInput = container.querySelector('textarea[placeholder="Issue title"]') as HTMLTextAreaElement | null;
-    const descriptionInput = container.querySelector('textarea[aria-label="Add description..."]') as HTMLTextAreaElement | null;
+    const titleInput = container.querySelector(`textarea[placeholder="${newIssue.titlePlaceholder}"]`) as HTMLTextAreaElement | null;
+    const descriptionInput = container.querySelector(`textarea[aria-label="${newIssue.descriptionPlaceholder}"]`) as HTMLTextAreaElement | null;
     expect(titleInput).not.toBeNull();
     expect(descriptionInput).not.toBeNull();
 
@@ -565,7 +568,7 @@ describe("NewIssueDialog", () => {
     await flush();
 
     const submitButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Create Issue"));
+      .find((button) => button.textContent?.includes(newIssue.create));
     expect(submitButton).not.toBeUndefined();
     await vi.waitFor(() => {
       expect(submitButton?.hasAttribute("disabled")).toBe(false);
@@ -582,6 +585,7 @@ describe("NewIssueDialog", () => {
         title: "Typed issue",
         description: "Typed description",
         workMode: "standard",
+        projectId: "project-1",
       }),
     );
 
@@ -592,7 +596,7 @@ describe("NewIssueDialog", () => {
     const { root } = renderDialog(container);
     await flush();
 
-    const titleInput = container.querySelector('textarea[placeholder="Issue title"]') as HTMLTextAreaElement | null;
+    const titleInput = container.querySelector(`textarea[placeholder="${newIssue.titlePlaceholder}"]`) as HTMLTextAreaElement | null;
     expect(titleInput).not.toBeNull();
     await typeTextareaValue(titleInput!, "Plan this first");
 
@@ -604,7 +608,7 @@ describe("NewIssueDialog", () => {
     await flush();
 
     const submitButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Create Issue"));
+      .find((button) => button.textContent?.includes(newIssue.create));
     expect(submitButton).not.toBeUndefined();
     await vi.waitFor(() => {
       expect(submitButton?.hasAttribute("disabled")).toBe(false);
@@ -620,6 +624,7 @@ describe("NewIssueDialog", () => {
       expect.objectContaining({
         title: "Plan this first",
         workMode: "planning",
+        projectId: "project-1",
       }),
     );
 
@@ -641,7 +646,7 @@ describe("NewIssueDialog", () => {
     await flush();
 
     const submitButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Create Sub-Issue"));
+      .find((button) => button.textContent?.includes(newIssue.createSub));
     expect(submitButton).not.toBeUndefined();
 
     await act(async () => {
@@ -673,8 +678,8 @@ describe("NewIssueDialog", () => {
     expect(dialogContent?.className).toContain("h-[calc(100dvh-2rem)]");
     expect(dialogContent?.className).toContain("overflow-hidden");
 
-    const titleInput = container.querySelector('textarea[placeholder="Issue title"]');
-    const descriptionInput = container.querySelector('textarea[aria-label="Add description..."]');
+    const titleInput = container.querySelector(`textarea[placeholder="${newIssue.titlePlaceholder}"]`);
+    const descriptionInput = container.querySelector(`textarea[aria-label="${newIssue.descriptionPlaceholder}"]`);
     const bodyScrollRegion = Array.from(container.querySelectorAll("div")).find((element) =>
       typeof element.className === "string" && element.className.includes("overscroll-contain"),
     );
@@ -734,7 +739,7 @@ describe("NewIssueDialog", () => {
     await flush();
     await flush();
 
-    expect(container.textContent).not.toContain("will no longer use the parent issue workspace");
+    expect(container.textContent).not.toContain("此子事务将不再使用父事务工作区");
 
     const selects = Array.from(container.querySelectorAll("select"));
     const modeSelect = selects[0] as HTMLSelectElement | undefined;
@@ -746,7 +751,7 @@ describe("NewIssueDialog", () => {
     });
     await flush();
 
-    expect(container.textContent).toContain("will no longer use the parent issue workspace");
+    expect(container.textContent).toContain("此子事务将不再使用父事务工作区");
     expect(container.textContent).toContain("Parent workspace");
 
     act(() => root.unmount());

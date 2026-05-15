@@ -1,3 +1,3 @@
-# Tools
+# TOOLS.md — 工具
 
-(Your tools will go here. Add notes about them as you acquire and use them.)
+此处记录你已接入的工具与使用心得；随能力与实践逐步补充。**说明写给未来的自己与人类时默认用中文**；CLI 原名、endpoint、参数 key 等与实现绑定的字面量保持英文。

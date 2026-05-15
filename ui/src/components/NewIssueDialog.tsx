@@ -944,6 +944,13 @@ export function NewIssueDialog() {
     const currentTitle = titleRef.current.trim();
     const currentDescription = descriptionRef.current.trim();
     if (!effectiveCompanyId || !currentTitle || createIssue.isPending) return;
+    if (!projectId.trim()) {
+      pushToast({
+        title: newIssue.projectRequiredToast,
+        tone: "warn",
+      });
+      return;
+    }
     const effectiveLane = assigneeSupportsCheapLane
       ? assigneeModelLane
       : assigneeModelLane === "cheap"
@@ -987,7 +994,7 @@ export function NewIssueDialog() {
       ...(selectedAssigneeUserId ? { assigneeUserId: selectedAssigneeUserId } : {}),
       ...(newIssueDefaults.parentId ? { parentId: newIssueDefaults.parentId } : {}),
       ...(newIssueDefaults.goalId ? { goalId: newIssueDefaults.goalId } : {}),
-      ...(projectId ? { projectId } : {}),
+      projectId,
       ...(projectWorkspaceId ? { projectWorkspaceId } : {}),
       ...(assigneeAdapterOverrides ? { assigneeAdapterOverrides } : {}),
       ...(executionWorkspacePolicy?.enabled ? { executionWorkspacePreference: executionWorkspaceMode } : {}),
@@ -1157,6 +1164,12 @@ export function NewIssueDialog() {
   }, [orderedProjects]);
 
   useEffect(() => {
+    if (!newIssueOpen || projectId) return;
+    if (orderedProjects.length !== 1) return;
+    handleProjectChange(orderedProjects[0].id);
+  }, [newIssueOpen, handleProjectChange, orderedProjects, projectId]);
+
+  useEffect(() => {
     if (
       !newIssueOpen ||
       !projectId ||
@@ -1315,6 +1328,14 @@ export function NewIssueDialog() {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {activeProjects.length === 0 ? (
+            <div
+              className="mx-4 mt-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-100"
+              data-testid="new-issue-no-projects-hint"
+            >
+              {newIssue.noProjectsToCreateHint}
+            </div>
+          ) : null}
           {/* Title */}
           <div className="px-4 pt-4 pb-2">
             <IssueTitleTextarea
@@ -1396,6 +1417,7 @@ export function NewIssueDialog() {
                 recentOptionIds={recentProjectIds}
                 placeholder={newIssue.project}
                 disablePortal
+                allowNone={false}
                 noneLabel={newIssue.noProject}
                 searchPlaceholder={newIssue.searchProjects}
                 emptyMessage={newIssue.noProjectsFound}
@@ -2000,6 +2022,16 @@ export function NewIssueDialog() {
           </div>
         ) : null}
 
+        {titleHasText && activeProjects.length > 0 && !projectId ? (
+          <div
+            className="mx-4 mb-2 flex items-start gap-2 rounded-md border border-amber-300/70 bg-amber-50/90 px-3 py-2 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100"
+            data-testid="new-issue-project-required-hint"
+          >
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-300" />
+            <span className="leading-snug">{newIssue.projectRequiredHint}</span>
+          </div>
+        ) : null}
+
         {/* Footer */}
         <div className="flex items-center justify-between px-4 py-2.5 border-t border-border shrink-0">
           <Button
@@ -2025,7 +2057,7 @@ export function NewIssueDialog() {
             <Button
               size="sm"
               className="min-w-[8.5rem] disabled:opacity-100"
-              disabled={!titleHasText || createIssue.isPending}
+              disabled={!titleHasText || !projectId.trim() || activeProjects.length === 0 || createIssue.isPending}
               onClick={handleSubmit}
               aria-busy={createIssue.isPending}
             >

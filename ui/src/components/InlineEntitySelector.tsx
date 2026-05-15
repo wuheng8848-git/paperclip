@@ -27,6 +27,8 @@ interface InlineEntitySelectorProps {
   disablePortal?: boolean;
   /** Open the popover when the trigger receives keyboard/programmatic focus. */
   openOnFocus?: boolean;
+  /** When false, the trigger must pick one of `options` (no synthetic empty id). */
+  allowNone?: boolean;
 }
 
 const EMPTY_RECENT_OPTION_IDS: string[] = [];
@@ -48,6 +50,7 @@ export const InlineEntitySelector = forwardRef<HTMLButtonElement, InlineEntitySe
       recentOptionIds = EMPTY_RECENT_OPTION_IDS,
       disablePortal,
       openOnFocus = true,
+      allowNone = true,
     },
     ref,
   ) {
@@ -60,9 +63,11 @@ export const InlineEntitySelector = forwardRef<HTMLButtonElement, InlineEntitySe
     const isPointerDownRef = useRef(false);
 
     const allOptions = useMemo<InlineEntityOption[]>(() => {
-      const baseOptions = [{ id: "", label: noneLabel, searchText: noneLabel }, ...options];
+      const baseOptions = allowNone
+        ? [{ id: "", label: noneLabel, searchText: noneLabel }, ...options]
+        : [...options];
       return orderItemsBySelectedAndRecent(baseOptions, value, recentOptionIds);
-    }, [noneLabel, options, recentOptionIds, value]);
+    }, [allowNone, noneLabel, options, recentOptionIds, value]);
 
     const filteredOptions = useMemo(() => {
       const term = query.trim().toLowerCase();
