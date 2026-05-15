@@ -1,7 +1,10 @@
 import { defineConfig } from "vitest/config";
+import { resolveRepoVitestMaxWorkers } from "./vitest.repo-cpu";
 
 export default defineConfig({
   test: {
+    maxWorkers: resolveRepoVitestMaxWorkers(),
+    minWorkers: 1,
     projects: [
       "packages/shared",
       "packages/db",
