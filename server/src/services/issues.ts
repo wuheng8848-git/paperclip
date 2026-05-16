@@ -2185,19 +2185,25 @@ export function issueService(db: Db) {
         sql`select ${issues.id} from ${issues} where ${issues.id} = ${issueId} for update`,
       );
       const issue = await tx
-        .select({ executionRunId: issues.executionRunId })
+        .select({
+          executionRunId: issues.executionRunId,
+          checkoutRunId: issues.checkoutRunId,
+        })
         .from(issues)
         .where(eq(issues.id, issueId))
         .then((rows) => rows[0] ?? null);
       if (!issue?.executionRunId) return false;
 
+      const lockRunId = issue.executionRunId;
+      const clearCheckoutLock = issue.checkoutRunId === lockRunId;
+
       await tx.execute(
-        sql`select ${heartbeatRuns.id} from ${heartbeatRuns} where ${heartbeatRuns.id} = ${issue.executionRunId} for update`,
+        sql`select ${heartbeatRuns.id} from ${heartbeatRuns} where ${heartbeatRuns.id} = ${lockRunId} for update`,
       );
       const run = await tx
         .select({ status: heartbeatRuns.status })
         .from(heartbeatRuns)
-        .where(eq(heartbeatRuns.id, issue.executionRunId))
+        .where(eq(heartbeatRuns.id, lockRunId))
         .then((rows) => rows[0] ?? null);
       if (run && !TERMINAL_HEARTBEAT_RUN_STATUSES.has(run.status)) return false;
 
@@ -2207,12 +2213,13 @@ export function issueService(db: Db) {
           executionRunId: null,
           executionAgentNameKey: null,
           executionLockedAt: null,
+          ...(clearCheckoutLock ? { checkoutRunId: null as null } : {}),
           updatedAt: new Date(),
         })
         .where(
           and(
             eq(issues.id, issueId),
-            eq(issues.executionRunId, issue.executionRunId),
+            eq(issues.executionRunId, lockRunId),
           ),
         )
         .returning({ id: issues.id })

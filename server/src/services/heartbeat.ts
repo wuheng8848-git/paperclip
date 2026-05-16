@@ -213,6 +213,19 @@ const EXECUTION_PATH_HEARTBEAT_RUN_STATUSES = ["queued", "running", "scheduled_r
 const CANCELLABLE_HEARTBEAT_RUN_STATUSES = ["queued", "running", "scheduled_retry"] as const;
 const HEARTBEAT_RUN_TERMINAL_STATUSES = ["succeeded", "failed", "cancelled", "timed_out"] as const;
 const UNSUCCESSFUL_HEARTBEAT_RUN_TERMINAL_STATUSES = ["failed", "cancelled", "timed_out"] as const;
+
+/** Cancel reasons that must not trigger stranded-issue escalation (operator/budget shutdown). */
+const OPERATIONAL_CONTROL_PLANE_CANCEL_MESSAGES = [
+  "Cancelled due to agent pause",
+  "Cancelled due to agent termination",
+  "Cancelled due to budget pause",
+] as const;
+
+function isOperationalControlPlaneCancellation(error: string | null | undefined): boolean {
+  if (!error) return false;
+  return OPERATIONAL_CONTROL_PLANE_CANCEL_MESSAGES.some((msg) => error.startsWith(msg));
+}
+
 export {
   ACTIVE_RUN_OUTPUT_CONTINUE_REARM_MS,
   ACTIVE_RUN_OUTPUT_CRITICAL_THRESHOLD_MS,
@@ -8199,13 +8212,27 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       if (!issue) return null;
       if (issue.executionRunId && issue.executionRunId !== run.id) return null;
 
+      const [dbRunRow] = await tx
+        .select({
+          status: heartbeatRuns.status,
+          error: heartbeatRuns.error,
+          errorCode: heartbeatRuns.errorCode,
+        })
+        .from(heartbeatRuns)
+        .where(eq(heartbeatRuns.id, run.id))
+        .limit(1);
+
       if (issue.executionRunId === run.id) {
+        // Failed/timed_out releases keep checkoutRunId so harness checkout can span process-loss retries.
+        const clearCheckoutWithExecution =
+          issue.checkoutRunId === run.id && dbRunRow?.status === "cancelled";
         await tx
           .update(issues)
           .set({
             executionRunId: null,
             executionAgentNameKey: null,
             executionLockedAt: null,
+            ...(clearCheckoutWithExecution ? { checkoutRunId: null as null } : {}),
             updatedAt: new Date(),
           })
           .where(eq(issues.id, issue.id));
@@ -8415,11 +8442,28 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         };
       }
 
+      if (
+        dbRunRow?.status === "cancelled" &&
+        dbRunRow.errorCode === "cancelled" &&
+        isOperationalControlPlaneCancellation(dbRunRow.error)
+      ) {
+        return { kind: "released" as const };
+      }
+
+      const runSnapshotForOutcome = {
+        ...run,
+        status: (dbRunRow?.status ?? run.status) as typeof run.status,
+        error: dbRunRow?.error ?? run.error,
+        errorCode: dbRunRow?.errorCode ?? run.errorCode,
+      };
+
       const issueNeedsImmediateRecovery =
         (issue.status === "todo" || issue.status === "in_progress") &&
         !issue.assigneeUserId &&
         issue.assigneeAgentId === run.agentId &&
-        (run.status === "failed" || run.status === "timed_out" || run.status === "cancelled");
+        (runSnapshotForOutcome.status === "failed" ||
+          runSnapshotForOutcome.status === "timed_out" ||
+          runSnapshotForOutcome.status === "cancelled");
 
       if (!issueNeedsImmediateRecovery) {
         return { kind: "released" as const };
@@ -8451,23 +8495,28 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           kind: "blocked_recovery_in_place" as const,
           issue,
           previousStatus: issue.status,
+          latestRun: runSnapshotForOutcome,
         };
       }
 
       const shouldBlockImmediately =
         !recoveryAgentInvokable ||
         !recoveryAgent ||
-        didAutomaticRecoveryFail(run, issue.status === "todo" ? "assignment_recovery" : "issue_continuation_needed");
+        didAutomaticRecoveryFail(
+          runSnapshotForOutcome,
+          issue.status === "todo" ? "assignment_recovery" : "issue_continuation_needed",
+        );
       if (shouldBlockImmediately) {
         const comment = buildImmediateExecutionPathRecoveryComment({
           status: issue.status as "todo" | "in_progress",
-          latestRun: run,
+          latestRun: runSnapshotForOutcome,
         });
         return {
           kind: "blocked" as const,
           issue,
           previousStatus: issue.status,
           comment,
+          latestRun: runSnapshotForOutcome,
         };
       }
 
@@ -8548,7 +8597,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       await recovery.escalateStrandedAssignedIssue({
         issue: promotionResult.issue,
         previousStatus: promotionResult.previousStatus as "todo" | "in_progress",
-        latestRun: run,
+        latestRun: promotionResult.latestRun,
         comment: promotionResult.comment,
       });
       return;
@@ -8558,7 +8607,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       await recovery.escalateStrandedRecoveryIssueInPlace({
         issue: promotionResult.issue,
         previousStatus: promotionResult.previousStatus as "todo" | "in_progress",
-        latestRun: run,
+        latestRun: promotionResult.latestRun,
       });
       return;
     }
@@ -9335,6 +9384,40 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     return rows.map((row) => row.id);
   }
 
+  async function cancelPendingWakeupsForAgentScope(params: {
+    companyId: string;
+    agentId: string;
+    errorMessage: string;
+  }) {
+    const now = new Date();
+    const wakeupIds = await db
+      .select({ id: agentWakeupRequests.id })
+      .from(agentWakeupRequests)
+      .where(
+        and(
+          eq(agentWakeupRequests.companyId, params.companyId),
+          eq(agentWakeupRequests.agentId, params.agentId),
+          inArray(agentWakeupRequests.status, ["queued", "deferred_issue_execution"]),
+          sql`${agentWakeupRequests.runId} is null`,
+        ),
+      )
+      .then((rows) => rows.map((row) => row.id));
+
+    if (wakeupIds.length === 0) return 0;
+
+    await db
+      .update(agentWakeupRequests)
+      .set({
+        status: "cancelled",
+        finishedAt: now,
+        error: params.errorMessage,
+        updatedAt: now,
+      })
+      .where(inArray(agentWakeupRequests.id, wakeupIds));
+
+    return wakeupIds.length;
+  }
+
   async function cancelPendingWakeupsForBudgetScope(scope: BudgetEnforcementScope) {
     const now = new Date();
     let wakeupIds: string[] = [];
@@ -9352,18 +9435,11 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
         )
         .then((rows) => rows.map((row) => row.id));
     } else if (scope.scopeType === "agent") {
-      wakeupIds = await db
-        .select({ id: agentWakeupRequests.id })
-        .from(agentWakeupRequests)
-        .where(
-          and(
-            eq(agentWakeupRequests.companyId, scope.companyId),
-            eq(agentWakeupRequests.agentId, scope.scopeId),
-            inArray(agentWakeupRequests.status, ["queued", "deferred_issue_execution"]),
-            sql`${agentWakeupRequests.runId} is null`,
-          ),
-        )
-        .then((rows) => rows.map((row) => row.id));
+      return cancelPendingWakeupsForAgentScope({
+        companyId: scope.companyId,
+        agentId: scope.scopeId,
+        errorMessage: "Cancelled due to budget pause",
+      });
     } else {
       wakeupIds = await listProjectScopedWakeupIds(scope.companyId, scope.scopeId);
     }
@@ -9480,13 +9556,20 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       await releaseIssueExecutionAndPromote(run);
     }
 
+    if (agent) {
+      await cancelPendingWakeupsForAgentScope({
+        companyId: agent.companyId,
+        agentId,
+        errorMessage: reason,
+      });
+    }
+
     return runs.length;
   }
 
   async function cancelBudgetScopeWork(scope: BudgetEnforcementScope) {
     if (scope.scopeType === "agent") {
       await cancelActiveForAgentInternal(scope.scopeId, "Cancelled due to budget pause");
-      await cancelPendingWakeupsForBudgetScope(scope);
       return;
     }
 
@@ -9825,7 +9908,8 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
 
     cancelRun: (runId: string) => cancelRunInternal(runId),
 
-    cancelActiveForAgent: (agentId: string) => cancelActiveForAgentInternal(agentId),
+    cancelActiveForAgent: (agentId: string, reason?: string) =>
+      cancelActiveForAgentInternal(agentId, reason ?? "Cancelled due to agent pause"),
 
     cancelBudgetScopeWork,
 
