@@ -52,6 +52,9 @@ diagnostics/
 # Doc maintenance cursor
 .doc-review-cursor
 
+# Upstream doc reference (read-only, synced manually)
+doc-en/
+
 # Playwright
 tests/e2e/test-results/
 tests/e2e/playwright-report/
