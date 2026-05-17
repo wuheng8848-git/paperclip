@@ -12,7 +12,7 @@ import {
   parseObject,
   buildPaperclipEnv,
   applyPaperclipWorkspaceEnv,
-  joinPromptSections,
+  joinPromptSectionsLabeled,
   ensureAbsoluteDirectory,
   renderTemplate,
   renderPaperclipWakePrompt,
@@ -380,16 +380,16 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const paperclipEnvNote = renderPaperclipEnvNote(env);
   const apiAccessNote = renderPaperclipApiAccessNote(env);
   const skillNote = await renderQwenSkillNote(config);
-  const prompt = joinPromptSections([
-    instructionsPrefix,
-    renderedBootstrapPrompt,
-    wakePrompt,
-    sessionHandoffNote,
-    taskContextNote,
-    paperclipEnvNote,
-    apiAccessNote,
-    skillNote,
-    renderedPrompt,
+  const { prompt, promptSections } = joinPromptSectionsLabeled([
+    { id: "agent_instructions", body: instructionsPrefix },
+    { id: "bootstrap", body: renderedBootstrapPrompt },
+    { id: "wake", body: wakePrompt },
+    { id: "session_handoff", body: sessionHandoffNote },
+    { id: "task_context", body: taskContextNote },
+    { id: "runtime_env_note", body: paperclipEnvNote },
+    { id: "api_access_note", body: apiAccessNote },
+    { id: "skill_note", body: skillNote },
+    { id: "heartbeat_template", body: renderedPrompt },
   ]);
 
   // ---- Build CLI args ----
@@ -425,6 +425,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       commandNotes,
       env,
       prompt,
+      promptSections,
       promptMetrics: {
         promptChars: prompt.length,
         instructionsChars: instructionsPrefix.length,

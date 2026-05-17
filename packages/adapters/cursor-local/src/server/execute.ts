@@ -42,7 +42,7 @@ import {
   renderPaperclipWakePrompt,
   stringifyPaperclipWakePayload,
   DEFAULT_PAPERCLIP_AGENT_PROMPT_TEMPLATE,
-  joinPromptSections,
+  joinPromptSectionsLabeled,
   mergeAllowlistedHostEnvWith,
 } from "@paperclipai/adapter-utils/server-utils";
 import { DEFAULT_CURSOR_LOCAL_MODEL, SANDBOX_INSTALL_COMMAND } from "../index.js";
@@ -570,13 +570,13 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const renderedPrompt = shouldUseResumeDeltaPrompt ? "" : renderTemplate(promptTemplate, templateData);
   const sessionHandoffNote = asString(context.paperclipSessionHandoffMarkdown, "").trim();
   const paperclipEnvNote = renderPaperclipEnvNote(env);
-  const prompt = joinPromptSections([
-    instructionsPrefix,
-    renderedBootstrapPrompt,
-    wakePrompt,
-    sessionHandoffNote,
-    paperclipEnvNote,
-    renderedPrompt,
+  const { prompt, promptSections } = joinPromptSectionsLabeled([
+    { id: "agent_instructions", body: instructionsPrefix },
+    { id: "bootstrap", body: renderedBootstrapPrompt },
+    { id: "wake", body: wakePrompt },
+    { id: "session_handoff", body: sessionHandoffNote },
+    { id: "runtime_env_note", body: paperclipEnvNote },
+    { id: "heartbeat_template", body: renderedPrompt },
   ]);
   const promptMetrics = {
     promptChars: prompt.length,
@@ -621,6 +621,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         commandArgs: args,
         env: loggedEnv,
         prompt,
+        promptSections,
         promptMetrics,
         context,
       });

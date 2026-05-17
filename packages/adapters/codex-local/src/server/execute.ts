@@ -36,7 +36,7 @@ import {
   renderPaperclipWakePrompt,
   stringifyPaperclipWakePayload,
   DEFAULT_PAPERCLIP_AGENT_PROMPT_TEMPLATE,
-  joinPromptSections,
+  joinPromptSectionsLabeled,
   mergeAllowlistedHostEnvWith,
 } from "@paperclipai/adapter-utils/server-utils";
 import {
@@ -661,13 +661,13 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   }
   const renderedPrompt = shouldUseResumeDeltaPrompt ? "" : renderTemplate(promptTemplate, templateData);
   const sessionHandoffNote = asString(context.paperclipSessionHandoffMarkdown, "").trim();
-  const prompt = joinPromptSections([
-    promptInstructionsPrefix,
-    renderedBootstrapPrompt,
-    wakePrompt,
-    codexFallbackHandoffNote,
-    sessionHandoffNote,
-    renderedPrompt,
+  const { prompt, promptSections } = joinPromptSectionsLabeled([
+    { id: "agent_instructions", body: promptInstructionsPrefix },
+    { id: "bootstrap", body: renderedBootstrapPrompt },
+    { id: "wake", body: wakePrompt },
+    { id: "codex_fallback_handoff", body: codexFallbackHandoffNote },
+    { id: "session_handoff", body: sessionHandoffNote },
+    { id: "heartbeat_template", body: renderedPrompt },
   ]);
   const promptMetrics = {
     promptChars: prompt.length,
@@ -703,6 +703,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         }),
         env: loggedEnv,
         prompt,
+        promptSections,
         promptMetrics,
         context,
       });

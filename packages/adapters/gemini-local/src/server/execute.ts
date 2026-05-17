@@ -33,7 +33,7 @@ import {
   buildInvocationEnvForLogs,
   ensureAbsoluteDirectory,
   ensurePaperclipSkillSymlink,
-  joinPromptSections,
+  joinPromptSectionsLabeled,
   ensurePathInEnv,
   refreshPaperclipWorkspaceEnvForExecution,
   readPaperclipRuntimeSkillEntries,
@@ -485,14 +485,14 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const sessionHandoffNote = asString(context.paperclipSessionHandoffMarkdown, "").trim();
   const paperclipEnvNote = renderPaperclipEnvNote(env);
   const apiAccessNote = renderApiAccessNote(env);
-  const prompt = joinPromptSections([
-    instructionsPrefix,
-    renderedBootstrapPrompt,
-    wakePrompt,
-    sessionHandoffNote,
-    paperclipEnvNote,
-    apiAccessNote,
-    renderedPrompt,
+  const { prompt, promptSections } = joinPromptSectionsLabeled([
+    { id: "agent_instructions", body: instructionsPrefix },
+    { id: "bootstrap", body: renderedBootstrapPrompt },
+    { id: "wake", body: wakePrompt },
+    { id: "session_handoff", body: sessionHandoffNote },
+    { id: "runtime_env_note", body: paperclipEnvNote },
+    { id: "api_access_note", body: apiAccessNote },
+    { id: "heartbeat_template", body: renderedPrompt },
   ]);
   const promptMetrics = {
     promptChars: prompt.length,
@@ -532,6 +532,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
         )),
         env: loggedEnv,
         prompt,
+        promptSections,
         promptMetrics,
         context,
       });

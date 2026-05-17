@@ -29,7 +29,7 @@ import {
   asStringArray,
   parseObject,
   buildPaperclipEnv,
-  joinPromptSections,
+  joinPromptSectionsLabeled,
   buildInvocationEnvForLogs,
   ensureAbsoluteDirectory,
   ensurePaperclipSkillSymlink,
@@ -533,12 +533,12 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     const shouldUseResumeDeltaPrompt = Boolean(sessionId) && wakePrompt.length > 0;
     const renderedPrompt = shouldUseResumeDeltaPrompt ? "" : renderTemplate(promptTemplate, templateData);
     const sessionHandoffNote = asString(context.paperclipSessionHandoffMarkdown, "").trim();
-    const prompt = joinPromptSections([
-      instructionsPrefix,
-      renderedBootstrapPrompt,
-      wakePrompt,
-      sessionHandoffNote,
-      renderedPrompt,
+    const { prompt, promptSections } = joinPromptSectionsLabeled([
+      { id: "agent_instructions", body: instructionsPrefix },
+      { id: "bootstrap", body: renderedBootstrapPrompt },
+      { id: "wake", body: wakePrompt },
+      { id: "session_handoff", body: sessionHandoffNote },
+      { id: "heartbeat_template", body: renderedPrompt },
     ]);
     const promptMetrics = {
       promptChars: prompt.length,
@@ -569,6 +569,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
           commandArgs: [...args, `<stdin prompt ${prompt.length} chars>`],
           env: loggedEnv,
           prompt,
+          promptSections,
           promptMetrics,
           context,
         });

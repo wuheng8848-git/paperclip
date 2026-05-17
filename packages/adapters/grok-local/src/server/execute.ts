@@ -26,7 +26,7 @@ import {
   buildPaperclipEnv,
   ensureAbsoluteDirectory,
   ensurePathInEnv,
-  joinPromptSections,
+  joinPromptSectionsLabeled,
   materializePaperclipSkillCopy,
   parseObject,
   readPaperclipIssueWorkModeFromContext,
@@ -413,12 +413,12 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     const sessionHandoffNote = asString(context.paperclipSessionHandoffMarkdown, "").trim();
     const paperclipEnvNote = renderPaperclipEnvNote(env);
     const apiAccessNote = renderApiAccessNote(env);
-    const prompt = joinPromptSections([
-      wakePrompt,
-      sessionHandoffNote,
-      paperclipEnvNote,
-      apiAccessNote,
-      renderedPrompt,
+    const { prompt, promptSections } = joinPromptSectionsLabeled([
+      { id: "wake", body: wakePrompt },
+      { id: "session_handoff", body: sessionHandoffNote },
+      { id: "runtime_env_note", body: paperclipEnvNote },
+      { id: "api_access_note", body: apiAccessNote },
+      { id: "heartbeat_template", body: renderedPrompt },
     ]);
     const promptMetrics = {
       promptChars: prompt.length,
@@ -461,6 +461,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
           )),
           env: loggedEnv,
           prompt,
+          promptSections,
           promptMetrics,
           context,
         });

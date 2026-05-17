@@ -14,7 +14,7 @@ import {
   buildPaperclipEnv,
   ensureAbsoluteDirectory,
   ensurePathInEnv,
-  joinPromptSections,
+  joinPromptSectionsLabeled,
   materializePaperclipSkillCopy,
   parseObject,
   readPaperclipRuntimeSkillEntries,
@@ -868,6 +868,7 @@ async function applySessionConfigOptions(input: {
 
 async function buildPrompt(ctx: AdapterExecutionContext, resumedSession: boolean): Promise<{
   prompt: string;
+  promptSections: Array<{ id: string; body: string }>;
   promptMetrics: Record<string, number>;
   commandNotes: string[];
 }> {
@@ -918,17 +919,18 @@ async function buildPrompt(ctx: AdapterExecutionContext, resumedSession: boolean
   const renderedPrompt = shouldUseResumeDeltaPrompt ? "" : renderTemplate(promptTemplate, templateData);
   const sessionHandoffNote = asString(context.paperclipSessionHandoffMarkdown, "").trim();
   const taskContextNote = asString(context.paperclipTaskMarkdown, "").trim();
-  const prompt = joinPromptSections([
-    promptInstructionsPrefix,
-    renderedBootstrapPrompt,
-    wakePrompt,
-    sessionHandoffNote,
-    taskContextNote,
-    renderedPrompt,
+  const { prompt, promptSections } = joinPromptSectionsLabeled([
+    { id: "agent_instructions", body: promptInstructionsPrefix },
+    { id: "bootstrap", body: renderedBootstrapPrompt },
+    { id: "wake", body: wakePrompt },
+    { id: "session_handoff", body: sessionHandoffNote },
+    { id: "task_context", body: taskContextNote },
+    { id: "heartbeat_template", body: renderedPrompt },
   ]);
 
   return {
     prompt,
+    promptSections,
     commandNotes,
     promptMetrics: {
       promptChars: prompt.length,
@@ -1249,8 +1251,16 @@ export function createAcpxLocalExecutor(deps: ExecuteDeps = {}) {
         summary: message,
       };
     }
-    const { prompt, promptMetrics, commandNotes } = await buildPrompt(ctx, resumedSession);
-    const runPrompt = joinPromptSections([prepared.skillPromptInstructions, prompt]);
+    const { prompt: basePrompt, promptSections: basePromptSections, promptMetrics, commandNotes } = await buildPrompt(
+      ctx,
+      resumedSession,
+    );
+    const skillBody = prepared.skillPromptInstructions.trim();
+    const merged =
+      skillBody.length > 0
+        ? joinPromptSectionsLabeled([{ id: "skill_instructions", body: skillBody }, ...basePromptSections])
+        : { prompt: basePrompt, promptSections: basePromptSections };
+    const { prompt: runPrompt, promptSections: runPromptSections } = merged;
     await emitAcpxLog(ctx, {
       type: "acpx.session",
       agent: prepared.acpxAgent,
@@ -1282,6 +1292,7 @@ export function createAcpxLocalExecutor(deps: ExecuteDeps = {}) {
         ],
         env: prepared.loggedEnv,
         prompt: runPrompt,
+        promptSections: runPromptSections,
         promptMetrics,
         context: ctx.context,
       });

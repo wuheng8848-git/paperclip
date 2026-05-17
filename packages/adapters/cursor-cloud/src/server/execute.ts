@@ -15,7 +15,7 @@ import {
   asBoolean,
   asString,
   buildPaperclipEnv,
-  joinPromptSections,
+  joinPromptSectionsLabeled,
   parseObject,
   readPaperclipIssueWorkModeFromContext,
   renderPaperclipWakePrompt,
@@ -399,15 +399,15 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       ? ""
       : renderTemplate(promptTemplate, templateData).trim();
   const paperclipEnvNote = renderPaperclipEnvNote(remoteEnv);
-  const prompt = joinPromptSections([
-    instructions.prefix,
-    renderedBootstrapPrompt,
-    wakePrompt,
-    paperclipEnvNote,
-    renderedPrompt,
-  ]);
   const sessionHandoffNote = asString(context.paperclipSessionHandoffMarkdown, "").trim();
-  const finalPrompt = joinPromptSections([prompt, sessionHandoffNote]);
+  const { prompt: finalPrompt, promptSections } = joinPromptSectionsLabeled([
+    { id: "agent_instructions", body: instructions.prefix },
+    { id: "bootstrap", body: renderedBootstrapPrompt },
+    { id: "wake", body: wakePrompt },
+    { id: "runtime_env_note", body: paperclipEnvNote },
+    { id: "heartbeat_template", body: renderedPrompt },
+    { id: "session_handoff", body: sessionHandoffNote },
+  ]);
 
   const agentOptions = buildAgentOptions({
     apiKey,
@@ -437,6 +437,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       command: "@cursor/sdk",
       commandNotes,
       prompt: finalPrompt,
+      promptSections,
       promptMetrics: {
         promptChars: finalPrompt.length,
         instructionsChars: instructions.chars,

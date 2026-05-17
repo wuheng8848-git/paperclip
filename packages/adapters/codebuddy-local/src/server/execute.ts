@@ -10,7 +10,7 @@ import {
   parseObject,
   buildPaperclipEnv,
   applyPaperclipWorkspaceEnv,
-  joinPromptSections,
+  joinPromptSectionsLabeled,
   ensureAbsoluteDirectory,
   renderTemplate,
   renderPaperclipWakePrompt,
@@ -330,12 +330,12 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const renderedPrompt = renderTemplate(promptTemplate, templateData);
   const sessionHandoffNote = asString(context.paperclipSessionHandoffMarkdown, "").trim();
   const taskContextNote = asString(context.paperclipTaskMarkdown, "").trim();
-  const prompt = joinPromptSections([
-    renderedBootstrapPrompt,
-    wakePrompt,
-    sessionHandoffNote,
-    taskContextNote,
-    renderedPrompt,
+  const { prompt, promptSections } = joinPromptSectionsLabeled([
+    { id: "bootstrap", body: renderedBootstrapPrompt },
+    { id: "wake", body: wakePrompt },
+    { id: "session_handoff", body: sessionHandoffNote },
+    { id: "task_context", body: taskContextNote },
+    { id: "heartbeat_template", body: renderedPrompt },
   ]);
 
   // ---- Build CLI args ----
@@ -375,6 +375,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       commandNotes: sessionId ? [`Resuming session ${sessionId}`] : [],
       env,
       prompt,
+      promptSections,
       promptMetrics: {
         promptChars: prompt.length,
         bootstrapPromptChars: renderedBootstrapPrompt.length,
