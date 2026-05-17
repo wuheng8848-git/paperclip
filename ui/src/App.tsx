@@ -19,6 +19,7 @@ import { IssueChatLongThreadPerf } from "./pages/IssueChatLongThreadPerf";
 import { Routines } from "./pages/Routines";
 import { RoutineDetail } from "./pages/RoutineDetail";
 import { HeartbeatTasks } from "./pages/HeartbeatTasks";
+import { OrchestrationInjection } from "./pages/OrchestrationInjection";
 import { UserProfile } from "./pages/UserProfile";
 import { ExecutionWorkspaceDetail } from "./pages/ExecutionWorkspaceDetail";
 import { Goals } from "./pages/Goals";
@@ -113,6 +114,7 @@ function boardRoutes() {
       <Route path="routines" element={<Routines />} />
       <Route path="routines/:routineId" element={<RoutineDetail />} />
       <Route path="heartbeat-tasks" element={<HeartbeatTasks />} />
+      <Route path="orchestration-injection" element={<OrchestrationInjection />} />
       <Route path="execution-workspaces/:workspaceId" element={<ExecutionWorkspaceDetail />} />
       <Route path="execution-workspaces/:workspaceId/services" element={<ExecutionWorkspaceDetail />} />
       <Route path="execution-workspaces/:workspaceId/configuration" element={<ExecutionWorkspaceDetail />} />

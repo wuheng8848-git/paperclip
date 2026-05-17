@@ -245,6 +245,7 @@ export const nav = {
   issues: "事务清单",
   routines: "例行任务",
   heartbeatTasks: "心跳任务",
+  orchestrationInjection: "编排注入",
   goals: "公司目标",
   workspaces: "工作区",
   work: "工作",
@@ -284,6 +285,35 @@ export const heartbeatTasksPage = {
   off: "关闭",
   never: "从未",
   running: (count: number) => `运行中 ${count}`,
+} as const;
+
+export const orchestrationInjectionPage = {
+  title: "编排注入",
+  subtitle: "只读追溯最近运行里控制面如何把调度上下文、唤醒载荷和适配器提示词交给智能体。",
+  selectCompany: "请选择团队查看编排注入。",
+  failedToLoad: "无法加载编排注入记录。",
+  empty: "当前团队还没有可查看的运行记录。",
+  recentRuns: "最近运行",
+  run: "运行",
+  agent: "智能体",
+  status: "状态",
+  source: "来源",
+  startedAt: "开始时间",
+  createdAt: "创建时间",
+  promptUnavailable: "这次运行没有上报最终提示词。适配器可能不是提示词型运行，或运行发生在该事件记录之前。",
+  eventUnavailable: "这次运行没有 adapter.invoke 事件。",
+  finalPrompt: "最终提示词",
+  promptMetrics: "提示词指标",
+  adapterInvocation: "适配器调用",
+  contextSnapshot: "运行快照",
+  wakePayload: "唤醒载荷",
+  commandNotes: "调用说明",
+  command: "命令",
+  cwd: "工作目录",
+  adapterType: "适配器",
+  noSelection: "选择一条运行查看注入细节。",
+  noData: "无",
+  chars: (count: number) => `${count.toLocaleString()} 字符`,
 } as const;
 
 /** 项目详情页（`/projects/:id`）右侧主内容区 */
