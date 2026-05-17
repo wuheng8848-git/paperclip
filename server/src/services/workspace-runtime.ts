@@ -5,6 +5,7 @@ import net from "node:net";
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
+import iconv from "iconv-lite";
 import type { AdapterRuntimeServiceReport } from "@paperclipai/adapter-utils";
 import type { Db } from "@paperclipai/db";
 import { executionWorkspaces, projectWorkspaces, workspaceRuntimeServices } from "@paperclipai/db";
@@ -490,11 +491,30 @@ async function executeProcess(input: {
     });
     const stdout = createProcessOutputCapture(input.maxStdoutBytes ?? DEFAULT_EXECUTE_PROCESS_OUTPUT_BYTES);
     const stderr = createProcessOutputCapture(input.maxStderrBytes ?? DEFAULT_EXECUTE_PROCESS_OUTPUT_BYTES);
+
+    // Windows GBK fallback for stdout/stderr
+    const decodeBuffer = (chunk: unknown): string => {
+      if (typeof chunk === "string") return chunk;
+      if (Buffer.isBuffer(chunk)) {
+        if (process.platform === "win32") {
+          const utf8 = chunk.toString("utf8");
+          if (!utf8.includes("\uFFFD")) return utf8;
+          try {
+            return iconv.decode(chunk, "gbk");
+          } catch {
+            return utf8;
+          }
+        }
+        return chunk.toString("utf8");
+      }
+      return String(chunk);
+    };
+
     child.stdout?.on("data", (chunk) => {
-      stdout.append(String(chunk));
+      stdout.append(decodeBuffer(chunk));
     });
     child.stderr?.on("data", (chunk) => {
-      stderr.append(String(chunk));
+      stderr.append(decodeBuffer(chunk));
     });
     child.on("error", reject);
     child.on("close", (code) => resolve({ stdout, stderr, code }));
@@ -2094,13 +2114,32 @@ async function startLocalRuntimeService(input: {
   });
   let stderrExcerpt = "";
   let stdoutExcerpt = "";
+
+  // Windows GBK fallback for service process stdout/stderr
+  const decodeBuffer = (chunk: unknown): string => {
+    if (typeof chunk === "string") return chunk;
+    if (Buffer.isBuffer(chunk)) {
+      if (process.platform === "win32") {
+        const utf8 = chunk.toString("utf8");
+        if (!utf8.includes("\uFFFD")) return utf8;
+        try {
+          return iconv.decode(chunk, "gbk");
+        } catch {
+          return utf8;
+        }
+      }
+      return chunk.toString("utf8");
+    }
+    return String(chunk);
+  };
+
   child.stdout?.on("data", async (chunk) => {
-    const text = String(chunk);
+    const text = decodeBuffer(chunk);
     stdoutExcerpt = (stdoutExcerpt + text).slice(-4096);
     if (input.onLog) await input.onLog("stdout", `[service:${serviceName}] ${text}`);
   });
   child.stderr?.on("data", async (chunk) => {
-    const text = String(chunk);
+    const text = decodeBuffer(chunk);
     stderrExcerpt = (stderrExcerpt + text).slice(-4096);
     if (input.onLog) await input.onLog("stderr", `[service:${serviceName}] ${text}`);
   });

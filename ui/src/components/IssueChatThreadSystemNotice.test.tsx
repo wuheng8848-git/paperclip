@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IssueChatThread } from "./IssueChatThread";
+import { dispositionNotice, issueChatThreadUi, systemNoticeLabels } from "../lib/i18n";
 import type { IssueChatComment } from "../lib/issue-chat-messages";
 import type { Agent, SuccessfulRunHandoffState } from "@paperclipai/shared";
 
@@ -140,7 +141,7 @@ describe("IssueChatThread system notice routing", () => {
     expect(row).not.toBeNull();
     const status = row?.querySelector('[role="status"]');
     expect(status?.getAttribute("aria-label")).toBe("Missing issue disposition");
-    expect(container.textContent).toContain("Paperclip needs a disposition");
+    expect(container.textContent).toContain(dispositionNotice.requiredBody);
     // collapsed by default — metadata identifier should not be visible
     expect(container.textContent).not.toContain("PAP-3440");
     const toggle = row?.querySelector("button[aria-expanded]") as HTMLButtonElement | null;
@@ -179,7 +180,7 @@ describe("IssueChatThread system notice routing", () => {
     renderThread([comment]);
 
     const status = container.querySelector('[role="status"]');
-    expect(status?.getAttribute("aria-label")).toBe("System alert");
+    expect(status?.getAttribute("aria-label")).toBe(systemNoticeLabels.danger);
     expect(container.textContent).toContain("CTO");
     const toggle = container.querySelector("button[aria-expanded]");
     expect(toggle?.getAttribute("aria-expanded")).toBe("true");
@@ -204,7 +205,7 @@ describe("IssueChatThread system notice routing", () => {
     expect(container.querySelector('[role="status"]')).toBeNull();
     const userRow = container.querySelector('[data-message-role="user"]');
     expect(userRow).not.toBeNull();
-    expect(container.textContent).toContain("Successful run missing issue disposition");
+    expect(container.textContent).toContain("运行成功完成但缺少事务处置状态");
   });
 
   it("keeps regular user comments rendering as user bubbles", () => {
@@ -310,8 +311,10 @@ describe("IssueChatThread system notice routing", () => {
 
     renderThread([comment]);
 
-    const copyLink = container.querySelector('button[aria-label="Copy link to system notice"]') as HTMLButtonElement;
-    const copyText = container.querySelector('button[aria-label="Copy system notice"]') as HTMLButtonElement;
+    const copyLink = container.querySelector(
+      `button[aria-label="${issueChatThreadUi.copyLinkAriaLabel}"]`,
+    ) as HTMLButtonElement;
+    const copyText = container.querySelector(`button[aria-label="${issueChatThreadUi.copyNoticeAriaLabel}"]`) as HTMLButtonElement;
     await act(async () => {
       copyLink.click();
       await Promise.resolve();
@@ -461,9 +464,9 @@ describe("IssueChatThread system notice routing", () => {
     expect(row?.querySelector(".lucide-triangle-alert")).toBeNull();
     expect(row?.querySelector(".lucide-chevron-down")).not.toBeNull();
     expect(row?.querySelector('[data-testid="stale-disposition-warning-time"]')?.parentElement?.className).toContain("ml-auto");
-    expect(row?.textContent).toContain("Stale disposition warning");
-    expect(row?.textContent).not.toContain("This disposition warning is stale because the issue now has a newer disposition.");
-    expect(row?.textContent).not.toContain("Paperclip needs a disposition before this issue can continue.");
+    expect(row?.textContent).toContain(dispositionNotice.missingDispositionTitle);
+    expect(row?.textContent).toContain("已失效");
+    expect(row?.textContent).not.toContain(dispositionNotice.requiredBody);
 
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
     const detailsId = toggle.getAttribute("aria-controls");

@@ -2,6 +2,7 @@ import { memo, useMemo } from "react";
 import type { TranscriptEntry } from "../adapters";
 import type { LiveRunForIssue } from "../api/heartbeats";
 import { IssueChatThread } from "./IssueChatThread";
+import { issueChatThreadUi } from "../lib/i18n";
 import type { IssueChatLinkedRun } from "../lib/issue-chat-messages";
 
 const EMPTY_COMMENTS: [] = [];
@@ -60,7 +61,11 @@ export const RunChatSurface = memo(function RunChatSurface({
       showComposer={false}
       showJumpToLatest={false}
       variant="embedded"
-      emptyMessage={active ? "Waiting for run output..." : "No run output captured."}
+      emptyMessage={
+        active
+          ? issueChatThreadUi.emptyEmbeddedWaitingOutput
+          : issueChatThreadUi.emptyEmbeddedNoOutput
+      }
       enableLiveTranscriptPolling={false}
       transcriptsByRunId={transcriptsByRunId}
       hasOutputForRun={(runId) => runId === run.id && hasOutput}

@@ -3,6 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { constants as fsConstants, promises as fs, type Dirent } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import iconv from "iconv-lite";
 import { sanitizeRemoteExecutionEnv } from "./remote-execution-env.js";
 import { buildSshSpawnTarget, type SshRemoteExecutionSpec } from "./ssh.js";
 import { redactCommandText } from "./command-redaction.js";
@@ -147,22 +148,23 @@ export function resolvePaperclipInstanceRootForAdapter(input: {
 }
 
 export const DEFAULT_PAPERCLIP_AGENT_PROMPT_TEMPLATE = [
-  "You are agent {{agent.id}} ({{agent.name}}). Continue your Paperclip work.",
+  "你是智能体 {{agent.id}}（{{agent.name}}）。继续你在 Paperclip 中的工作。",
   "",
-  "Execution contract:",
-  "- Start actionable work in this heartbeat; do not stop at a plan unless the issue asks for planning.",
-  "- Leave durable progress in comments, documents, or work products, then update the issue to a clear final disposition before ending the heartbeat.",
-  "- Comments, documents, screenshots, work products, and `Remaining` bullets are evidence, not valid liveness paths by themselves.",
-  "- Final disposition checklist: mark `done` when complete; use `in_review` only with a real reviewer, approval, interaction, or monitor path; use `blocked` only with first-class blockers or a named unblock owner/action; create delegated follow-up issues with blockers when another agent owns the next step; keep `in_progress` only when a live continuation path exists.",
-  "- Prefer the smallest verification that proves the change; do not default to full workspace typecheck/build/test on every heartbeat unless the task scope warrants it.",
-  "- Use child issues for parallel or long delegated work instead of polling agents, sessions, or processes.",
-  "- If woken by a human comment on a dependency-blocked issue, respond or triage the comment without treating the blocked deliverable work as unblocked.",
-  "- Create child issues directly when you know what needs to be done; use issue-thread interactions when the board/user must choose suggested tasks, answer structured questions, or confirm a proposal.",
-  "- To ask for that input, create an interaction on the current issue with POST /api/issues/{issueId}/interactions using kind suggest_tasks, ask_user_questions, or request_confirmation. Use continuationPolicy wake_assignee when you need to resume after a response; for request_confirmation this resumes only after acceptance.",
-  "- When you intentionally restart follow-up work on a completed assigned issue, include structured `resume: true` with the POST /api/issues/{issueId}/comments or PATCH /api/issues/{issueId} comment payload. Generic agent comments on closed issues are inert by default.",
-  "- For plan approval, update the plan document first, then create request_confirmation targeting the latest plan revision with idempotencyKey confirmation:{issueId}:plan:{revisionId}. Wait for acceptance before creating implementation subtasks, and create a fresh confirmation after superseding board/user comments if approval is still needed.",
-  "- If blocked, mark the issue blocked and name the unblock owner and action.",
-  "- Respect budget, pause/cancel, approval gates, and company boundaries.",
+  "执行契约：",
+  "- 在本次心搏启动可交付动作；除非事务明确要求只做规划，否则不要停在「只出计划」。",
+  "- 在评论、文档或工件中留下可核验的进展，并在结束心搏前把事务收口为明确的最终处置。",
+  "- 评论、文档、截图、工件以及 `Remaining` 条目是佐证，单凭它们不构成有效的存活路径。",
+  "- 最终处置检查清单：完成后标为 `done`；仅在确有评审人、审批、交互或监控路径时使用 `in_review`；仅在有一级阻塞或可指明的解除负责人/动作时使用 `blocked`；下一步由别的智能体负责时，建立带阻塞说明的委派子事务；仅在仍有可持续推进的实况路径时保持 `in_progress`。",
+  "- 优先用最小的验证手段证明改动成立；除非任务范围需要，不要每次心搏都默认跑全仓库 typecheck/build/test。",
+  "- 并行或可长期委派的活儿用子事务拆出去，不要用轮询智能体、会话或进程来代替。",
+  "- 若在依赖阻塞的事务上被人评论叫醒，回应或分拣该评论，但不要把受阻的可交付实现当作已经解除阻塞。",
+  "- 已知下一步该做什么就直接建子事务；需要看板/操作者选用建议任务、回答结构化问题或确认方案时，再走事务线程上的交互。",
+  "- 要向对方索取这些信息时，用 POST /api/issues/{issueId}/interactions 在当前事务创建交互，kind 为 suggest_tasks、ask_user_questions 或 request_confirmation。需在回应后继续推进时设置 continuationPolicy wake_assignee；request_confirmation 仅在对方接受后才继续唤醒。",
+  "- 在完成态的已分配事务上有意重启后续工作时，在 POST /api/issues/{issueId}/comments 或 PATCH /api/issues/{issueId} 的评论载荷里结构化带上 `resume: true`。关闭事务上的普通 agent 评论默认不产生效果。",
+  "- 涉及计划审批时，先更新计划文档，再对最新修订创建 request_confirmation，idempotencyKey 为 confirmation:{issueId}:plan:{revisionId}。在获准前不要拆实现性子事务；若在审批仍进行中又覆盖了看板/操作者评论导致需要重申，创建新的 confirmation。",
+  "- 受阻时标为 blocked，并写明谁来解除、做什么事。",
+  "- 遵守预算、暂停/取消、审批门禁与公司边界。",
+  "- 向 Paperclip API 写入中文或多行正文时，必须先写入 UTF-8 文件再用 curl --data-binary @file 或 PowerShell Invoke-RestMethod 传递，禁止 curl -d 内联中文 JSON。",
 ].join("\n");
 
 export interface PaperclipSkillEntry {
@@ -691,7 +693,7 @@ export function renderPaperclipWakePrompt(
         "Focus on the new wake delta below and continue the current task without restating the full heartbeat boilerplate.",
         "Fetch the API thread only when `fallbackFetchNeeded` is true or you need broader history than this batch.",
         "",
-        "Execution contract: take concrete action in this heartbeat when the issue is actionable; do not stop at a plan unless planning was requested. Leave durable progress and then give the issue a clear final disposition before ending the heartbeat: `done`, `in_review` with a real reviewer/approval/interaction path, `blocked` with first-class blockers or a named unblock owner/action, delegated follow-up issues with blockers, or `in_progress` only when a live continuation path exists. Use child issues for long or parallel delegated work instead of polling. Comments, documents, screenshots, work products, and `Remaining` bullets are evidence, not valid liveness paths by themselves.",
+        "执行契约：当事务可做时在本心搏采取实质动作；除非被要求只做规划，否则不要停在「只写计划」。留下可核验的进展，并在结束心搏前给出明确最终处置：`done`、`in_review`（确有评审人/审批/交互路径）、`blocked`（有一级或可指明的解除负责人与动作）、带阻塞的委派子事务，或仅在仍有可持续实况路径时使用 `in_progress`。长耗时或可并行的委派用子事务拆分，不要用轮询代替。评论、文档、截图、工件与 `Remaining` 条目仅是佐证，不能单凭它们充当存活路径。",
         "",
         `- reason: ${normalized.reason ?? "unknown"}`,
         `- issue: ${normalized.issue?.identifier ?? normalized.issue?.id ?? "unknown"}${normalized.issue?.title ? ` ${normalized.issue.title}` : ""}`,
@@ -708,7 +710,7 @@ export function renderPaperclipWakePrompt(
         "Use this inline wake data first before refetching the issue thread.",
         "Only fetch the API thread when `fallbackFetchNeeded` is true or you need broader history than this batch.",
         "",
-        "Execution contract: take concrete action in this heartbeat when the issue is actionable; do not stop at a plan unless planning was requested. Leave durable progress and then give the issue a clear final disposition before ending the heartbeat: `done`, `in_review` with a real reviewer/approval/interaction path, `blocked` with first-class blockers or a named unblock owner/action, delegated follow-up issues with blockers, or `in_progress` only when a live continuation path exists. Use child issues for long or parallel delegated work instead of polling. Comments, documents, screenshots, work products, and `Remaining` bullets are evidence, not valid liveness paths by themselves.",
+        "执行契约：当事务可做时在本心搏采取实质动作；除非被要求只做规划，否则不要停在「只写计划」。留下可核验的进展，并在结束心搏前给出明确最终处置：`done`、`in_review`（确有评审人/审批/交互路径）、`blocked`（有一级或可指明的解除负责人与动作）、带阻塞的委派子事务，或仅在仍有可持续实况路径时使用 `in_progress`。长耗时或可并行的委派用子事务拆分，不要用轮询代替。评论、文档、截图、工件与 `Remaining` 条目仅是佐证，不能单凭它们充当存活路径。",
         "",
         `- reason: ${normalized.reason ?? "unknown"}`,
         `- issue: ${normalized.issue?.identifier ?? normalized.issue?.id ?? "unknown"}${normalized.issue?.title ? ` ${normalized.issue.title}` : ""}`,
@@ -2214,13 +2216,21 @@ export async function runChildProcess(
         /**
          * Decode a stdout/stderr Buffer to UTF-8 string.
          * On Windows the console code page is often CP936 (GBK).
-         * Try UTF-8 first; if the bytes don't round-trip, fall back to UTF-8
-         * with replacement characters — this is a best-effort guard against
-         * mojibake until a proper iconv-lite integration is added.
+         * Try UTF-8 first; if the bytes produce U+FFFD replacement characters,
+         * fall back to GBK decoding via iconv-lite.
          */
         const decodeChunk = (chunk: unknown): string => {
           if (typeof chunk === "string") return chunk;
           if (Buffer.isBuffer(chunk)) {
+            if (process.platform === "win32") {
+              const utf8 = chunk.toString("utf8");
+              if (!utf8.includes("\uFFFD")) return utf8;
+              try {
+                return iconv.decode(chunk, "gbk");
+              } catch {
+                return utf8;
+              }
+            }
             return chunk.toString("utf8");
           }
           return String(chunk);

@@ -27,6 +27,8 @@
 | checkout / pause / recovery | 控制面止损与 escalation 边界 | [018](018-探查-agent-pause-checkout-recovery链路与止损结论.md) |
 | 心跳 / timer / `tickTimers` | 服务侧节拍、Eligible 角色、`enqueueWakeup` 路径事实 | [019](019-探查-心跳定时器与服务调度逻辑.md) |
 | stranded recovery / ROU-44 | 滞留回收工单 API 取证与待查项 | [020](020-探查-ROU-44滞留回收单与ROU-41收口链.md) |
+| CEO / 人类观察面 | 活动不足；ROU-64/59 recovery；timer 选题；**§7 手动 pause vs 系统自动阻塞/recovery**；附录 fallback workspace 日志 | [021](021-探查-CEO运行可观测性与活动面缺口.md) |
+| ROU-59 体验 | Qwen 格式；计划任务英文 UI；系统通知（continuation→blocked）汉化 | [022](022-探查-ROU-59体验问题清单-格式计划任务与通知汉化.md) |
 
 ## 全量列表（按序号）
 
@@ -52,5 +54,7 @@
 - [018-探查-agent-pause-checkout-recovery链路与止损结论.md](018-探查-agent-pause-checkout-recovery链路与止损结论.md)
 - [019-探查-心跳定时器与服务调度逻辑.md](019-探查-心跳定时器与服务调度逻辑.md)
 - [020-探查-ROU-44滞留回收单与ROU-41收口链.md](020-探查-ROU-44滞留回收单与ROU-41收口链.md)
+- [021-探查-CEO运行可观测性与活动面缺口.md](021-探查-CEO运行可观测性与活动面缺口.md)
+- [022-探查-ROU-59体验问题清单-格式计划任务与通知汉化.md](022-探查-ROU-59体验问题清单-格式计划任务与通知汉化.md)
 
 上级入口：[项目计划 README](../README.md) · [全量索引 index.md](../index.md) · [最佳实践目录说明](../最佳实践/README.md)

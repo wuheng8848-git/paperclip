@@ -5,6 +5,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { IssueThreadInteractionCard } from "./IssueThreadInteractionCard";
+import { issueThreadInteractionCardUi as icUi } from "../lib/i18n";
 import { ThemeProvider } from "../context/ThemeContext";
 import { TooltipProvider } from "./ui/tooltip";
 import {
@@ -96,7 +97,7 @@ describe("IssueThreadInteractionCard", () => {
       interaction: pendingAskUserQuestionsInteraction,
       onSubmitInteractionAnswers: vi.fn(),
     });
-    expect(withoutHandler.textContent).not.toContain("Cancel question");
+    expect(withoutHandler.textContent).not.toContain(icUi.cancelQuestion);
 
     act(() => root?.unmount());
     withoutHandler.remove();
@@ -107,7 +108,7 @@ describe("IssueThreadInteractionCard", () => {
       onCancelInteraction: vi.fn(),
       onSubmitInteractionAnswers: vi.fn(),
     });
-    expect(withHandler.textContent).toContain("Cancel question");
+    expect(withHandler.textContent).toContain(icUi.cancelQuestion);
   });
 
   it("makes child tasks explicit in suggested task trees", () => {
@@ -115,7 +116,7 @@ describe("IssueThreadInteractionCard", () => {
       interaction: pendingSuggestedTasksInteraction,
     });
 
-    expect(host.textContent).toContain("Child task");
+    expect(host.textContent).toContain(icUi.childTaskBadge);
   });
 
   it("shows an explicit placeholder when a rejected interaction has no reason", () => {
@@ -126,7 +127,7 @@ describe("IssueThreadInteractionCard", () => {
       },
     });
 
-    expect(host.textContent).toContain("No reason provided.");
+    expect(host.textContent).toContain(icUi.noReasonProvided);
   });
 
   it("requires a decline reason when the request confirmation payload asks for one", async () => {
@@ -154,7 +155,7 @@ describe("IssueThreadInteractionCard", () => {
       saveButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect(host.textContent).toContain("A decline reason is required.");
+    expect(host.textContent).toContain(icUi.declineReasonRequired);
 
     const textarea = host.querySelector("textarea") as HTMLTextAreaElement | null;
     expect(textarea).toBeTruthy();
@@ -211,7 +212,7 @@ describe("IssueThreadInteractionCard", () => {
       },
     });
 
-    expect(host.textContent).toContain("Wakes on confirm");
+    expect(host.textContent).toContain(icUi.continuationWakeOnConfirm);
   });
 
   it("renders request confirmation target links and stale-target expiry", () => {
@@ -220,9 +221,9 @@ describe("IssueThreadInteractionCard", () => {
     });
 
     const targetLinks = host.querySelectorAll("a");
-    expect(host.textContent).toContain("Expired by target change");
-    expect(host.textContent).toContain("Plan v3");
-    expect(host.textContent).toContain("Plan v4");
+    expect(host.textContent).toContain(icUi.expiredByTargetTitle);
+    expect(host.textContent).toContain("计划 v3");
+    expect(host.textContent).toContain("计划 v4");
     expect(targetLinks[0]?.getAttribute("href")).toContain("#document-plan");
     expect(targetLinks[1]?.getAttribute("href")).toContain("#document-plan");
     expect(host.textContent).not.toContain("Approve plan");
@@ -234,7 +235,7 @@ describe("IssueThreadInteractionCard", () => {
     });
 
     const jumpLink = Array.from(host.querySelectorAll("a")).find((link) =>
-      link.textContent?.includes("Jump to comment"),
+      link.textContent?.includes(icUi.jumpToComment),
     );
 
     expect(jumpLink?.getAttribute("href")).toBe(
@@ -270,8 +271,6 @@ describe("IssueThreadInteractionCard", () => {
       interaction: failedRequestConfirmationInteraction,
     });
 
-    expect(host.textContent).toContain(
-      "This request could not be resolved. Try again or create a new request.",
-    );
+    expect(host.textContent).toContain(icUi.failedRequestBody);
   });
 });

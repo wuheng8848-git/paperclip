@@ -14,6 +14,7 @@ import {
   resolveAssistantMessageFoldedState,
   resolveIssueChatHumanAuthor,
 } from "./IssueChatThread";
+import { issueBlockedNotice, issueChatThreadUi, issueThreadInteractionCardUi as icUi } from "../lib/i18n";
 import { ToastProvider } from "../context/ToastContext";
 import { ToastViewport } from "./ToastViewport";
 import type {
@@ -333,7 +334,7 @@ describe("IssueChatThread", () => {
       );
     });
 
-    expect(container.textContent).toContain("Jump to latest");
+    expect(container.textContent).toContain(issueChatThreadUi.jumpToLatest);
     expect(container.textContent).not.toContain("Chat (");
 
     const viewport = container.querySelector('[data-testid="thread-viewport"]') as HTMLDivElement | null;
@@ -376,7 +377,7 @@ describe("IssueChatThread", () => {
     );
     expect(toggle).not.toBeNull();
     expect(toggle?.getAttribute("data-pending-work-mode")).toBe("planning");
-    expect(toggle?.textContent).toContain("Planning");
+    expect(toggle?.textContent).toContain(issueChatThreadUi.composerPlanningBadge);
 
     act(() => {
       root.unmount();
@@ -423,7 +424,7 @@ describe("IssueChatThread", () => {
       '[data-testid="issue-chat-composer-work-mode-menu-toggle"]',
     ) as HTMLButtonElement | null;
     expect(menuItem).not.toBeNull();
-    expect(menuItem?.textContent).toContain("Switch to planning");
+    expect(menuItem?.textContent).toContain(issueChatThreadUi.composerSwitchToPlanning);
 
     act(() => {
       menuItem?.click();
@@ -437,7 +438,7 @@ describe("IssueChatThread", () => {
       '[data-testid="issue-chat-composer-work-mode-toggle"]',
     );
     expect(visibleChip).not.toBeNull();
-    expect(visibleChip?.textContent).toContain("Planning");
+    expect(visibleChip?.textContent).toContain(issueChatThreadUi.composerPlanningBadge);
 
     act(() => {
       root.unmount();
@@ -621,7 +622,7 @@ describe("IssueChatThread", () => {
     });
 
     const jump = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent === "Jump to latest",
+      (button) => button.textContent === issueChatThreadUi.jumpToLatest,
     ) as HTMLButtonElement | undefined;
     expect(jump).toBeDefined();
 
@@ -678,7 +679,7 @@ describe("IssueChatThread", () => {
     });
 
     const jump = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent === "Jump to latest",
+      (button) => button.textContent === issueChatThreadUi.jumpToLatest,
     ) as HTMLButtonElement | undefined;
     expect(jump).toBeDefined();
 
@@ -738,7 +739,7 @@ describe("IssueChatThread", () => {
     });
 
     const jump = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent === "Jump to latest",
+      (button) => button.textContent === issueChatThreadUi.jumpToLatest,
     ) as HTMLButtonElement | undefined;
     expect(jump).toBeDefined();
 
@@ -847,7 +848,7 @@ describe("IssueChatThread", () => {
     elementScrollToMock.mockClear();
 
     const jump = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent === "Jump to latest",
+      (button) => button.textContent === issueChatThreadUi.jumpToLatest,
     ) as HTMLButtonElement | undefined;
     expect(jump).toBeDefined();
 
@@ -905,7 +906,7 @@ describe("IssueChatThread", () => {
     });
 
     const jump = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent === "Jump to latest",
+      (button) => button.textContent === issueChatThreadUi.jumpToLatest,
     ) as HTMLButtonElement | undefined;
     expect(jump).toBeDefined();
 
@@ -978,7 +979,7 @@ describe("IssueChatThread", () => {
     });
 
     const jump = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent === "Jump to latest",
+      (button) => button.textContent === issueChatThreadUi.jumpToLatest,
     ) as HTMLButtonElement | undefined;
     expect(jump).toBeDefined();
 
@@ -1264,8 +1265,8 @@ describe("IssueChatThread", () => {
       );
     });
 
-    expect(container.textContent).toContain("Follow-up");
-    expect(container.textContent).toContain("requested follow-up");
+    expect(container.textContent).toContain(issueChatThreadUi.badgeFollowUp);
+    expect(container.textContent).toContain(issueChatThreadUi.timelineEventRequestedFollowUpVerb);
 
     act(() => {
       root.unmount();
@@ -1302,8 +1303,8 @@ describe("IssueChatThread", () => {
       );
     });
 
-    expect(container.textContent).toContain("Work on this issue is blocked by the linked issue");
-    expect(container.textContent).toContain("Comments still wake the assignee for questions or triage");
+    expect(container.textContent).toContain(issueBlockedNotice.blockedByLinked(1, "it is"));
+    expect(container.textContent).toContain("评论仍会唤醒经办人进行处理");
     expect(container.textContent).toContain("PAP-1723");
     expect(container.textContent).toContain("QA the install flow");
     expect(container.querySelector('[data-issue-path-id="PAP-1723"]')).not.toBeNull();
@@ -1356,7 +1357,7 @@ describe("IssueChatThread", () => {
 
     expect(container.textContent).toContain("PAP-2167");
     expect(container.textContent).toContain("Phase 7 review");
-    expect(container.textContent).toContain("Ultimately waiting on");
+    expect(container.textContent).toContain(issueBlockedNotice.ultimatelyWaitingOn);
     expect(container.textContent).toContain("PAP-2201");
     expect(container.textContent).toContain("Security sign-off");
     expect(container.querySelector('[data-issue-path-id="PAP-2201"]')).not.toBeNull();
@@ -1393,9 +1394,9 @@ describe("IssueChatThread", () => {
       );
     });
 
-    expect(container.textContent).toContain("CodexCoder is paused");
-    expect(container.textContent).toContain("New runs will not start until the agent is resumed");
-    expect(container.textContent).toContain("It was paused manually");
+    expect(container.textContent).toContain("CodexCoder");
+    expect(container.textContent).toContain(issueChatThreadUi.pausedAfterName);
+    expect(container.textContent).toContain(issueChatThreadUi.pausedManualReason);
 
     act(() => {
       root.unmount();
@@ -1425,7 +1426,7 @@ describe("IssueChatThread", () => {
     });
 
     expect(container.textContent).toContain("No run output captured.");
-    expect(container.textContent).not.toContain("Jump to latest");
+    expect(container.textContent).not.toContain(issueChatThreadUi.jumpToLatest);
 
     const viewport = container.querySelector('[data-testid="thread-viewport"]') as HTMLDivElement | null;
     expect(viewport?.className).toContain("space-y-3");
@@ -1458,7 +1459,7 @@ describe("IssueChatThread", () => {
     });
 
     const acceptButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Accept drafts"),
+      button.textContent?.includes(icUi.acceptDraftsAll),
     );
     expect(acceptButton).toBeTruthy();
 
@@ -1617,7 +1618,7 @@ describe("IssueChatThread", () => {
     });
 
     const cancelButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Cancel question"),
+      button.textContent?.includes(icUi.cancelQuestion),
     );
     expect(cancelButton).toBeTruthy();
 
@@ -1660,12 +1661,12 @@ describe("IssueChatThread", () => {
     });
 
     expect(container.textContent).toContain("Dotta");
-    expect(container.textContent).toContain("updated this task");
-    expect(container.textContent).toContain("Expired confirmation");
+    expect(container.textContent).toContain(issueChatThreadUi.expiredRowUpdatedTask);
+    expect(container.textContent).toContain(issueChatThreadUi.expiredRowShowExpiredConfirmation);
     expect(container.textContent).not.toContain("Approve the plan");
 
     const toggleButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Expired confirmation"),
+      button.textContent?.includes(issueChatThreadUi.expiredRowShowExpiredConfirmation),
     );
     expect(toggleButton).toBeTruthy();
 
@@ -1713,7 +1714,7 @@ describe("IssueChatThread", () => {
     });
 
     expect(container.textContent).toContain("Agent summary");
-    expect(container.textContent).not.toContain("Chat renderer hit an internal state error.");
+    expect(container.textContent).not.toContain(issueChatThreadUi.fallbackRendererErrorTitle);
 
     act(() => {
       root.unmount();
@@ -1753,7 +1754,7 @@ describe("IssueChatThread", () => {
       );
     });
 
-    expect(container.textContent).toContain("Deferred wake");
+    expect(container.textContent).toContain(issueChatThreadUi.queueBadgeDeferredWake);
 
     act(() => {
       root.render(
@@ -1785,8 +1786,8 @@ describe("IssueChatThread", () => {
       );
     });
 
-    expect(container.textContent).toContain("Queued");
-    expect(container.textContent).not.toContain("Deferred wake");
+    expect(container.textContent).toContain(issueChatThreadUi.queueBadgeQueued);
+    expect(container.textContent).not.toContain(issueChatThreadUi.queueBadgeDeferredWake);
 
     act(() => {
       root.unmount();
@@ -1815,7 +1816,7 @@ describe("IssueChatThread", () => {
 
     const editor = container.querySelector('textarea[aria-label="Issue chat editor"]') as HTMLTextAreaElement | null;
     expect(editor).not.toBeNull();
-    expect(editor?.placeholder).toBe("Reply");
+    expect(editor?.placeholder).toBe(issueChatThreadUi.composerReplyPlaceholder);
 
     act(() => {
       const valueSetter = Object.getOwnPropertyDescriptor(
@@ -1934,9 +1935,9 @@ describe("IssueChatThread", () => {
     });
 
     expect(container.querySelector('[data-testid="issue-chat-composer-drop-overlay"]')).not.toBeNull();
-    expect(container.textContent).toContain("Drop to upload");
-    expect(container.textContent).toContain("Images insert into the reply");
-    expect(container.textContent).toContain("Other files are added to this issue");
+    expect(container.textContent).toContain(issueChatThreadUi.composerDropTitle);
+    expect(container.textContent).toContain("图片");
+    expect(container.textContent).toContain("附件");
     expect(composer?.className).toContain("border-primary/45");
 
     act(() => {
@@ -1992,7 +1993,7 @@ describe("IssueChatThread", () => {
     const attachmentList = container.querySelector('[data-testid="issue-chat-composer-attachments"]');
     expect(attachmentList).not.toBeNull();
     expect(container.textContent).toContain("report.pdf");
-    expect(container.textContent).toContain("Attached to issue");
+    expect(container.textContent).toContain(issueChatThreadUi.composerAttachedToIssue);
 
     await act(async () => {
       root.unmount();
@@ -2031,7 +2032,7 @@ describe("IssueChatThread", () => {
     });
 
     expect(container.querySelector('[data-testid="issue-chat-composer-drop-overlay"]')).not.toBeNull();
-    expect(container.textContent).toContain("Drop to upload");
+    expect(container.textContent).toContain(issueChatThreadUi.composerDropTitle);
     expect(container.textContent).not.toContain("Drop image to upload");
     expect(composer?.className).toContain("border-primary/45");
 
@@ -2092,7 +2093,7 @@ describe("IssueChatThread", () => {
     expect(attachmentList).not.toBeNull();
     expect(attachmentList?.className).toContain("mb-3");
     expect(container.textContent).toContain("report.pdf");
-    expect(container.textContent).toContain("Attached to issue");
+    expect(container.textContent).toContain(issueChatThreadUi.composerAttachedToIssue);
 
     await act(async () => {
       root.unmount();
@@ -2189,7 +2190,7 @@ describe("IssueChatThread", () => {
 
     const editor = container.querySelector('textarea[aria-label="Issue chat editor"]') as HTMLTextAreaElement | null;
     const submitButton = Array.from(container.querySelectorAll("button")).find(
-      (element) => element.textContent === "Send",
+      (element) => element.textContent === issueChatThreadUi.composerSend,
     ) as HTMLButtonElement | undefined;
     expect(editor).not.toBeNull();
     expect(submitButton).toBeDefined();
@@ -2253,7 +2254,7 @@ describe("IssueChatThread", () => {
 
     const editor = container.querySelector('textarea[aria-label="Issue chat editor"]') as HTMLTextAreaElement | null;
     const submitButton = Array.from(container.querySelectorAll("button")).find(
-      (element) => element.textContent === "Send",
+      (element) => element.textContent === issueChatThreadUi.composerSend,
     ) as HTMLButtonElement | undefined;
     expect(editor).not.toBeNull();
     expect(submitButton).toBeDefined();
@@ -2272,7 +2273,7 @@ describe("IssueChatThread", () => {
     });
 
     expect(appendMock).not.toHaveBeenCalled();
-    expect(document.body.textContent).toContain("No assignee selected");
+    expect(document.body.textContent).toContain(issueChatThreadUi.toastNoAssigneeSelectedTitle);
 
     await act(async () => {
       submitButton?.click();
@@ -2320,7 +2321,7 @@ describe("IssueChatThread", () => {
 
     const editor = container.querySelector('textarea[aria-label="Issue chat editor"]') as HTMLTextAreaElement | null;
     const submitButton = Array.from(container.querySelectorAll("button")).find(
-      (element) => element.textContent === "Send",
+      (element) => element.textContent === issueChatThreadUi.composerSend,
     ) as HTMLButtonElement | undefined;
 
     act(() => {
@@ -2337,7 +2338,7 @@ describe("IssueChatThread", () => {
     });
 
     expect(appendMock).toHaveBeenCalledTimes(1);
-    expect(document.body.textContent).not.toContain("No assignee selected");
+    expect(document.body.textContent).not.toContain(issueChatThreadUi.toastNoAssigneeSelectedTitle);
 
     act(() => {
       root.unmount();
@@ -2598,8 +2599,8 @@ describe("IssueChatThread", () => {
       );
     });
 
-    expect(container.textContent).toContain("Working");
-    expect(container.textContent).not.toContain("Worked");
+    expect(container.textContent).toContain(issueChatThreadUi.cotWorking);
+    expect(container.textContent).not.toContain(issueChatThreadUi.cotWorked);
 
     act(() => {
       root.unmount();

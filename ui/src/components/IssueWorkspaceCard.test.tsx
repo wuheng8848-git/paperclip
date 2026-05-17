@@ -164,7 +164,7 @@ describe("IssueWorkspaceCard", () => {
       );
     });
 
-    const editButton = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("Edit"));
+    const editButton = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("编辑"));
     expect(editButton).not.toBeUndefined();
 
     act(() => {
@@ -177,9 +177,9 @@ describe("IssueWorkspaceCard", () => {
     const environmentSelect = selects[2] as HTMLSelectElement;
     expect(environmentSelect.disabled).toBe(true);
     expect(environmentSelect.value).toBe("env-workspace");
-    expect(container.textContent).toContain("Environment selection is locked while reusing an existing workspace.");
+    expect(container.textContent).toContain("正在复用工作区：环境不可改；下次运行将沿用该工作区已保存的环境绑定。");
 
-    const saveButton = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("Save"));
+    const saveButton = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("保存"));
     expect(saveButton).not.toBeUndefined();
 
     act(() => {
@@ -230,9 +230,9 @@ describe("IssueWorkspaceCard", () => {
       );
     });
 
-    expect(container.textContent).not.toContain("Environment:");
+    expect(container.textContent).not.toContain("环境：");
 
-    const editButton = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("Edit"));
+    const editButton = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("编辑"));
     expect(editButton).not.toBeUndefined();
 
     act(() => {
@@ -241,7 +241,7 @@ describe("IssueWorkspaceCard", () => {
 
     const selects = container.querySelectorAll("select");
     expect(selects).toHaveLength(2);
-    expect(container.textContent).not.toContain("Project default environment");
+    expect(container.textContent).not.toContain("项目默认环境");
 
     act(() => {
       root.unmount();

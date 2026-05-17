@@ -921,7 +921,7 @@ export function IssueProperties({
   );
   const monitorAttemptBadge = issue.monitorAttemptCount && issue.monitorAttemptCount > 0 ? (
     <span className="text-xs text-muted-foreground">
-      Attempt {issue.monitorAttemptCount}
+      {issuePropertiesPage.monitorAttemptBadge(issue.monitorAttemptCount)}
     </span>
   ) : null;
 
@@ -1170,7 +1170,7 @@ export function IssueProperties({
   ) : (
     <>
       <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-      <span className="text-sm text-muted-foreground">No labels</span>
+      <span className="text-sm text-muted-foreground">{issuePropertiesPage.noLabels}</span>
     </>
   );
   const labelsExtra = (issue.labelIds ?? []).length > 0 ? (
@@ -1260,7 +1260,7 @@ export function IssueProperties({
   ) : (
     <>
       <User className="h-3.5 w-3.5 text-muted-foreground" />
-      <span className="text-sm text-muted-foreground">Unassigned</span>
+      <span className="text-sm text-muted-foreground">{issuePropertiesPage.unassigned}</span>
     </>
   );
 
@@ -1455,7 +1455,7 @@ export function IssueProperties({
   ) : (
     <>
       <Hexagon className="h-3.5 w-3.5 text-muted-foreground" />
-      <span className="text-sm text-muted-foreground">No project</span>
+      <span className="text-sm text-muted-foreground">{issuePropertiesPage.noProject}</span>
     </>
   );
   const projectPickerOptions = orderItemsBySelectedAndRecent(
@@ -1567,7 +1567,7 @@ export function IssueProperties({
       {parentTitle}
     </span>
   ) : (
-    <span className="text-sm text-muted-foreground">No parent</span>
+    <span className="text-sm text-muted-foreground">{issuePropertiesPage.noParent}</span>
   );
   const parentLink = issue.parentId ? (
     <Link
@@ -1773,7 +1773,7 @@ export function IssueProperties({
         {showAssigneeAdapterOptions ? (
           <PropertyPicker
             inline={inline}
-            label="Model"
+            label={issuePropertiesPage.model}
             open={assigneeOptionsOpen}
             onOpenChange={setAssigneeOptionsOpen}
             triggerContent={assigneeOptionsTrigger}
@@ -1784,8 +1784,8 @@ export function IssueProperties({
                 type="button"
                 className="inline-flex items-center justify-center h-5 w-5 rounded hover:bg-accent/50 transition-colors text-muted-foreground hover:text-foreground"
                 onClick={() => updateAssigneeAdapterOverrides(null)}
-                aria-label="Clear adapter options"
-                title="Clear adapter options"
+                aria-label={assigneeOptionsLabels.clearAdapterOptions}
+                title={assigneeOptionsLabels.clearAdapterOptions}
               >
                 <X className="h-3 w-3" />
               </button>
@@ -1892,7 +1892,7 @@ export function IssueProperties({
                 onClick={onAddSubIssue}
               >
                 <Plus className="h-3 w-3" />
-              Add sub-issue
+                {issuePropertiesPage.addSubIssue}
               </button>
             ) : null}
           </div>
@@ -1955,7 +1955,7 @@ export function IssueProperties({
         {showScheduledRetryRow && scheduledRetryContent ? (
           <PropertyPicker
             inline={inline}
-            label="Scheduled retry"
+            label={issuePropertiesPage.scheduledRetry}
             open={scheduledRetryOpen}
             onOpenChange={setScheduledRetryOpen}
             triggerContent={scheduledRetryTrigger}
@@ -2010,7 +2010,7 @@ export function IssueProperties({
                   to={`/execution-workspaces/${issue.executionWorkspaceId}`}
                   className="text-sm text-primary hover:underline inline-flex items-center gap-1"
                 >
-                  View workspace
+                  {issuePropertiesPage.viewWorkspace}
                   <ExternalLink className="h-3 w-3" />
                 </Link>
               </PropertyRow>

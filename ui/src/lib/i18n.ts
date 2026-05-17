@@ -3278,6 +3278,47 @@ export const systemNoticeMetaLabels: Record<string, string> = {
     "选择并记录有效的事务处置状态（不要复制转录内容）",
 };
 
+/** 与服务端 `summarizeRunFailureForIssueComment` 拼接的英文后缀一致（recovery / heartbeat） */
+const SYSTEM_NOTICE_RUN_FAILURE_WITHHELD_EN =
+  " Latest retry failure details were withheld from the issue thread; inspect the linked run for evidence.";
+const SYSTEM_NOTICE_RUN_FAILURE_WITHHELD_ZH = "最新重试失败详情未写入事务讨论串，请查看关联运行取证。";
+const SYSTEM_NOTICE_MOVE_BLOCKED_ZH = "已将该事务标为阻塞（`blocked`），便于人工介入。";
+
+function assembleStrandedRecoveryNotice(mainZh: string, withheldSuffix: boolean): string {
+  const mid = withheldSuffix ? SYSTEM_NOTICE_RUN_FAILURE_WITHHELD_ZH : "";
+  return `${mainZh}${mid}${SYSTEM_NOTICE_MOVE_BLOCKED_ZH}`;
+}
+
+/** Markdown 或链路处理可能去掉状态码反引号；匹配时用统一形态 */
+function normalizeSystemNoticeStatusBackticks(s: string): string {
+  return s
+    .replace(/`in_progress`/g, "in_progress")
+    .replace(/`blocked`/g, "blocked")
+    .replace(/`todo`/g, "todo");
+}
+
+/** `escalateStrandedAssignedIssue` 等在首段英文后追加 `- Recovery issue:` 等 Markdown 列表 */
+function translateStrandedEscalationTail(tail: string): string {
+  if (!tail.includes("- Recovery issue:")) return tail;
+  let x = tail;
+  x = x.replace(/\n\n- Recovery issue:/g, "\n\n- 恢复事务:");
+  x = x.replace(/\n- Recovery owner:/g, "\n- 恢复负责人:");
+  x = x.replace(/\n- Next action:/g, "\n- 建议下一步：");
+  x = x.replace(
+    "the recovery owner should either restore a live execution path or record the manual resolution, then mark the recovery issue done.",
+    "恢复负责人应恢复在线执行路径，或记录人工处理结论，然后将恢复事务标为完成。",
+  );
+  x = x.replace(
+    "none created because Paperclip could not find an invokable manager, creator, or executive owner with budget available.",
+    "未创建恢复事务：回形针找不到可用的管理者、创建者或高管经办人（预算可用）。",
+  );
+  x = x.replace(
+    "a board operator should assign an invokable recovery owner, fix the agent/runtime state, or record an intentional manual resolution.",
+    "看板操作者应指定可用的恢复负责人、修复智能体或运行时状态，或记录有意的人工处理结论。",
+  );
+  return x;
+}
+
 /** 事务处置提示 — 系统通知 body 中文映射 */
 export const dispositionNotice = {
   requiredBody: "回形针需要在该事务上指定处置状态后才能继续。",
@@ -3292,6 +3333,83 @@ export const dispositionNotice = {
     if (t.startsWith("## Successful run missing issue disposition")) return "运行成功完成但缺少事务处置状态。";
     if (t.startsWith("## Run finished without a next step")) return "运行已完成但未指定下一步。";
     if (t.startsWith("Paperclip exhausted the bounded successful-run handoff correction")) return "回形针已耗尽有限的成功运行交接修正次数。";
+
+    if (t === "Paperclip stopped automatic stranded-work recovery for this recovery issue.") {
+      return "回形针已停止对本恢复事务的自动滞留作业恢复。";
+    }
+
+    const recoveryTailIdx = t.indexOf("\n\n- Recovery issue:");
+    const headPart = recoveryTailIdx >= 0 ? t.slice(0, recoveryTailIdx).trim() : t;
+    const recoveryTailPart = recoveryTailIdx >= 0 ? t.slice(recoveryTailIdx) : "";
+
+    const withheldSuffix = headPart.includes(SYSTEM_NOTICE_RUN_FAILURE_WITHHELD_EN);
+    const core = withheldSuffix
+      ? headPart.replace(SYSTEM_NOTICE_RUN_FAILURE_WITHHELD_EN, "").trim()
+      : headPart;
+    const coreNorm = normalizeSystemNoticeStatusBackticks(core);
+
+    const attachTail = (zh: string) => zh + translateStrandedEscalationTail(recoveryTailPart);
+
+    if (
+      coreNorm ===
+      "Paperclip automatically retried continuation for this assigned in_progress issue and the retry made progress, but it still has no live execution path. Moving it to blocked so it is visible for intervention."
+    ) {
+      return attachTail(
+        assembleStrandedRecoveryNotice(
+          "回形针对该 `in_progress` 经办事务自动重试了延续执行，重试有进展但仍无在线执行路径。",
+          false,
+        ),
+      );
+    }
+
+    const continuationDisappearedPrefix =
+      "Paperclip automatically retried continuation for this assigned in_progress issue after its live execution disappeared, but it still has no live execution path.";
+    const continuationDisappearedSuffix = " Moving it to blocked so it is visible for intervention.";
+    if (coreNorm.startsWith(continuationDisappearedPrefix) && coreNorm.endsWith(continuationDisappearedSuffix)) {
+      return attachTail(
+        assembleStrandedRecoveryNotice(
+          "回形针对该 `in_progress` 经办事务在其在线执行路径消失后自动重试了延续执行，但仍无在线执行路径。",
+          withheldSuffix,
+        ),
+      );
+    }
+
+    const todoLostWakePrefix =
+      "Paperclip automatically retried dispatch for this assigned todo issue after a lost wake/run, but it still has no live execution path.";
+    const todoLostWakeSuffix = " Moving it to blocked so it is visible for intervention.";
+    if (coreNorm.startsWith(todoLostWakePrefix) && coreNorm.endsWith(todoLostWakeSuffix)) {
+      return attachTail(
+        assembleStrandedRecoveryNotice(
+          "回形针对该 `todo` 待办事务在唤醒或运行丢失后自动重试了派发，但仍无在线执行路径。",
+          withheldSuffix,
+        ),
+      );
+    }
+
+    const todoTerminalPrefix =
+      "Paperclip automatically retried dispatch for this assigned todo issue during terminal run recovery, but it still has no live execution path.";
+    const todoTerminalSuffix = " Moving it to blocked so it is visible for intervention.";
+    if (coreNorm.startsWith(todoTerminalPrefix) && coreNorm.endsWith(todoTerminalSuffix)) {
+      return attachTail(
+        assembleStrandedRecoveryNotice(
+          "回形针对该 `todo` 待办事务在终端运行恢复流程中自动重试了派发，但仍无在线执行路径。",
+          withheldSuffix,
+        ),
+      );
+    }
+
+    const inProgressTerminalPrefix =
+      "Paperclip automatically retried continuation for this assigned in_progress issue during terminal run recovery, but it still has no live execution path.";
+    const inProgressTerminalSuffix = " Moving it to blocked so it is visible for intervention.";
+    if (coreNorm.startsWith(inProgressTerminalPrefix) && coreNorm.endsWith(inProgressTerminalSuffix)) {
+      return attachTail(
+        assembleStrandedRecoveryNotice(
+          "回形针对该 `in_progress` 经办事务在终端运行恢复流程中自动重试了延续执行，但仍无在线执行路径。",
+          withheldSuffix,
+        ),
+      );
+    }
+
     return body;
   },
 } as const;
@@ -3384,7 +3502,10 @@ export const issuePropertiesPage = {
   schedule: "调度",
   clear: "清除",
 
-  // Retry
+  /** 监控徽章：已成功触发次数（侧栏简短展示） */
+  monitorAttemptBadge: (n: number) => `${n} 次触发`,
+
+  // Retry — 事务侧栏「计划重试」展开文案
   attempt: "尝试",
   pendingSchedule: "等待调度",
   continuation: "继续执行",
@@ -3407,15 +3528,89 @@ export const issuePropertiesPage = {
   pullContinuationForward: "立即提前继续执行",
   pullRetryForward: "立即提前重试",
 
-  // Workspace
-  viewWorkspace: "查看工作区",
-
-  // Dialog strings
   removeBlockerTitle: "移除阻塞？",
   removeBlockerDescription: (label: string) => `将 ${label} 从该事务的阻塞列表中移除。`,
   cancel: "取消",
   removeBlockerBtn: "移除阻塞",
 } as const;
+
+/** `IssueWorkspaceCard`：事务详情侧栏「执行工作区」卡片（下拉与说明） */
+export const issueWorkspaceCardUi = {
+  copied: "已复制！",
+  copy: "复制",
+
+  workspaceMode: {
+    isolated_workspace: "隔离工作区",
+    operator_branch: "操作者分支",
+    cloud_sandbox: "云沙箱",
+    adapter_managed: "适配器托管",
+    fallback: "工作区",
+  },
+
+  configuredSelection: {
+    projectDefault: "项目默认",
+    newIsolated: "新建隔离工作区",
+    reuseExisting: "复用已有工作区",
+    existingIsolated: "已有隔离工作区",
+  },
+
+  workspaceStatusBadge: {
+    active: "活跃",
+    idle: "空闲",
+    in_review: "审查中",
+    archived: "已归档",
+  },
+
+  cancel: "取消",
+  save: "保存",
+  edit: "编辑",
+
+  repoPrefix: "仓库：",
+  environmentPrefix: "环境：",
+  envNoteReusedWorkspace: " · 复用工作区的环境",
+  envNoteProjectDefault: " · 项目默认",
+
+  runHintFreshIsolated: "首次运行时会为此事务新建隔离工作区。",
+  runHintReuse: "运行时将复用已有工作区。",
+  runHintProjectDefault: "运行时将沿用项目的默认工作区配置。",
+
+  reusingHeading: "复用：",
+
+  viewDetails: "查看工作区详情",
+  viewDetailsSuffix: " →",
+
+  placeholderPickWorkspace: "请选择已有工作区…",
+
+  envOptionNoBindingOnReuse: "复用的工作区未绑定环境",
+  envOptionPickWorkspaceFirst: "请先选择已有工作区以查看其环境",
+  envOptionProjectDefault: "项目默认环境",
+  envOptionNone: "无环境",
+
+  envLockedWhileReusingDetail:
+    "正在复用工作区：环境不可改；下次运行将沿用该工作区已保存的环境绑定。",
+
+  envPickWorkspaceFirstDetail: "请先选定要复用的工作区；其环境以工作区持久化配置为准。",
+
+  currentHeading: "当前：",
+
+  /** `Environment.driver` 下拉展示（名称后的类型徽记） */
+  environmentDriverLabels: {
+    local: "本地",
+    ssh: "SSH",
+    sandbox: "沙箱",
+  },
+} as const;
+
+export function formatEnvironmentDriverLabel(driver: string): string {
+  const map = issueWorkspaceCardUi.environmentDriverLabels as Record<string, string>;
+  return map[driver] ?? driver;
+}
+
+export function formatExecutionWorkspaceBadgeStatus(status: string): string {
+  const zh = issueWorkspaceCardUi.workspaceStatusBadge[status as keyof typeof issueWorkspaceCardUi.workspaceStatusBadge];
+  if (zh) return zh;
+  return status.replace(/_/g, " ");
+}
 
 /** 思考努力程度选项 */
 export const thinkingEffortOptions = {
@@ -3648,4 +3843,246 @@ export const activityChangeLabels = {
   board: "面板",
   you: "你",
   issue: "事务",
+} as const;
+
+/**
+ * 事务详情讨论串 / 评论区（`IssueChatThread`）。
+ * 流程见 docs/项目计划/最佳实践/011-实践-回形针UI页面汉化流程.md
+ */
+export const issueChatThreadUi = {
+  authorAgent: "智能体",
+  authorYou: "你",
+  authorUser: "用户",
+  authorSystem: "系统",
+  authorBoard: "董事会",
+
+  assigneeFallbackUnassigned: "未分配",
+
+  pausedBudgetReason: "因预算硬停而暂停。",
+  pausedSystemReason: "已由系统暂停。",
+  pausedManualReason: "已手动暂停。",
+  /** 接在经办人姓名后：「xxx」+ pausedAfterName + 具体原因句 */
+  pausedAfterName: "已暂停。恢复前不会发起新的运行。",
+
+  fallbackRendererErrorTitle: "讨论渲染遇到内部状态错误。",
+  fallbackRendererErrorBody: "已改为安全回退视图，避免事务页崩溃。",
+  fallbackNoMessageContent: "无消息内容。",
+
+  humanizeNone: "无",
+
+  runStatusTimedOut: "已超时",
+
+  cotWorking: "进行中",
+  cotWorked: "已完成",
+  cotDurationFor: (duration: string) => `历时 ${duration}`,
+
+  toolSummaryRanCommands: (n: number) => `执行了 ${n} 条命令`,
+  toolSummaryCalledTools: (n: number) => `调用了 ${n} 个工具`,
+
+  toolSectionInput: "输入",
+  toolSectionResult: "结果",
+
+  copy: "复制",
+  copyMessage: "复制消息",
+  copyMessageAriaLabel: "复制消息",
+  copyLinkTitle: "复制链接",
+  copyLinkAriaLabel: "复制指向系统通知的链接",
+  copyNoticeTitle: "复制通知正文",
+  copyNoticeAriaLabel: "复制系统通知",
+
+  moreActionsTitle: "更多操作",
+  moreActionsAriaLabel: "更多操作",
+
+  queueBadgeDeferredWake: "暂缓唤醒",
+  queueBadgeQueued: "排队中",
+  badgeFollowUp: "跟进",
+  interruptButton: "中断",
+  interruptingButton: "正在中断…",
+  cancelQueuedComment: "取消",
+  sendingComment: "发送中…",
+
+  assistantRunningBadge: "运行中",
+  viewRun: "查看运行",
+
+  stopRunDefault: "停止运行",
+  stoppingRunDefault: "正在停止…",
+
+  feedbackHelpful: "有帮助",
+  feedbackNeedsWork: "仍需改进",
+  feedbackDownvotePrompt: "哪里可以做得更好？",
+  feedbackDownvotePlaceholder: "写一句简短备注",
+  feedbackDismiss: "关闭",
+  feedbackSaving: "保存中…",
+  feedbackSaveNote: "保存备注",
+  feedbackSharingDialogTitle: "保存反馈数据共享偏好",
+  feedbackSharingDialogIntro:
+    "选择是否允许将已投票的 AI 输出共享给 Paperclip Labs。该选择将作为之后点赞与点踩的默认偏好。",
+  feedbackSharingLocalNote: "本次投票仍会保存在本地。",
+  feedbackSharingChoices:
+    "选择「始终允许」以共享本次及今后的投票及相关 AI 输出；选择「不允许」则本条及今后的投票均仅保存在本地。",
+  feedbackSharingSettingsHint: "之后可在「实例设置 → 常规」中修改。",
+  feedbackReadTerms: "阅读服务条款",
+  feedbackDontAllow: "不允许",
+  feedbackAlwaysAllow: "始终允许",
+
+  composerDropTitle: "拖放以上传",
+  composerDropHint: "图片会插入到本条回复；其他文件会作为本事务的附件添加。",
+  composerReplyPlaceholder: "回复…",
+  composerUploadingToIssue: "正在上传到事务",
+  composerUploadFailed: "上传失败",
+  composerInsertedInline: "已内联插入",
+  composerAttachedToIssue: "已附加到事务",
+  composerAttachFileTitle: "附加文件",
+  composerMoreOptionsTitle: "更多输入选项",
+  composerSwitchToStandard: "切换为标准模式",
+  composerSwitchToPlanning: "切换为规划模式",
+  composerPlanningModeTitle: "本次提交处于规划模式，点击可切回标准模式。",
+  composerPlanningBadge: "规划",
+  composerAssigneePlaceholder: "经办人",
+  composerNoAssignee: "无经办人",
+  composerSearchAssignees: "搜索经办人…",
+  composerNoAssigneesFound: "未找到经办人",
+  composerAssigneeTriggerEmpty: "经办人",
+  composerPosting: "发送中…",
+  composerSend: "发送",
+  composerFileTypeNotAttachable: "无法在此附加该文件类型",
+
+  expiredRowUpdatedTask: "更新了此事务",
+  expiredRowHideConfirmation: "收起确认",
+  expiredRowShowExpiredConfirmation: "已过期确认",
+
+  emptyEmbeddedDefault: "尚无运行输出。",
+  emptyFullDefault: "此事务暂无讨论，可在下方发送消息开始。",
+  emptyEmbeddedWaitingOutput: "等待运行输出…",
+  emptyEmbeddedNoOutput: "未捕获运行输出。",
+
+  jumpToLatest: "跳到最新",
+
+  staleDispositionNoExtraDetails: "暂无更多详情。",
+
+  timelineEventUpdatedTaskVerb: "更新了此事务",
+  timelineEventRequestedFollowUpVerb: "请求了跟进",
+  timelineLabelStatus: "状态",
+  timelineLabelAssignee: "经办人",
+  timelineLabelWorkspace: "工作区",
+
+  runRowVerbRun: "运行",
+
+  toastNoAssigneeSelectedTitle: "未选择经办人",
+  toastNoAssigneeSelectedBody: "请选择经办人，或再次点击「发送」以不设经办人直接发布。",
+} as const;
+
+/** 事务线程交互卡片：`IssueThreadInteractionCard`（建议任务 / 问答 / 确认含计划卡片） */
+export const issueThreadInteractionCardUi = {
+  actorBoard: "董事会",
+  actorUnknown: "未知",
+
+  statusPending: "待处理",
+  statusAccepted: "已接受",
+  statusRejected: "已拒绝",
+  statusAnswered: "已作答",
+  statusCancelled: "已取消",
+  statusExpired: "已过期",
+  statusFailed: "失败",
+
+  kindSuggestTasks: "建议任务",
+  kindAskQuestions: "向操作者提问",
+  kindConfirmation: "确认请求",
+
+  childTaskBadge: "子任务",
+  includeDraftAriaLabel: (title: string) => `包含草稿「${title}」`,
+  skipped: "已跳过",
+
+  taskFieldAssignee: "经办人",
+  taskFieldBilling: "计费编码",
+  taskFieldProject: "项目",
+  taskFieldLabel: "标签",
+  hiddenFollowOnOne: "预览中另有 1 条后续任务已折叠",
+  hiddenFollowOnMany: (n: number) => `预览中另有 ${n} 条后续任务已折叠`,
+
+  suggestDraftIssuesOne: "1 个草稿事务",
+  suggestDraftIssuesMany: (n: number) => `${n} 个草稿事务`,
+  suggestDefaultParent: "默认父事务",
+
+  resolutionSummaryTitle: "处理结果摘要",
+  resolutionCreatedPartial: (created: number, skipped: number) =>
+    `审核后已创建 ${created} 条草稿事务，跳过 ${skipped} 条。`,
+  resolutionCreatedAll: (count: number) => `已创建全部 ${count} 条草稿事务。`,
+
+  rejectionReasonTitle: "拒绝原因",
+  noReasonProvided: "未填写原因。",
+
+  suggestSelectionAllSelected: (total: number) => `已全选 ${total} 条草稿事务`,
+  suggestSelectionPartial: (selected: number, total: number) =>
+    `已选 ${selected} / ${total} 条草稿事务`,
+  suggestSkippedOnAcceptSuffix: "若确认，未被选中的项将跳过。",
+
+  accepting: "正在接受…",
+  acceptDraftsAll: "接受全部草稿",
+  acceptDraftsSelected: "接受所选草稿",
+  reject: "拒绝",
+  rejectingPlaceholder: "简要说明为何拒绝这组建议…",
+  saving: "正在保存…",
+  saveRejection: "保存拒绝",
+
+  resetSelection: "重置选择",
+
+  questionKindChip: "向操作者提问",
+  questionCountOne: "1 个问题",
+  questionCountMany: (n: number) => `${n} 个问题`,
+  questionNumber: (n: number) => `问题 ${n}`,
+  pickSingle: "单选",
+  pickMulti: "多选",
+  required: "必选",
+  optional: "可选",
+  /** 问答表单脚注 */
+  submitFormHint: "完成全部题目后可一次性提交。",
+  cancelQuestion: "取消提问",
+  cancelling: "正在取消…",
+  submitting: "正在提交…",
+  submitAnswers: "提交回答",
+  questionCancelledTitle: "提问已取消",
+  noCancellationReason: "未记录作答。",
+  noAnswerRecorded: "未记录回答。",
+  answerFieldLabel: "回答",
+  submittedSummaryTitle: "已提交的摘要",
+
+  planDocumentChipPrefix: "计划",
+
+  continuationWakeOnConfirm: "确认后唤醒",
+  continuationWakeAssignee: "唤醒经办人",
+
+  defaultTitleSuggestedTaskTree: "建议任务树",
+  defaultTitleQuestionsOperator: "给操作者的问题",
+  defaultTitleConfirmationRequested: "请求确认",
+
+  footerProposedBy: (name: string) => `${name} 发起`,
+  /** 接在 Tooltip 正文里：`创建于` + 日期时间（由调用方拼接） */
+  tooltipCreatedPrefix: "创建于",
+
+  /** 句式：「由 [name 高亮] 于 [日期] 处理」「由 [name] 处理」 */
+  footerResolvedByPrefixWord: "由",
+  footerResolvedAtWord: "于",
+  footerResolvedVerb: "处理",
+
+  requestConfirmationConfirmed: "已确认",
+  requestConfirmationDeclined: "已拒绝",
+  expiredByCommentTitle: "因评论失效",
+  expiredByTargetTitle: "因目标变更失效",
+  expiredByCommentBody: "在未处理前，看板留言已推翻并取代此确认请求。",
+  expiredByTargetBody: "在未处理前，所请求的确认对象已发生变化。",
+  jumpToComment: "跳到该评论",
+
+  failedRequestBody: "此确认请求未能完成处理。请重试或发起新的请求。",
+
+  confirming: "正在确认…",
+  defaultConfirm: "确认",
+  defaultDecline: "拒绝",
+  /** 占位符：`acceptLabel` 为服务端英文 「Approve plan」 时仍可匹配专用文案 */
+  declinePlaceholderApprovePlan: "选填：希望计划做哪些修订？",
+  declinePlaceholderGeneric: "选填：告诉智能体你希望改什么。",
+
+  declineReasonRequired: "拒绝时必须填写原因。",
+  cancelDecline: "取消拒绝",
+  tryAgainHint: "请重试",
 } as const;

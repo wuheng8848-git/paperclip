@@ -378,11 +378,11 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(container.textContent).toContain("Sub-issues");
-    expect(container.textContent).toContain("Add sub-issue");
+    expect(container.textContent).toContain("子事务");
+    expect(container.textContent).toContain("添加子事务");
 
     const addButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Add sub-issue"));
+      .find((button) => button.textContent?.includes("添加子事务"));
     expect(addButton).not.toBeUndefined();
 
     await act(async () => {
@@ -449,11 +449,11 @@ describe("IssueProperties", () => {
     expect(blockerLink).not.toBeNull();
     expect(blockerLink?.textContent).toContain("PAP-2");
     expect(blockerLink?.closest("button")).toBeNull();
-    expect(container.textContent).toContain("Add blocker");
-    expect(container.querySelector('input[placeholder="Search issues..."]')).toBeNull();
+    expect(container.textContent).toContain("添加阻塞");
+    expect(container.querySelector('input[placeholder="搜索事务…"]')).toBeNull();
 
     const addButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Add blocker"));
+      .find((button) => button.textContent?.includes("添加阻塞"));
     expect(addButton).not.toBeUndefined();
 
     await act(async () => {
@@ -461,7 +461,7 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(container.querySelector('input[placeholder="Search issues..."]')).not.toBeNull();
+    expect(container.querySelector('input[placeholder="搜索事务…"]')).not.toBeNull();
 
     const candidateButton = Array.from(container.querySelectorAll("button"))
       .find((button) => button.textContent?.includes("PAP-3 New blocker"));
@@ -507,7 +507,7 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    const removeButton = container.querySelector('button[aria-label="Remove PAP-2 as blocker"]');
+    const removeButton = container.querySelector('button[aria-label="移除阻塞 PAP-2"]');
     expect(removeButton).not.toBeNull();
 
     await act(async () => {
@@ -515,9 +515,9 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(document.body.textContent).toContain("Remove PAP-2: Existing blocker as a blocker for this issue.");
+    expect(document.body.textContent).toContain("将 PAP-2: Existing blocker 从该事务的阻塞列表中移除。");
     const confirmButton = Array.from(document.body.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Remove blocker"));
+      .find((button) => button.textContent?.includes("移除阻塞"));
     expect(confirmButton).not.toBeUndefined();
 
     await act(async () => {
@@ -551,8 +551,8 @@ describe("IssueProperties", () => {
     expect(serviceLink).not.toBeNull();
     expect(serviceLink?.getAttribute("target")).toBe("_blank");
     expect(serviceLink?.className).toContain("text-emerald");
-    expect((container.textContent ?? "").indexOf("Service")).toBeLessThan(
-      (container.textContent ?? "").indexOf("Workspace"),
+    expect((container.textContent ?? "").indexOf("服务")).toBeLessThan(
+      (container.textContent ?? "").indexOf("工作区"),
     );
 
     act(() => root.unmount());
@@ -570,9 +570,9 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(container.textContent).toMatch(/CreatedApr 6, 2026, \d{1,2}:34 (AM|PM)/);
-    expect(container.textContent).toMatch(/StartedApr 6, 2026, \d{1,2}:35 (AM|PM)/);
-    expect(container.textContent).toMatch(/CompletedApr 6, 2026, \d{1,2}:36 (AM|PM)/);
+    expect(container.textContent).toMatch(/创建于Apr 6, 2026, \d{1,2}:34 (AM|PM)/);
+    expect(container.textContent).toMatch(/开始于Apr 6, 2026, \d{1,2}:35 (AM|PM)/);
+    expect(container.textContent).toMatch(/已完成Apr 6, 2026, \d{1,2}:36 (AM|PM)/);
 
     act(() => root.unmount());
   });
@@ -595,9 +595,9 @@ describe("IssueProperties", () => {
     await flush();
 
     const workspaceLink = Array.from(container.querySelectorAll("a")).find(
-      (link) => link.textContent?.trim() === "View workspace",
+      (link) => link.textContent?.trim() === "查看工作区",
     );
-    expect(container.textContent).not.toContain("View workspace tasks");
+    expect(container.textContent).not.toContain("查看工作区事务");
     expect(workspaceLink).not.toBeUndefined();
     expect(workspaceLink?.getAttribute("href")).toBe("/execution-workspaces/workspace-1");
 
@@ -624,9 +624,9 @@ describe("IssueProperties", () => {
     await flush();
 
     expect(container.querySelector(`a[href="${serviceUrl}"]`)).toBeNull();
-    expect(container.textContent).not.toContain("View workspace tasks");
+    expect(container.textContent).not.toContain("查看工作区事务");
     expect(Array.from(container.querySelectorAll("a")).some(
-      (link) => link.textContent?.trim() === "View workspace",
+      (link) => link.textContent?.trim() === "查看工作区",
     )).toBe(false);
 
     act(() => root.unmount());
@@ -660,7 +660,7 @@ describe("IssueProperties", () => {
     await flush();
 
     expect(container.textContent).not.toContain("Task ids");
-    expect(container.textContent).toContain("Related Tasks");
+    expect(container.textContent).toContain("相关任务");
     expect(container.textContent).toContain("PAP-22");
 
     act(() => root.unmount());
@@ -747,7 +747,7 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(container.textContent).not.toContain("Related Tasks");
+    expect(container.textContent).not.toContain("相关任务");
 
     act(() => root.unmount());
   });
@@ -764,16 +764,16 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    const addLabelButton = container.querySelector('button[aria-label="Add label"]');
+    const addLabelButton = container.querySelector('button[aria-label="添加标签"]');
     expect(addLabelButton).not.toBeNull();
-    expect(container.querySelector('input[placeholder="Search labels..."]')).toBeNull();
+    expect(container.querySelector('input[placeholder="搜索标签…"]')).toBeNull();
 
     await act(async () => {
       addLabelButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flush();
 
-    expect(container.querySelector('input[placeholder="Search labels..."]')).not.toBeNull();
+    expect(container.querySelector('input[placeholder="搜索标签…"]')).not.toBeNull();
     expect(container.querySelector('button[title="Delete Bug"]')).toBeNull();
 
     act(() => root.unmount());
@@ -795,7 +795,7 @@ describe("IssueProperties", () => {
     await flush();
 
     expect(container.textContent).toContain("Bug");
-    expect(container.textContent).not.toContain("No labels");
+    expect(container.textContent).not.toContain("无标签");
 
     act(() => root.unmount());
   });
@@ -823,8 +823,8 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(container.textContent).not.toContain("Model lane");
-    expect(container.textContent).not.toContain("Codex options");
+    expect(container.textContent).not.toContain("模型通道");
+    expect(container.textContent).not.toContain("Codex 选项");
 
     act(() => root.unmount());
   });
@@ -863,8 +863,8 @@ describe("IssueProperties", () => {
     await flush();
     await flush();
 
-    expect(container.textContent).toContain("Custom · gpt-5.4 · high");
-    expect(container.textContent).toContain("Model lane");
+    expect(container.textContent).toContain("自定义 · gpt-5.4 · high");
+    expect(container.textContent).toContain("模型通道");
 
     const modelButton = Array.from(container.querySelectorAll("button"))
       .find((button) => button.textContent?.includes("GPT-5.5"));
@@ -914,7 +914,7 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    const clearButton = container.querySelector('button[aria-label="Clear adapter options"]');
+    const clearButton = container.querySelector('button[aria-label="清除适配器选项"]');
     expect(clearButton).not.toBeNull();
 
     await act(async () => {
@@ -943,7 +943,7 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    const addLabelButton = container.querySelector('button[aria-label="Add label"]');
+    const addLabelButton = container.querySelector('button[aria-label="添加标签"]');
     expect(addLabelButton).not.toBeNull();
     await act(async () => {
       addLabelButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -975,7 +975,7 @@ describe("IssueProperties", () => {
     await flush();
 
     const parentTrigger = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("No parent"));
+      .find((button) => button.textContent?.includes("无父事务"));
     expect(parentTrigger).not.toBeUndefined();
 
     await act(async () => {
@@ -1037,7 +1037,7 @@ describe("IssueProperties", () => {
     await flush();
 
     const clearParentButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("No parent"));
+      .find((button) => button.textContent?.includes("无父事务"));
     expect(clearParentButton).not.toBeUndefined();
 
     await act(async () => {
@@ -1069,7 +1069,7 @@ describe("IssueProperties", () => {
     await flush();
 
     const runReviewButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Run review now"));
+      .find((button) => button.textContent?.includes("立即执行审查"));
     expect(runReviewButton).not.toBeUndefined();
 
     await act(async () => {
@@ -1100,8 +1100,8 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(container.textContent).toContain("Run approval now");
-    expect(container.textContent).not.toContain("Run review now");
+    expect(container.textContent).toContain("立即执行审批");
+    expect(container.textContent).not.toContain("立即执行审查");
 
     act(() => root.unmount());
   });
@@ -1127,7 +1127,7 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(container.textContent).toContain("Run review now");
+    expect(container.textContent).toContain("立即执行审查");
 
     act(() => root.unmount());
   });
@@ -1157,8 +1157,8 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(container.textContent).not.toContain("Run review now");
-    expect(container.textContent).not.toContain("Run approval now");
+    expect(container.textContent).not.toContain("立即执行审查");
+    expect(container.textContent).not.toContain("立即执行审批");
 
     act(() => root.unmount());
   });
@@ -1202,13 +1202,13 @@ describe("IssueProperties", () => {
     });
     await flush();
 
-    expect(container.textContent).toContain("Monitor");
-    expect(container.textContent).toContain("Next check");
+    expect(container.textContent).toContain("监控");
+    expect(container.textContent).toContain("下次检查");
     expect(container.querySelector('input[type="datetime-local"]')).toBeNull();
-    expect(container.querySelector('input[placeholder="What should the agent re-check?"]')).toBeNull();
+    expect(container.querySelector('input[placeholder="代理应重新检查什么？"]')).toBeNull();
 
     const monitorTrigger = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Next check"));
+      .find((button) => button.textContent?.includes("下次检查"));
     expect(monitorTrigger).not.toBeUndefined();
 
     await act(async () => {
@@ -1218,9 +1218,9 @@ describe("IssueProperties", () => {
 
     const inputs = Array.from(container.querySelectorAll("input"));
     const datetimeInput = inputs.find((input) => input.getAttribute("type") === "datetime-local");
-    const textInput = inputs.find((input) => input.getAttribute("placeholder") === "What should the agent re-check?");
+    const textInput = inputs.find((input) => input.getAttribute("placeholder") === "代理应重新检查什么？");
     const clearButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Clear"));
+      .find((button) => button.textContent?.includes("清除"));
 
     expect(datetimeInput).toBeTruthy();
     expect(textInput).toBeTruthy();

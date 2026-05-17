@@ -24,6 +24,7 @@ import { formatTimelineWorkspaceLabel, type IssueTimelineAssignee, type IssueTim
 import { timeAgo } from "../lib/timeAgo";
 import { cn, formatDateTime } from "../lib/utils";
 import { restoreSubmittedCommentDraft } from "../lib/comment-submit-draft";
+import { formatIssueStatus } from "../lib/i18n";
 import { PluginSlotOutlet } from "@/plugins/slots";
 
 interface CommentWithRunMeta extends IssueComment {
@@ -167,9 +168,8 @@ function shouldImplicitlyReopenComment(issueStatus: string | undefined, assignee
   return resumesToTodo && assigneeValue.startsWith("agent:");
 }
 
-function humanizeValue(value: string | null): string {
-  if (!value) return "None";
-  return value.replace(/_/g, " ");
+function timelineIssueStatusLabel(value: string | null): string {
+  return value ? formatIssueStatus(value) : "无";
 }
 
 function formatTimelineAssigneeLabel(
@@ -512,11 +512,11 @@ function TimelineEventCard({
               Status
             </span>
             <span className="text-muted-foreground">
-              {humanizeValue(event.statusChange.from)}
+              {timelineIssueStatusLabel(event.statusChange.from)}
             </span>
             <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="font-medium text-foreground">
-              {humanizeValue(event.statusChange.to)}
+              {timelineIssueStatusLabel(event.statusChange.to)}
             </span>
           </div>
         ) : null}
