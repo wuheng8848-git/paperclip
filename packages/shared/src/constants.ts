@@ -80,6 +80,13 @@ export const AGENT_ROLE_LABELS: Record<AgentRole, string> = {
 
 /** Default `heartbeat.maxConcurrentRuns` when unset (clamped by `AGENT_MAX_CONCURRENT_RUNS_CAP`). */
 export const AGENT_DEFAULT_MAX_CONCURRENT_RUNS = 20;
+/** Inclusive upper bound for normalized `heartbeat.maxConcurrentRuns` per agent. */
+export const AGENT_MAX_CONCURRENT_RUNS_CAP = 1;
+/**
+ * Max distinct agents in a company that may each hold at least one `running` heartbeat run concurrently
+ * (see SPEC §11.5).
+ */
+export const COMPANY_MAX_CONCURRENT_ACTIVE_AGENTS = 4;
 /** Default interval (seconds) for CEO/CTO timer heartbeats when unset or invalid. */
 export const AGENT_DEFAULT_TIMER_HEARTBEAT_INTERVAL_SEC = 300;
 export const WORKSPACE_BRANCH_ROUTINE_VARIABLE = "workspaceBranch";
