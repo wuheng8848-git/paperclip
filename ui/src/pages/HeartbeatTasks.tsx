@@ -155,6 +155,9 @@ export function HeartbeatTasks() {
             <h1 className="text-lg font-semibold">{heartbeatTasksPage.title}</h1>
           </div>
           <p className="text-sm text-muted-foreground">{heartbeatTasksPage.subtitle}</p>
+          <p className="max-w-[48rem] text-xs text-muted-foreground leading-relaxed">
+            {heartbeatTasksPage.concurrencySemanticsFootnote}
+          </p>
         </div>
       </div>
 

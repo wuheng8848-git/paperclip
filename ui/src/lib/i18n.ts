@@ -285,6 +285,8 @@ export const heartbeatTasksPage = {
   off: "关闭",
   never: "从未",
   running: (count: number) => `运行中 ${count}`,
+  concurrencySemanticsFootnote:
+    "并行上限常为 1。若评论/指派类等唤醒尚在排队或运行中，调度器触发的定时心跳会避让：不新增 timer run，写入 `agent_wakeup_requests` 一条 `skipped`（reason 含 heartbeat.timer_yield），并顺延界面上的「上次心跳」；与 **042** 的 `effectiveTrigger` 同看时间线更清楚。（工单 **043**）",
 } as const;
 
 export const orchestrationInjectionPage = {
@@ -1443,7 +1445,8 @@ export const agentConfigHelp: Record<string, string> = {
   graceSec: "发送中断信号后等待进程自行退出的宽限秒数，超时再强制结束。",
   wakeOnDemand: "允许工作流在需要时按需唤醒智能体（任务分配、界面操作、调用 API、自动化流水线等）。",
   cooldownSec: "两次心跳派发之间的最短冷却间隔秒数。",
-  maxConcurrentRuns: "该智能体在任意时刻可同时存在的运行个数上限。",
+  maxConcurrentRuns:
+    "该智能体在任意时刻可同时存在的运行个数上限。当前产品与 SPEC 将把该值夹在 1。评论/指派/按需等较重的唤醒与定时心跳并排时：若已有较重运行处于排队或运行中，定时心跳会先退让（不产生新的 timer run，顺延下次触发时间）；与 **042** `effectiveTrigger` 优先级一起看时间线更清晰。",
   maxTurnContinuationEnabled:
     "当运行因内置「最多轮数」策略正常停下时，按规则自动接续若干次新运行直至任务收敛或用尽次数。",
   maxTurnContinuationMaxAttempts: "接续策略允许的最大接续次数（与单次 max turns 配额不同维度）。",
