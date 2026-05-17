@@ -84,6 +84,9 @@ Thumbs.db
 *.md.tmp
 .tmp/
 
+# 本地 Paperclip 助手/一次性 curl 落地（不入库）
+.paperclip-tmp/
+
 # --- 本地目录联接 → 外挂「工具优化」等仓库外资源（仅存 README 说明入库） ---
 docs/项目计划/_externals/*
 !docs/项目计划/_externals/README.md

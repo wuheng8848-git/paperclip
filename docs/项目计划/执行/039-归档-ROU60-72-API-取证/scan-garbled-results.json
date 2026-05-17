@@ -1,0 +1,959 @@
+{
+  "scanDate": "2026-05-16T16:35:30.512Z",
+  "issuesScanned": 50,
+  "commentsScanned": 221,
+  "garbledSamplesFound": 46,
+  "samples": [
+    {
+      "source": "issue_title",
+      "issueId": "d77ee24a-0eb6-449b-9212-ed99018fad59",
+      "issueIdentifier": "ROU-35",
+      "issueTitle": "Enable heartbeats for CEO direct reports (�о�, ����, �鵵)",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 7
+        }
+      ],
+      "excerpt": "Enable heartbeats for CEO direct reports (�о�, ����, �鵵)"
+    },
+    {
+      "source": "issue_description",
+      "issueId": "d77ee24a-0eb6-449b-9212-ed99018fad59",
+      "issueIdentifier": "ROU-35",
+      "issueTitle": "Enable heartbeats for CEO direct reports (�о�, ����, �鵵)",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 40
+        }
+      ],
+      "excerpt": "## Blocker\n\nThree CEO direct reports have heartbeat disabled, blocking all Phase 2 work:\n- [�о�-GLM5.0](/ROU/agents/fffac39c-33d5-4380-9cdb-69afcbb22893) - blocked ROU-28\n- [����-glm5.1](/ROU/agents/eec63385-1431-45af-b280-f2c38d172f2b) - blocked ROU-29\n- [�鵵-glm5.1low](/ROU/agents/d1737430-9df4-443a-90ad-e392f8474da1) - blocked ROU-31\n\n## Request\n\nEnable heartbeat for all three agents. Their current config: `runtimeConfig.heartbeat.enabled: false`.\n\n## Impact\n\nUnblocks Phase 2 product research "
+    },
+    {
+      "source": "comment_body",
+      "issueId": "d77ee24a-0eb6-449b-9212-ed99018fad59",
+      "issueIdentifier": "ROU-35",
+      "issueTitle": "Enable heartbeats for CEO direct reports (�о�, ����, �鵵)",
+      "commentId": "c84f29c8-19ad-4b4a-abfd-07ad057cdd3f",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-15T14:48:01.711Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 7
+        },
+        {
+          "type": "mixed_garbled",
+          "count": 3,
+          "examples": [
+            "?",
+            "?",
+            "?"
+          ]
+        }
+      ],
+      "excerpt": "## Completed\n\nEnabled heartbeat for all three CEO direct reports:\n\n| Agent | ID | Status |\n|-------|-----|--------|\n| �о�-Qwen-GLM5.0 | `fffac39c` | `heartbeat.enabled: true` ? |\n| ����-CodeBuddy-glm5.1 | `eec63385` | `heartbeat.enabled: true` ? (already running) |\n| �鵵-CodeBuddy-glm5.1low | `d1737430` | `heartbeat.enabled: true` ? |\n\n**Root cause**: The instance experimental setting `timerHeartbeatEligibleAgentRoles` only included `[\"ceo\",\"cto\"]`. All three agents have role `engineer`, so the s"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "d77ee24a-0eb6-449b-9212-ed99018fad59",
+      "issueIdentifier": "ROU-35",
+      "issueTitle": "Enable heartbeats for CEO direct reports (�о�, ����, �鵵)",
+      "commentId": "c6935e62-5e1d-4754-8676-33cc4ab70b93",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-15T12:13:41.838Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 11
+        }
+      ],
+      "excerpt": "## Status: Still blocked �� board confirmation pending\n\n**Blocker:** `runtimeConfig.heartbeat.enabled` is a board-level protected field. Agent PATCH API confirmed (again) to silently ignore it �� `intervalSec` was updated but `enabled` remains `false`.\n\n**Unblock action:** Board must accept [request_confirmation interaction 4f2a5f4d](/ROU/issues/ROU-35/interactions/4f2a5f4d) to enable heartbeats for:\n- [�о�-Qwen-GLM5.0](/ROU/agents/fffac39c-33d5-4380-9cdb-69afcbb22893)\n- [����-CodeBuddy-glm5.1]("
+    },
+    {
+      "source": "comment_body",
+      "issueId": "d77ee24a-0eb6-449b-9212-ed99018fad59",
+      "issueIdentifier": "ROU-35",
+      "issueTitle": "Enable heartbeats for CEO direct reports (�о�, ����, �鵵)",
+      "commentId": "a26a8b82-8205-4628-8306-5c8b89af3b4e",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-15T08:42:06.858Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 8
+        }
+      ],
+      "excerpt": "## Investigation complete �� escalated to board\n\n**Root cause:** The `runtimeConfig.heartbeat.enabled` flag is board-level protected. The agent PATCH API silently accepts the field but does not apply it.\n\n**Attempted:** PATCH `/api/agents/:id` with `{\"runtimeConfig\":{\"heartbeat\":{\"enabled\":true}}}` on all three agents. Responses returned 200 but `enabled` remained `false`.\n\n**Action:** Created `request_confirmation` interaction for board to enable heartbeats. Once confirmed, I will verify the ag"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "61ab1a89-0df7-4300-87b9-7f12971e343f",
+      "issueIdentifier": "ROU-60",
+      "issueTitle": "观测面 B：事务评论乱码链路探查与修复方案",
+      "commentId": "29d8a67a-5e3f-4090-92c6-ab6a232ad3b9",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-16T09:52:44.617Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 1
+        }
+      ],
+      "excerpt": "主脑补充定位（请按此方向继续）：ROU-58 的证据显示，问题不是单纯 UI 渲染，也不是最终 run summary 自动评论链路。\n\n关键证据：\n1. `GET /api/heartbeat-runs/c63804b9-99d7-4da8-bcb8-80bcb7305cc2` 中 `resultJson.result` / `resultJson.summary` 是正常中文。\n2. `GET /api/issues/ROU-58/comments` 中两条 agent 评论正文已是乱码：`479f333f-eaf9-4548-bf49-78499aa3594a`、`0434ebbf-d146-483b-be7f-5d9878f4ac2f`。\n3. 这两条评论是在 run 内由 agent 主动调用 `curl ... POST/PATCH /api/issues/...` 或 `PATCH ... comment` 写入的，不是 heartbeat 结束后 `buildHeartbeatRunIssueComment()` 自动从 `resultJson` 回填的最终评论。\n4."
+    },
+    {
+      "source": "comment_body",
+      "issueId": "61ab1a89-0df7-4300-87b9-7f12971e343f",
+      "issueIdentifier": "ROU-60",
+      "issueTitle": "观测面 B：事务评论乱码链路探查与修复方案",
+      "commentId": "f6888c37-62f1-44b4-9b2c-7aa0be01ac44",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-16T09:48:25.150Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 2
+        }
+      ],
+      "excerpt": "补充重点样本：ROU-58 已确认不只是评论区少数组件乱码，而是大段 agent 评论主体乱码。\n\n只读检查结果：\n- `GET /api/issues/ROU-58/comments` 返回的 `body` 字段本身已经包含乱码，例如评论 `479f333f-eaf9-4548-bf49-78499aa3594a` 和 `0434ebbf-d146-483b-be7f-5d9878f4ac2f`。\n- 用户评论 `9596f935-eea3-4518-8bd5-72d298815c6b`（`ceo 接任务了`）正常。\n- 事务描述本身正常，说明不是整个 API 响应或浏览器整体编码问题。\n- 相关 issue 标题中也可见局部乱码，例如 ROU-42 标题 `LiteLLM OSS �� self-hosting...`，提示写入链路或 agent 输出解码链路可能更早就已损坏。\n\n请把 ROU-58 作为主复现样本，优先判断乱码发生在：agent CLI 输出解码、comment_on_issue 请求构造、服务端接收/校验、数据库存储、还是 UI markdown/chat 渲染"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "354caab2-b6ec-4a9d-bfbd-978ce8712c92",
+      "issueIdentifier": "ROU-58",
+      "issueTitle": "CEO-请了解项目现状",
+      "commentId": "0434ebbf-d146-483b-be7f-5d9878f4ac2f",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-16T09:44:39.012Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 171
+        }
+      ],
+      "excerpt": "## ���ֲ���\n\n����ɹ�˾��Ŀ��״ȫ������������Ϸ� CEO �������棩��������\n- ��˾ȫ����Ŀ��ع�\n- ����ɹ����嵥��ROU-28/29/41/42��\n- ��Ʒ��λ���Ľ��ۣ����컯��MVP ��Χ�����ۣ�\n- LiteLLM �����Խ���\n- �Ŷ�״̬��ƿ������\n\n�Ѵ��� ask_user_questions ������5 ���ṹ�����⣩���ȴ����»�ش�������\n\n**״̬��** in_review���ȴ����»���ߡ�\n**Remaining��** ���»�ش��CEO �ݴ�������һ����"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "354caab2-b6ec-4a9d-bfbd-978ce8712c92",
+      "issueIdentifier": "ROU-58",
+      "issueTitle": "CEO-请了解项目现状",
+      "commentId": "479f333f-eaf9-4548-bf49-78499aa3594a",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-16T09:40:19.803Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 1318
+        },
+        {
+          "type": "mixed_garbled",
+          "count": 16,
+          "examples": [
+            "?",
+            "?",
+            "?",
+            "??",
+            "?"
+          ]
+        }
+      ],
+      "excerpt": "## CEO ��Ŀ��״������ROU-58��\n\n### һ����˾ȫ��\n\n**����Ŀ�꣺** ��Ϊһ������� token ������˾������������С�����ߡ�\n\n**����ʱ���ߣ�**\n- 2026-03-20 ������������һ�д��� 3/21��������Լ 2 ����\n- ��ǰ���ڡ��о���β �� ����������������\n\n---\n\n### ��������ɵĹؼ�����\n\n| ���� | ���� | ״̬ |\n|------|------|------|\n| [ROU-28](/ROU/issues/ROU-28) �г��о� | US SMB ����������18 ������������۷��� | ? done |\n| [ROU-29](/ROU/issues/ROU-29) �������� | Portkey/LiteLLM/Helicone/OpenRouter �Ա� | ? done |\n| [ROU-41](/ROU/issues/ROU-41) ��Ʒ��λ "
+    },
+    {
+      "source": "issue_description",
+      "issueId": "a4929fb2-1e52-4844-b6b5-588c127fc0ea",
+      "issueIdentifier": "ROU-41",
+      "issueTitle": "Product Positioning Draft: synthesize ROU-28 and ROU-29 into",
+      "garbledTypes": [
+        {
+          "type": "mixed_garbled",
+          "count": 4,
+          "examples": [
+            "?",
+            "?",
+            "?",
+            "?"
+          ]
+        }
+      ],
+      "excerpt": "## Objective\n\nSynthesize the market research (ROU-28) and competitive analysis (ROU-29) into a concrete product positioning document that defines what we build, for whom, and why they would choose us.\n\n## Scope\n\n1. **Target persona definition**: Who exactly is our US SMB developer? Define 2-3 concrete personas.\n2. **Value proposition**: What is our unique value vs. Portkey, LiteLLM Cloud, and direct API usage?\n3. **Feature prioritization**: Based on ROU-28 findings (18 features ranked), define M"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "a4929fb2-1e52-4844-b6b5-588c127fc0ea",
+      "issueIdentifier": "ROU-41",
+      "issueTitle": "Product Positioning Draft: synthesize ROU-28 and ROU-29 into",
+      "commentId": "b64ca178-621e-4e9d-8424-a252c1916e16",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-16T09:20:56.257Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 83
+        }
+      ],
+      "excerpt": "CEO �رգ���Ʒ��λ�ݰ�����ɣ��ĵ� [product-positioning-draft](/ROU/issues/ROU-41/documents/product-positioning-draft)����CEO �����Ĳ�������׼���о����������������������Է�����ȷ�ϡ�����ʵ�ֽ׶�ǰ��� ROU-42 ����������ɡ�"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "a4929fb2-1e52-4844-b6b5-588c127fc0ea",
+      "issueIdentifier": "ROU-41",
+      "issueTitle": "Product Positioning Draft: synthesize ROU-28 and ROU-29 into",
+      "commentId": "79c1bd8d-5e33-4a81-ae60-8140d6767ac8",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-16T08:08:14.689Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 67
+        }
+      ],
+      "excerpt": "CEO ��飺�о����������гɹ���δ�������������ָ�������������� todo �ȴ����ԡ��о������� (fffac39c) idle + heartbeat enabled�������м���"
+    },
+    {
+      "source": "issue_title",
+      "issueId": "7ba42043-9cf1-49a7-88c8-53d253e91530",
+      "issueIdentifier": "ROU-42",
+      "issueTitle": "Technical Deep-Dive: LiteLLM OSS �� self-hosting, security, and extension points",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 2
+        }
+      ],
+      "excerpt": "Technical Deep-Dive: LiteLLM OSS �� self-hosting, security, and extension points"
+    },
+    {
+      "source": "issue_description",
+      "issueId": "7ba42043-9cf1-49a7-88c8-53d253e91530",
+      "issueIdentifier": "ROU-42",
+      "issueTitle": "Technical Deep-Dive: LiteLLM OSS �� self-hosting, security, ",
+      "garbledTypes": [
+        {
+          "type": "mixed_garbled",
+          "count": 9,
+          "examples": [
+            "?",
+            "?",
+            "?",
+            "?",
+            "?"
+          ]
+        }
+      ],
+      "excerpt": "## Objective\n\nEvaluate LiteLLM OSS (47K GitHub stars, MIT license) as a potential foundation for our token proxy service. The competitive analysis (ROU-29) identified it as the leading OSS contender, but noted a March 2026 supply-chain incident.\n\n## Scope\n\n1. **Architecture review**: How does LiteLLM proxy work internally? Router, caching layer, key management?\n2. **Self-hosting feasibility**: What are the deployment requirements? Docker, K8s, database dependencies?\n3. **Security assessment**: P"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "7ba42043-9cf1-49a7-88c8-53d253e91530",
+      "issueIdentifier": "ROU-42",
+      "issueTitle": "Technical Deep-Dive: LiteLLM OSS �� self-hosting, security, ",
+      "commentId": "9495d673-d857-456f-ad10-9f57538ca709",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-16T09:51:19.525Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "question_mark_runs",
+          "count": 3,
+          "examples": [
+            "?????????????????????",
+            "?????????????????",
+            "???"
+          ]
+        },
+        {
+          "type": "mixed_garbled",
+          "count": 23,
+          "examples": [
+            "??",
+            "??",
+            "??",
+            "??",
+            "??"
+          ]
+        }
+      ],
+      "excerpt": "ROU-42 LiteLLM OSS ????????????????????? 5 ?????????????????,?? CEO ???"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "7ba42043-9cf1-49a7-88c8-53d253e91530",
+      "issueIdentifier": "ROU-42",
+      "issueTitle": "Technical Deep-Dive: LiteLLM OSS �� self-hosting, security, ",
+      "commentId": "3750ebdf-10fe-4f48-9aa1-7f94866b31ba",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-16T08:09:06.034Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 67
+        }
+      ],
+      "excerpt": "CEO ��飺�о����������гɹ���δ�������������ָ�������������� todo �ȴ����ԡ��о������� (fffac39c) idle + heartbeat enabled�������м���"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "56e2227d-fabd-4705-a90e-afc35f27c4fc",
+      "issueIdentifier": "ROU-57",
+      "issueTitle": "Recover missing next step ROU-41",
+      "commentId": "d5dcdce6-dddd-4caa-9d28-fd179b1e4887",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-16T09:21:12.084Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 52
+        }
+      ],
+      "excerpt": "�ָ���ɡ�Դ���� [ROU-41](/ROU/issues/ROU-41) ����ɣ���Ʒ��λ�ݰ��ĵ��Ѳ�����CEO �Ѳ�����׼��ROU-41 ������Ʒ������disposition ��ȷ��"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "01639f27-861f-449f-8620-16022330e05b",
+      "issueIdentifier": "ROU-43",
+      "issueTitle": "Recover missing next step ROU-42",
+      "commentId": "11433c16-0431-4b68-91f2-b583763fc633",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-16T08:09:23.673Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 55
+        }
+      ],
+      "excerpt": "�ָ���ɡ�Դ���� [ROU-42](/ROU/issues/ROU-42) ���������������� `todo` �ȴ��о������� (fffac39c) ���ԡ�Դ��������ȷ�����˺� disposition��"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "ab9ce0ff-e261-48bb-99c8-29211d126db8",
+      "issueIdentifier": "ROU-44",
+      "issueTitle": "Recover missing next step ROU-41",
+      "commentId": "5dae4313-0c3d-4bf4-93fc-7d8c45b9223e",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-16T08:08:31.236Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 55
+        }
+      ],
+      "excerpt": "�ָ���ɡ�Դ���� [ROU-41](/ROU/issues/ROU-41) ���������������� `todo` �ȴ��о������� (fffac39c) ���ԡ�Դ��������ȷ�����˺� disposition��"
+    },
+    {
+      "source": "issue_description",
+      "issueId": "4177b776-3976-47d3-bb65-8068f73752b7",
+      "issueIdentifier": "ROU-40",
+      "issueTitle": "CEO Strategic Reassessment: redirect company after board cle",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 66
+        }
+      ],
+      "excerpt": "## Context\n\nBoard cancelled ROU-36/ROU-37 (integration testing phase) as not under token-bridge project scope. CTO (d29997ac) was manually paused alongside several engineers. ROU-38 (recovery task) resolved �� source issues are terminal.\n\n## Current State\n\n**Active agents:**\n- CEO (me) �� running\n- �о�-Qwen-GLM5.0 (fffac39c) �� idle, heartbeat enabled\n\n**Paused agents:**\n- CTO-codebuddy-GLM5.1 (d29997ac) �� manual pause\n- ����-CodeBuddy-glm5.1 (eec63385) �� manual pause\n- �鵵-CodeBuddy-glm5.1low "
+    },
+    {
+      "source": "comment_body",
+      "issueId": "4177b776-3976-47d3-bb65-8068f73752b7",
+      "issueIdentifier": "ROU-40",
+      "issueTitle": "CEO Strategic Reassessment: redirect company after board cle",
+      "commentId": "a920aa14-f53a-4bdb-9279-d8c95aff13d8",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-15T15:27:15.709Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 27
+        }
+      ],
+      "excerpt": "## CEO Strategic Reassessment Complete\n\n### Summary\n\nBoard cancelled ROU-36/ROU-37 (integration testing) as not under token-bridge scope. CTO and several engineers manually paused. Working within current constraints.\n\n### Actions Taken\n\n1. **[ROU-38](/ROU/issues/ROU-38)** �� Recovery task resolved (source ROU-37 is cancelled/terminal)\n2. **[ROU-41](/ROU/issues/ROU-41)** �� Product Positioning Draft assigned to �о�-Qwen-GLM5.0\n3. **[ROU-42](/ROU/issues/ROU-42)** �� LiteLLM OSS Technical Deep-Dive"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "b334e39c-9e3a-4def-8fc7-c59fefc2bc6a",
+      "issueIdentifier": "ROU-54",
+      "issueTitle": "探查 Qwen 无法正式收口 issue 的 API 能力缺口",
+      "commentId": "17aa1d33-1723-451c-be6e-1b4b4f382b5e",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-16T04:43:58.710Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "question_mark_runs",
+          "count": 8,
+          "examples": [
+            "?????????",
+            "???????????",
+            "?????"
+          ]
+        },
+        {
+          "type": "mixed_garbled",
+          "count": 35,
+          "examples": [
+            "??",
+            "??",
+            "??",
+            "??",
+            "?"
+          ]
+        },
+        {
+          "type": "suspicious_q_in_context",
+          "count": 6,
+          "examples": [
+            "I?p",
+            "s?p",
+            "????P",
+            "?????h",
+            "????A"
+          ]
+        }
+      ],
+      "excerpt": "?????????:?API?prompt??(??)+ ???????????(??)?????:?adapter-utils/src/server-utils.ts?prompt template????PATCH?????heartbeat????API????,??Qwen???????"
+    },
+    {
+      "source": "issue_description",
+      "issueId": "c8d807e2-a220-42b2-b2f2-3673df740be9",
+      "issueIdentifier": "ROU-28",
+      "issueTitle": "Market Research: US SMB developer needs for token/API proxy ",
+      "garbledTypes": [
+        {
+          "type": "mixed_garbled",
+          "count": 5,
+          "examples": [
+            "?",
+            "?",
+            "?",
+            "?",
+            "?"
+          ]
+        }
+      ],
+      "excerpt": "## Objective\nResearch the US small-to-medium developer market for token and API proxy services. Identify what problems SMB developers face with LLM API token management, what solutions exist, and what gaps need filling.\n\n## Research Scope\n- What token management pain points do US SMB developers report?\n- What existing token proxy/relay services exist? (e.g., Helicone, Portkey, LiteLLM)\n- What pricing models do competitors use?\n- What are the key features SMB developers need?\n- What regulatory/co"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "c8d807e2-a220-42b2-b2f2-3673df740be9",
+      "issueIdentifier": "ROU-28",
+      "issueTitle": "Market Research: US SMB developer needs for token/API proxy ",
+      "commentId": "da18260b-a9ac-4a4b-84c0-77ad8420707e",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-15T12:02:51.667Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 24
+        }
+      ],
+      "excerpt": "## ROU-28: Market Research Complete\n\nVerified the research report at `workspaces/d29997ac-3569-415c-b580-fc05fe4be2ad/ROU-28-market-research-token-proxy.md` �� it is comprehensive and fulfills all deliverable criteria.\n\n### Deliverable Checklist\n- [x] Token management pain points for US SMB developers (Section 2)\n- [x] Existing token proxy/relay services �� 11 competitors profiled (Section 3)\n- [x] Pricing models analysis (Section 4)\n- [x] Key features SMB developers need �� 18 features ranked b"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "c8d807e2-a220-42b2-b2f2-3673df740be9",
+      "issueIdentifier": "ROU-28",
+      "issueTitle": "Market Research: US SMB developer needs for token/API proxy ",
+      "commentId": "014ac6ee-ff98-44cd-bbfd-46610c47a28a",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-15T08:00:39.578Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 5
+        }
+      ],
+      "excerpt": "## Blocked: Agent heartbeat disabled\n\n**Blocker:** [�о�-GLM5.0](/ROU/agents/fffac39c-33d5-4380-9cdb-69afcbb22893) has heartbeat disabled. Cannot auto-pick assigned work.\n\n**Unblock action:** Enable heartbeat for �о�-GLM5.0. Board/user must toggle runtimeConfig.heartbeat.enabled to true.\n\n**Alternative:** Reassign to [�鵵-glm5.1low](/ROU/agents/d1737430-9df4-443a-90ad-e392f8474da1) once ROU-31 completes."
+    },
+    {
+      "source": "comment_body",
+      "issueId": "dc542efe-46e3-482d-9eac-5cea18af7777",
+      "issueIdentifier": "ROU-29",
+      "issueTitle": "Competitive Analysis: evaluate existing token proxy solution",
+      "commentId": "f803e89a-062c-476b-a1ad-8b9dc1ee4458",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-15T08:04:58.475Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 10
+        }
+      ],
+      "excerpt": "## Competitive Analysis Complete\n\nDeliverable: `ROU-29-competitive-analysis.md` in workspace.\n\n### Key Findings\n\n**Three competitors evaluated:** Helicone, Portkey, LiteLLM\n\n**Critical market events:**\n- **Helicone** �� Acquired by Mintlify (March 2026), now in **maintenance mode**. No new features. Risky for new adopters.\n- **Portkey** �� Being acquired by Palo Alto Networks (~$700M, April 2026). Enterprise security pivot likely. Best managed gateway today at $49/mo.\n- **LiteLLM** �� Strongest "
+    },
+    {
+      "source": "comment_body",
+      "issueId": "dc542efe-46e3-482d-9eac-5cea18af7777",
+      "issueIdentifier": "ROU-29",
+      "issueTitle": "Competitive Analysis: evaluate existing token proxy solution",
+      "commentId": "af8b103b-7218-49bb-9f96-db5038dddddd",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-15T08:01:26.862Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 9
+        }
+      ],
+      "excerpt": "## Blocked: Agent heartbeat disabled\n\n**Blocker:** [����-glm5.1](/ROU/agents/eec63385-1431-45af-b280-f2c38d172f2b) has heartbeat disabled. Cannot auto-pick assigned work.\n\n**Unblock action:** Enable heartbeat for ����-glm5.1. Board/user must toggle runtimeConfig.heartbeat.enabled to true.\n\n**Alternative:** Reassign to [�鵵-glm5.1low](/ROU/agents/d1737430-9df4-443a-90ad-e392f8474da1) once ROU-31 completes."
+    },
+    {
+      "source": "comment_body",
+      "issueId": "32923204-7eef-4d69-baed-14131d87a80e",
+      "issueIdentifier": "ROU-32",
+      "issueTitle": "Recover stalled issue ROU-29",
+      "commentId": "770d4319-3749-4d53-b00d-80d98a985cf0",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-15T08:01:40.416Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 4
+        }
+      ],
+      "excerpt": "### Resolved\n\nRoot cause: ����-glm5.1 heartbeat disabled. ROU-29 is blocked with clear unblock action documented. Recovery complete."
+    },
+    {
+      "source": "comment_body",
+      "issueId": "0b9dd3ba-abfa-4cc9-8caa-e77c79837a5b",
+      "issueIdentifier": "ROU-30",
+      "issueTitle": "Recover missing next step ROU-28",
+      "commentId": "0117a870-b7cc-4efb-a1ee-6c438f8ffd27",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-15T08:00:53.497Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 2
+        }
+      ],
+      "excerpt": "### Resolved\n\nRoot cause: �о�-GLM5.0 heartbeat disabled. ROU-28 is blocked with clear unblock action documented. Recovery complete."
+    },
+    {
+      "source": "issue_description",
+      "issueId": "9dfcbf8e-6f47-4121-a543-395ba8278b72",
+      "issueIdentifier": "ROU-27",
+      "issueTitle": "CEO Strategic Review: synthesize completed work and launch n",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 40
+        }
+      ],
+      "excerpt": "## Objective\n\nReview all completed company work, assess current agent state, and create concrete actionable tasks for direct reports to move the company toward its goal: ��Ϊһ�������token������˾������������С������.\n\n## Current State\n- CTO (d29997ac) is manually paused, with 3 engineers in their chain idle\n- 3 direct reports idle: �鵵-glm5.1low, ����-glm5.1, �о�-GLM5.0\n- All previous issues are done or cancelled\n- Goal: token proxy company for US SMB developers\n\n## Deliverables\n- Summary of what wa"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "9dfcbf8e-6f47-4121-a543-395ba8278b72",
+      "issueIdentifier": "ROU-27",
+      "issueTitle": "CEO Strategic Review: synthesize completed work and launch n",
+      "commentId": "1974c457-e02e-42eb-b7b6-7a40f1948354",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-15T07:49:26.808Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 13
+        }
+      ],
+      "excerpt": "## CEO Strategic Review Complete\n\n**Synthesis:** All 26 prior issues were Paperclip infrastructure setup. No product work toward the company goal of becoming a token proxy company for US SMB developers.\n\n**Phase 2 launched with 3 child tasks:**\n- [ROU-28](/ROU/issues/ROU-28): Market Research �� �о�-GLM5.0\n- [ROU-29](/ROU/issues/ROU-29): Competitive Analysis �� ����-glm5.1\n- [ROU-31](/ROU/issues/ROU-31): Company Knowledge Archive �� �鵵-glm5.1low\n\n**CTO note:** CTO remains manually paused. When un"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "f1c5a38e-15c7-4306-b76e-538250c05dd2",
+      "issueIdentifier": "ROU-50",
+      "issueTitle": "晚间收口摘要",
+      "commentId": "2b871f48-da2c-48e5-9230-e76dd7a45c46",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-16T06:44:25.582Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "question_mark_runs",
+          "count": 11,
+          "examples": [
+            "???",
+            "??????????",
+            "???"
+          ]
+        },
+        {
+          "type": "mixed_garbled",
+          "count": 36,
+          "examples": [
+            "??",
+            "?",
+            "??",
+            "??",
+            "??"
+          ]
+        }
+      ],
+      "excerpt": "???:?????????? `server/heartbeat.ts --evening` ??,??? `docs/03-??????/????/`?wake comment ??? `evening-wrapup.ps1` ? `output/` ?????,??????????,??????31????1?????10??"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "08f6ab8a-d273-4442-9926-ef82257b4dc5",
+      "issueIdentifier": "ROU-45",
+      "issueTitle": "Jarvis 主控心跳最小实现",
+      "commentId": "80bb4957-91b7-4e0e-a721-731a7274c455",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-16T05:56:42.081Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "question_mark_runs",
+          "count": 22,
+          "examples": [
+            "????????",
+            "?????",
+            "????????"
+          ]
+        },
+        {
+          "type": "mixed_garbled",
+          "count": 75,
+          "examples": [
+            "?",
+            "??",
+            "??",
+            "??",
+            "??"
+          ]
+        }
+      ],
+      "excerpt": "? ROU-45 ????????:\n\n**?????:**\n- `npm run heartbeat` - ????????\n- `npm run heartbeat:evening` - ????????\n- `npm run heartbeat 2026-05-16` - ????\n\n**API ??:**\n- `GET /api/heartbeat/digest?date=2026-05-16&mode=evening` - ?? JSON ??\n- `POST /api/heartbeat/digest/generate` - ???????\n\n**????:**\n- ?? ????(? P0/P1/?????)\n- ?? ???(?????? + ????????)\n- ?? ??(P2/P3 ????)\n- ? ???(???????)\n\n**???:** SQLite ?? + ??? + ???? + ??????\n\n?????:Token??/docs/03-??????/????/"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "08f6ab8a-d273-4442-9926-ef82257b4dc5",
+      "issueIdentifier": "ROU-45",
+      "issueTitle": "Jarvis 主控心跳最小实现",
+      "commentId": "bf00eb0c-d035-4c36-a1ae-130eea50e485",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-16T05:41:27.854Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "question_mark_runs",
+          "count": 3,
+          "examples": [
+            "????",
+            "????",
+            "????????"
+          ]
+        },
+        {
+          "type": "mixed_garbled",
+          "count": 8,
+          "examples": [
+            "??",
+            "??",
+            "??",
+            "??",
+            "??"
+          ]
+        }
+      ],
+      "excerpt": "????,???? Jarvis ????????"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "5ff817c9-9454-470c-9d7b-3b2c37f770f5",
+      "issueIdentifier": "ROU-46",
+      "issueTitle": "Paperclip 摘要导入 Jarvis",
+      "commentId": "6d8297d7-fc9f-4ff6-aabf-9842b3914f87",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-16T05:45:08.141Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "question_mark_runs",
+          "count": 4,
+          "examples": [
+            "???",
+            "???",
+            "????"
+          ]
+        },
+        {
+          "type": "mixed_garbled",
+          "count": 10,
+          "examples": [
+            "??",
+            "?",
+            "??",
+            "?",
+            "??"
+          ]
+        }
+      ],
+      "excerpt": "???ROU-45 ???,???? Paperclip ???????"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "426c3d19-c7a4-45b1-aab0-dffbf0bef592",
+      "issueIdentifier": "ROU-38",
+      "issueTitle": "Recover stalled issue ROU-37",
+      "commentId": "25336336-f397-4953-87af-411dcd8be79e",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-15T15:21:57.430Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 8
+        }
+      ],
+      "excerpt": "## Recovery Resolution\n\nSource issue [ROU-37](/ROU/issues/ROU-37) has been intentionally resolved (cancelled per board inbox cleanup). The CTO (d29997ac) was manually paused at the time, and the board cancelled the ROU chain as not under token-bridge project scope.\n\n### Resolution\n- **ROU-37**: cancelled (terminal) �� board cleanup\n- **ROU-36**: cancelled (terminal) �� board cleanup\n- **This recovery task**: done �� source issue is in a terminal state, no further recovery needed\n\n### Next Steps\n"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "b105ca4a-69ec-4518-b927-6ff95c48cf85",
+      "issueIdentifier": "ROU-36",
+      "issueTitle": "Hands-on integration testing: Portkey and LiteLLM Cloud free",
+      "commentId": "ff7f0405-b692-4903-b63c-7072b5917e36",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-15T14:26:05.712Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 2
+        }
+      ],
+      "excerpt": "Acknowledged �� CEO has confirmed the block is genuine (email verification required for Portkey/LiteLLM signup) and created a `request_confirmation` interaction for the board.\n\n**Current state:** Waiting on board to provide `PORTKEY_API_KEY` and `LITELLM_CLOUD_API_KEY` via the pending interaction.\n\n**Once keys arrive:** The full 23-test suite is ready to run with `npm run test:all`. All integration code is written and dry-run verified."
+    },
+    {
+      "source": "comment_body",
+      "issueId": "b105ca4a-69ec-4518-b927-6ff95c48cf85",
+      "issueIdentifier": "ROU-36",
+      "issueTitle": "Hands-on integration testing: Portkey and LiteLLM Cloud free",
+      "commentId": "eaa922ed-b352-4e2f-b03b-dce9530a590b",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-15T14:24:29.264Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 4
+        }
+      ],
+      "excerpt": "## ROU-36: External API keys needed �� wrote board interaction\n\n**Confirmed:** Signing up for Portkey and LiteLLM Cloud requires email verification that agent cannot perform. This is genuinely a human task.\n\n**Created:** [request_confirmation interaction 523dbfec](/ROU/issues/ROU-36/interactions/523dbfec) �� board must provide `PORTKEY_API_KEY` and `LITELLM_CLOUD_API_KEY`.\n\n**Blocked on:** Board action (human sign-up at portkey.ai and cloud.litellm.ai).\n\n**Ready:** All integration test code (23 "
+    },
+    {
+      "source": "comment_body",
+      "issueId": "b105ca4a-69ec-4518-b927-6ff95c48cf85",
+      "issueIdentifier": "ROU-36",
+      "issueTitle": "Hands-on integration testing: Portkey and LiteLLM Cloud free",
+      "commentId": "46a88aa7-1afc-4cea-a4ae-233a2d282aa0",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-15T10:17:14.346Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 20
+        },
+        {
+          "type": "mixed_garbled",
+          "count": 5,
+          "examples": [
+            "?",
+            "?",
+            "?",
+            "?",
+            "?"
+          ]
+        }
+      ],
+      "excerpt": "## ROU-36 Status: Blocked on API Key Acquisition\n\n### What was completed this heartbeat\n\n- ? Ran full test suite �� code compiles and executes cleanly\n- ? 4 tests passed live (error handling DX for both platforms �� tested against real Portkey and LiteLLM Cloud APIs with intentional invalid keys)\n- ? 19 tests gracefully skipped (all require valid Portkey/LiteLLM API keys)\n- ? Updated ROU-36-FINDINGS.md with actual test execution results\n- ? Error handling findings: Both platforms return clear, a"
+    },
+    {
+      "source": "issue_description",
+      "issueId": "31e9a9ad-ed9a-49b9-b45c-fd6b1c81d83d",
+      "issueIdentifier": "ROU-37",
+      "issueTitle": "QA: Fix TypeScript error and skip-check bugs in ROU-36 integ",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 12
+        },
+        {
+          "type": "mixed_garbled",
+          "count": 4,
+          "examples": [
+            "??",
+            "?",
+            "?",
+            "?"
+          ]
+        }
+      ],
+      "excerpt": "## QA Review: ROU-36 Integration Test Code\n\n**Reviewer:** ����-CodeBuddy-glm5.1 (QA)\n**Parent:** [ROU-36](/ROU/issues/ROU-36)\n**Verdict:** ?? **Changes Requested** �� code functional but has issues that must be fixed before marking done\n\n---\n\n### ? What Passes\n\n1. **Test suite executes cleanly** in demo mode �� 4/23 tests pass (error handling + DX), 19 skip gracefully without API keys\n2. **Good test coverage** �� 11 Portkey tests, 12 LiteLLM tests covering all key features from ROU-28\n3. **Prope"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "16781d60-7657-49e1-af5a-4a33f84f813e",
+      "issueIdentifier": "ROU-31",
+      "issueTitle": "Company Knowledge Archive: document completed work and build",
+      "commentId": "535c6e21-ef3a-48c6-aa06-ad10ae8064c4",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-15T09:58:22.587Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 38
+        }
+      ],
+      "excerpt": "## Deliverable Complete: Company Knowledge Base\n\n**File:** `COMPANY-KNOWLEDGE-BASE.md` (437 lines, 44 sections)\n\n### What was done\n\nCreated a comprehensive structured knowledge base from all completed Phase 1 work (ROU-1 through ROU-29). The document catalogs:\n\n- **Company Overview** �� organizational structure, agent roster, default language (English)\n- **Agent Infrastructure** �� 5 adapters compared, hiring patterns, heartbeat/execution model, budget management\n- **Codebase Architecture** �� p"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "a4e9fd60-337d-49d6-b1dd-f048c8acd547",
+      "issueIdentifier": "ROU-21",
+      "issueTitle": "解决qwen适配器技能无法加载的问题",
+      "commentId": "5c1e9130-016a-461d-be9c-7a68f9cc0dc6",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-14T04:49:29.071Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 438
+        }
+      ],
+      "excerpt": "## ROU-21 ���������qwen_local �����޷�����\n\n### ����\nqwen-local ���������ļ���֧�ִ��루listQwenSkills/syncQwenSkills����**δ�ύ�ı����޸�**���ڷ���������ʱ�������ڡ�\n\n### ��ϸ����\n\n1. **git diff ��ʾ**��`packages/adapters/qwen-local/src/index.ts` �� `src/server/index.ts` �еļ��ܵ�����Ϊ�������ӵ�δ�ύ�޸�\n2. **����������ʱ**���ⲿ qwen-local ���ͨ�� tsx ���أ��� `createServerAdapter()` ���ص�ģ��û�� listSkills/syncSkills\n3. **ESM ģ�黺��**����ʹ�����ڴ����������˴��룬Node.js �� ESM ģ�黺�治���Զ�ʧЧ������������ʹ������ʱ���صİ汾\n4. **���"
+    },
+    {
+      "source": "comment_body",
+      "issueId": "a4e9fd60-337d-49d6-b1dd-f048c8acd547",
+      "issueIdentifier": "ROU-21",
+      "issueTitle": "解决qwen适配器技能无法加载的问题",
+      "commentId": "58664b69-5b6a-4432-923b-e30ec845b020",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-14T04:29:14.330Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 2
+        }
+      ],
+      "excerpt": "CEO recovery action (ROU-24): CTO was in `error` state (process_lost failures on codebuddy_local adapter, model V-glm-5.1). Invoked CTO heartbeat �� agent recovered to `running`. Moving this issue from `blocked` back to `todo` so CTO can check it out on next heartbeat. If the CTO crashes again, the adapter model (V-glm-5.1) may need to be changed or the codebuddy process investigated for stability issues."
+    },
+    {
+      "source": "comment_body",
+      "issueId": "83f14b93-627a-48ed-b465-3b450b5c604c",
+      "issueIdentifier": "ROU-24",
+      "issueTitle": "Recover stalled issue ROU-21",
+      "commentId": "9c79f5c9-8bf7-48d3-9e54-d8fb29ab9d27",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-14T04:33:42.007Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 2
+        }
+      ],
+      "excerpt": "Closing. ROU-21 is in_progress with CTO �� recovery fulfilled. This is a repeat wake from my own closing comment."
+    },
+    {
+      "source": "comment_body",
+      "issueId": "83f14b93-627a-48ed-b465-3b450b5c604c",
+      "issueIdentifier": "ROU-24",
+      "issueTitle": "Recover stalled issue ROU-21",
+      "commentId": "6673f72a-237c-48b9-83d7-2bf12bf3b041",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-14T04:31:44.843Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 2
+        }
+      ],
+      "excerpt": "Resuming and re-closing: ROU-21 is `in_progress` with CTO actively working on it. Recovery is complete �� the source issue has a live execution path. No further action needed on this recovery issue."
+    },
+    {
+      "source": "comment_body",
+      "issueId": "83f14b93-627a-48ed-b465-3b450b5c604c",
+      "issueIdentifier": "ROU-24",
+      "issueTitle": "Recover stalled issue ROU-21",
+      "commentId": "ce4a1779-9096-4fe2-bd57-e59cd7af9b29",
+      "commentCreatedByAgentId": null,
+      "commentCreatedByUserId": null,
+      "commentCreatedAt": "2026-05-14T04:29:37.353Z",
+      "commentKind": "default",
+      "garbledTypes": [
+        {
+          "type": "replacement_char_U+FFFD",
+          "count": 4
+        }
+      ],
+      "excerpt": "## Recovery Complete\n\n**Root cause:** CTO agent (d29997ac) was in `error` state due to repeated `process_lost` failures on the `codebuddy_local` adapter (model: V-glm-5.1). The child process kept dying, stranding ROU-21 in `in_progress` �� then `blocked`.\n\n**Actions taken:**\n1. Invoked CTO heartbeat �� agent recovered to `running` status\n2. Moved ROU-21 from `blocked` back to `todo` so the CTO can check it out on next heartbeat\n\n**Follow-up risk:** If the CTO crashes again (process_lost), the ad"
+    }
+  ]
+}
