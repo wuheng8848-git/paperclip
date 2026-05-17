@@ -25,7 +25,7 @@ export const INBOX_NESTING_KEY = "paperclip:inbox:nesting";
 export const INBOX_GROUP_BY_KEY = "paperclip:inbox:group-by";
 export const INBOX_FILTER_PREFERENCES_KEY_PREFIX = "paperclip:inbox:filters";
 export const INBOX_COLLAPSED_GROUPS_KEY_PREFIX = "paperclip:inbox:collapsed-groups";
-export type InboxTab = "mine" | "recent" | "unread" | "all";
+export type InboxTab = "mine" | "recent" | "unread" | "blocked" | "all";
 export type InboxCategoryFilter =
   | "everything"
   | "issues_i_touched"
@@ -630,7 +630,7 @@ export function resolveInboxNestingEnabled(preferenceEnabled: boolean, isMobile:
 export function loadLastInboxTab(): InboxTab {
   try {
     const raw = localStorage.getItem(INBOX_LAST_TAB_KEY);
-    if (raw === "all" || raw === "unread" || raw === "recent" || raw === "mine") return raw;
+    if (raw === "all" || raw === "unread" || raw === "recent" || raw === "blocked" || raw === "mine") return raw;
     if (raw === "new") return "mine";
     return "mine";
   } catch {
@@ -1202,6 +1202,7 @@ export function shouldShowInboxSection({
   if (tab === "mine") return showOnMine;
   if (tab === "recent") return showOnRecent;
   if (tab === "unread") return showOnUnread;
+  if (tab === "blocked") return false;
   return showOnAll;
 }
 

@@ -423,7 +423,7 @@ export function CompanyEnvironments() {
           <h1 className="text-lg font-semibold">{companyEnvironmentsPage.title}</h1>
         </div>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          {companyEnvironmentsPage.description}
+          {companyEnvironmentsPage.subtitle}
         </p>
       </div>
 

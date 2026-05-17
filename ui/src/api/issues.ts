@@ -31,6 +31,7 @@ export const issuesApi = {
   list: (
     companyId: string,
     filters?: {
+      attention?: "blocked";
       status?: string;
       projectId?: string;
       parentId?: string;
@@ -49,12 +50,14 @@ export const issuesApi = {
       descendantOf?: string;
       includeRoutineExecutions?: boolean;
       includeBlockedBy?: boolean;
+      includeBlockedInboxAttention?: boolean;
       q?: string;
       limit?: number;
       offset?: number;
     },
   ) => {
     const params = new URLSearchParams();
+    if (filters?.attention) params.set("attention", filters.attention);
     if (filters?.status) params.set("status", filters.status);
     if (filters?.projectId) params.set("projectId", filters.projectId);
     if (filters?.parentId) params.set("parentId", filters.parentId);
@@ -73,6 +76,7 @@ export const issuesApi = {
     if (filters?.descendantOf) params.set("descendantOf", filters.descendantOf);
     if (filters?.includeRoutineExecutions) params.set("includeRoutineExecutions", "true");
     if (filters?.includeBlockedBy) params.set("includeBlockedBy", "true");
+    if (filters?.includeBlockedInboxAttention) params.set("includeBlockedInboxAttention", "true");
     if (filters?.q) params.set("q", filters.q);
     if (filters?.limit) params.set("limit", String(filters.limit));
     if (filters?.offset !== undefined) params.set("offset", String(filters.offset));

@@ -14,6 +14,7 @@ import type {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Issue } from "@paperclipai/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { formatDateTime } from "../lib/utils";
 import { IssueProperties } from "./IssueProperties";
 
 const mockAgentsApi = vi.hoisted(() => ({
@@ -559,20 +560,23 @@ describe("IssueProperties", () => {
   });
 
   it("shows full date and time for issue metadata timestamps", async () => {
+    const createdAt = new Date(2026, 3, 6, 12, 34);
+    const startedAt = new Date(2026, 3, 6, 12, 35);
+    const completedAt = new Date(2026, 3, 6, 12, 36);
     const root = renderProperties(container, {
       issue: createIssue({
-        createdAt: new Date(2026, 3, 6, 12, 34),
-        startedAt: new Date(2026, 3, 6, 12, 35),
-        completedAt: new Date(2026, 3, 6, 12, 36),
+        createdAt,
+        startedAt,
+        completedAt,
       }),
       childIssues: [],
       onUpdate: vi.fn(),
     });
     await flush();
 
-    expect(container.textContent).toMatch(/创建于Apr 6, 2026, \d{1,2}:34 (AM|PM)/);
-    expect(container.textContent).toMatch(/开始于Apr 6, 2026, \d{1,2}:35 (AM|PM)/);
-    expect(container.textContent).toMatch(/已完成Apr 6, 2026, \d{1,2}:36 (AM|PM)/);
+    expect(container.textContent).toContain(`创建于${formatDateTime(createdAt)}`);
+    expect(container.textContent).toContain(`开始于${formatDateTime(startedAt)}`);
+    expect(container.textContent).toContain(`已完成${formatDateTime(completedAt)}`);
 
     act(() => root.unmount());
   });

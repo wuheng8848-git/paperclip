@@ -1,13 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, Braces, FileText, Terminal, Workflow } from "lucide-react";
+import { Activity, Braces, Check, ChevronDown, Copy, FileText, Terminal, Workflow } from "lucide-react";
 import type { Agent, HeartbeatRun, HeartbeatRunEvent } from "@paperclipai/shared";
 import { agentsApi } from "../api/agents";
 import { heartbeatsApi } from "../api/heartbeats";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "../components/EmptyState";
 import { PageSkeleton } from "../components/PageSkeleton";
+import { useToastActions } from "@/context/ToastContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useCompany } from "../context/CompanyContext";
 import { queryKeys } from "../lib/queryKeys";
@@ -62,6 +65,123 @@ function JsonBlock({ value }: { value: unknown }) {
   );
 }
 
+function parsePromptSections(raw: unknown): Array<{ id: string; body: string }> | null {
+  if (!Array.isArray(raw)) return null;
+  const out: Array<{ id: string; body: string }> = [];
+  for (const item of raw) {
+    if (typeof item !== "object" || item === null) continue;
+    const rec = item as Record<string, unknown>;
+    const id = typeof rec.id === "string" ? rec.id.trim() : "";
+    if (!id) continue;
+    const body = typeof rec.body === "string" ? rec.body : "";
+    out.push({ id, body });
+  }
+  return out.length > 0 ? out : null;
+}
+
+function promptSectionLabel(sectionId: string): string {
+  const titles = orchestrationInjectionPage.promptSectionTitles;
+  return sectionId in titles ? titles[sectionId as keyof typeof titles] : sectionId;
+}
+
+function CollapsiblePromptChunksList({ items }: { items: Array<{ key: string; title: string; body: string }> }) {
+  const { pushToast } = useToastActions();
+  const [copiedSectionKey, setCopiedSectionKey] = useState<string | null>(null);
+  const sectionCopiedTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (sectionCopiedTimerRef.current != null) window.clearTimeout(sectionCopiedTimerRef.current);
+    };
+  }, []);
+
+  const copySectionBody = useCallback(
+    async (sectionKey: string, text: string) => {
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        setCopiedSectionKey(sectionKey);
+        if (sectionCopiedTimerRef.current != null) window.clearTimeout(sectionCopiedTimerRef.current);
+        sectionCopiedTimerRef.current = window.setTimeout(() => {
+          setCopiedSectionKey(null);
+          sectionCopiedTimerRef.current = null;
+        }, 2000);
+      } catch {
+        pushToast({
+          title: orchestrationInjectionPage.copyFinalPromptFailedTitle,
+          body: orchestrationInjectionPage.copyFinalPromptFailedBody,
+          tone: "error",
+        });
+      }
+    },
+    [pushToast],
+  );
+
+  return (
+    <div className="space-y-2">
+      {items.map((row, index) => {
+        const sectionCopied = copiedSectionKey === row.key;
+        return (
+          <Collapsible key={row.key} defaultOpen={index === 0} className="overflow-hidden border border-border">
+            <div className="flex items-stretch">
+              <CollapsibleTrigger className="flex min-h-10 min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted/40 [&[data-state=open]>svg]:rotate-180">
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform text-muted-foreground" aria-hidden />
+                <span className="min-w-0 flex-1 font-medium">{row.title}</span>
+                <span className="tabular-nums text-xs text-muted-foreground">{orchestrationInjectionPage.chars(row.body.length)}</span>
+              </CollapsibleTrigger>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-auto min-h-10 w-11 shrink-0 rounded-none border-b-0 border-r-0 border-t-0 bg-background"
+                aria-label={orchestrationInjectionPage.copyPromptSectionAria(row.title)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  void copySectionBody(row.key, row.body);
+                }}
+              >
+                {sectionCopied ? <Check className="h-3.5 w-3.5 text-green-600" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
+              </Button>
+            </div>
+            <CollapsibleContent>
+              <pre className="max-h-[340px] overflow-auto whitespace-pre-wrap break-words border-t border-border bg-muted/15 p-3 font-mono text-xs leading-relaxed">
+                {row.body}
+              </pre>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+      })}
+    </div>
+  );
+}
+
+function PromptSectionsList({ sections }: { sections: Array<{ id: string; body: string }> }) {
+  const items = useMemo(
+    () =>
+      sections.map((section, index) => ({
+        key: `${index}:${section.id}`,
+        title: promptSectionLabel(section.id),
+        body: section.body,
+      })),
+    [sections],
+  );
+  return <CollapsiblePromptChunksList items={items} />;
+}
+
+function ParagraphSplitChunksList({ chunks }: { chunks: string[] }) {
+  const items = useMemo(
+    () =>
+      chunks.map((body, index) => ({
+        key: `p:${index}`,
+        title: orchestrationInjectionPage.promptParagraphLabel(index + 1),
+        body,
+      })),
+    [chunks],
+  );
+  return <CollapsiblePromptChunksList items={items} />;
+}
+
 function PromptBlock({ prompt }: { prompt: string | null }) {
   if (!prompt) {
     return (
@@ -87,6 +207,36 @@ function MetricPill({ label, value }: { label: string; value: number }) {
   );
 }
 
+function formatAdapterInvocationCopyText(parts: {
+  adapterTypeLabel: string;
+  adapterType: string | null;
+  commandLabel: string;
+  command: string | null;
+  cwdLabel: string;
+  cwd: string | null;
+  commandNotesLabel: string;
+  commandNotes: string[];
+  noData: string;
+}): string {
+  const line = (label: string, value: string | null) =>
+    `${label}: ${value != null && value.trim().length > 0 ? value : parts.noData}`;
+  const sections: string[] = [
+    line(parts.adapterTypeLabel, parts.adapterType),
+    line(parts.commandLabel, parts.command),
+    line(parts.cwdLabel, parts.cwd),
+    "",
+    `${parts.commandNotesLabel}:`,
+  ];
+  if (parts.commandNotes.length > 0) {
+    for (const note of parts.commandNotes) {
+      sections.push(`- ${note}`);
+    }
+  } else {
+    sections.push(parts.noData);
+  }
+  return sections.join("\n");
+}
+
 function DetailRow({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="grid gap-1 sm:grid-cols-[8rem_1fr]">
@@ -99,7 +249,18 @@ function DetailRow({ label, value }: { label: string; value: string | null }) {
 export function OrchestrationInjection() {
   const { selectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
+  const { pushToast } = useToastActions();
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [finalPromptCopied, setFinalPromptCopied] = useState(false);
+  const finalPromptCopiedTimerRef = useRef<number | null>(null);
+  const [adapterInvocationCardCopied, setAdapterInvocationCardCopied] = useState(false);
+  const adapterInvocationCardCopiedTimerRef = useRef<number | null>(null);
+  const [runCardCopied, setRunCardCopied] = useState(false);
+  const runCardCopiedTimerRef = useRef<number | null>(null);
+  const [contextSnapshotCardCopied, setContextSnapshotCardCopied] = useState(false);
+  const contextSnapshotCardCopiedTimerRef = useRef<number | null>(null);
+  const [wakePayloadCardCopied, setWakePayloadCardCopied] = useState(false);
+  const wakePayloadCardCopiedTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     setBreadcrumbs([{ label: nav.work }, { label: nav.orchestrationInjection }]);
@@ -128,6 +289,44 @@ export function OrchestrationInjection() {
     if (!selectedRunId && selectedRun?.id) setSelectedRunId(selectedRun.id);
   }, [selectedRun?.id, selectedRunId]);
 
+  useEffect(() => {
+    if (finalPromptCopiedTimerRef.current != null) {
+      window.clearTimeout(finalPromptCopiedTimerRef.current);
+      finalPromptCopiedTimerRef.current = null;
+    }
+    if (adapterInvocationCardCopiedTimerRef.current != null) {
+      window.clearTimeout(adapterInvocationCardCopiedTimerRef.current);
+      adapterInvocationCardCopiedTimerRef.current = null;
+    }
+    if (runCardCopiedTimerRef.current != null) {
+      window.clearTimeout(runCardCopiedTimerRef.current);
+      runCardCopiedTimerRef.current = null;
+    }
+    if (contextSnapshotCardCopiedTimerRef.current != null) {
+      window.clearTimeout(contextSnapshotCardCopiedTimerRef.current);
+      contextSnapshotCardCopiedTimerRef.current = null;
+    }
+    if (wakePayloadCardCopiedTimerRef.current != null) {
+      window.clearTimeout(wakePayloadCardCopiedTimerRef.current);
+      wakePayloadCardCopiedTimerRef.current = null;
+    }
+    setFinalPromptCopied(false);
+    setAdapterInvocationCardCopied(false);
+    setRunCardCopied(false);
+    setContextSnapshotCardCopied(false);
+    setWakePayloadCardCopied(false);
+  }, [selectedRun?.id]);
+
+  useEffect(() => {
+    return () => {
+      if (finalPromptCopiedTimerRef.current != null) window.clearTimeout(finalPromptCopiedTimerRef.current);
+      if (adapterInvocationCardCopiedTimerRef.current != null) window.clearTimeout(adapterInvocationCardCopiedTimerRef.current);
+      if (runCardCopiedTimerRef.current != null) window.clearTimeout(runCardCopiedTimerRef.current);
+      if (contextSnapshotCardCopiedTimerRef.current != null) window.clearTimeout(contextSnapshotCardCopiedTimerRef.current);
+      if (wakePayloadCardCopiedTimerRef.current != null) window.clearTimeout(wakePayloadCardCopiedTimerRef.current);
+    };
+  }, []);
+
   const eventsQuery = useQuery({
     queryKey: selectedRun ? queryKeys.runEvents(selectedRun.id) : ["heartbeat-run", "none", "events"],
     queryFn: () => heartbeatsApi.events(selectedRun!.id, 0, 200),
@@ -152,6 +351,164 @@ export function OrchestrationInjection() {
   const metricEntries = Object.entries(promptMetrics ?? {})
     .map(([key, value]) => ({ key, value: asNumber(value) }))
     .filter((entry): entry is { key: string; value: number } => entry.value !== null);
+  const parsedPromptSections = parsePromptSections(payload?.promptSections);
+  const promptRawUnknown = payload?.prompt;
+  const fullPromptForCopy = useMemo(() => {
+    if (typeof promptRawUnknown === "string" && promptRawUnknown.length > 0) return promptRawUnknown;
+    if (parsedPromptSections?.length) return parsedPromptSections.map((section) => section.body).join("\n\n");
+    return "";
+  }, [promptRawUnknown, parsedPromptSections]);
+
+  const rawPromptStr = typeof promptRawUnknown === "string" ? promptRawUnknown : "";
+  const paragraphSplitChunks = useMemo(
+    () => rawPromptStr.split(/\n\n+/).map((paragraph) => paragraph.trim()).filter((paragraph) => paragraph.length > 0),
+    [rawPromptStr],
+  );
+  const displayPromptForBlock = prompt ?? (rawPromptStr.trim().length > 0 ? rawPromptStr : null);
+
+  const copyFullFinalPrompt = useCallback(async () => {
+    if (!fullPromptForCopy) return;
+    try {
+      await navigator.clipboard.writeText(fullPromptForCopy);
+      setFinalPromptCopied(true);
+      if (finalPromptCopiedTimerRef.current != null) window.clearTimeout(finalPromptCopiedTimerRef.current);
+      finalPromptCopiedTimerRef.current = window.setTimeout(() => {
+        setFinalPromptCopied(false);
+        finalPromptCopiedTimerRef.current = null;
+      }, 2000);
+    } catch {
+      pushToast({
+        title: orchestrationInjectionPage.copyFinalPromptFailedTitle,
+        body: orchestrationInjectionPage.copyFinalPromptFailedBody,
+        tone: "error",
+      });
+    }
+  }, [fullPromptForCopy, pushToast]);
+
+  const adapterInvocationCardCopyText = useMemo(() => {
+    if (!adapterEvent) return "";
+    return formatAdapterInvocationCopyText({
+      adapterTypeLabel: orchestrationInjectionPage.adapterType,
+      adapterType: asString(payload?.adapterType),
+      commandLabel: orchestrationInjectionPage.command,
+      command: asString(payload?.command),
+      cwdLabel: orchestrationInjectionPage.cwd,
+      cwd: asString(payload?.cwd),
+      commandNotesLabel: orchestrationInjectionPage.commandNotes,
+      commandNotes,
+      noData: orchestrationInjectionPage.noData,
+    });
+  }, [
+    adapterEvent,
+    payload?.adapterType,
+    payload?.command,
+    payload?.cwd,
+    commandNotes,
+  ]);
+
+  const copyAdapterInvocationCard = useCallback(async () => {
+    if (!adapterInvocationCardCopyText) return;
+    try {
+      await navigator.clipboard.writeText(adapterInvocationCardCopyText);
+      setAdapterInvocationCardCopied(true);
+      if (adapterInvocationCardCopiedTimerRef.current != null) window.clearTimeout(adapterInvocationCardCopiedTimerRef.current);
+      adapterInvocationCardCopiedTimerRef.current = window.setTimeout(() => {
+        setAdapterInvocationCardCopied(false);
+        adapterInvocationCardCopiedTimerRef.current = null;
+      }, 2000);
+    } catch {
+      pushToast({
+        title: orchestrationInjectionPage.copyFinalPromptFailedTitle,
+        body: orchestrationInjectionPage.copyFinalPromptFailedBody,
+        tone: "error",
+      });
+    }
+  }, [adapterInvocationCardCopyText, pushToast]);
+
+  const runCardCopyText = useMemo(() => {
+    if (!selectedRun) return "";
+    const agentDisplay = agentsById.get(selectedRun.agentId)?.name ?? selectedRun.agentId;
+    const started = selectedRun.startedAt ? formatDateTime(selectedRun.startedAt) : orchestrationInjectionPage.noData;
+    const created = formatDateTime(selectedRun.createdAt);
+    return [
+      `${orchestrationInjectionPage.runRowIdLabel}: ${selectedRun.id}`,
+      `${orchestrationInjectionPage.status}: ${selectedRun.status}`,
+      `${orchestrationInjectionPage.source}: ${runReason(selectedRun)}`,
+      `${orchestrationInjectionPage.startedAt}: ${started}`,
+      `${orchestrationInjectionPage.createdAt}: ${created}`,
+      `${orchestrationInjectionPage.agent}: ${agentDisplay}`,
+    ].join("\n");
+  }, [selectedRun, agentsById]);
+
+  const copyRunCard = useCallback(async () => {
+    if (!runCardCopyText) return;
+    try {
+      await navigator.clipboard.writeText(runCardCopyText);
+      setRunCardCopied(true);
+      if (runCardCopiedTimerRef.current != null) window.clearTimeout(runCardCopiedTimerRef.current);
+      runCardCopiedTimerRef.current = window.setTimeout(() => {
+        setRunCardCopied(false);
+        runCardCopiedTimerRef.current = null;
+      }, 2000);
+    } catch {
+      pushToast({
+        title: orchestrationInjectionPage.copyFinalPromptFailedTitle,
+        body: orchestrationInjectionPage.copyFinalPromptFailedBody,
+        tone: "error",
+      });
+    }
+  }, [runCardCopyText, pushToast]);
+
+  const contextSnapshotCopyText = useMemo(() => {
+    if (!selectedRun) return "";
+    const title = orchestrationInjectionPage.contextSnapshot;
+    const body = prettyJson(selectedRun.contextSnapshot);
+    return `${title}\n\n${body}`;
+  }, [selectedRun]);
+
+  const wakePayloadCopyText = useMemo(() => {
+    const title = orchestrationInjectionPage.wakePayload;
+    const body = prettyJson(context?.paperclipWake ?? null);
+    return `${title}\n\n${body}`;
+  }, [context?.paperclipWake]);
+
+  const copyContextSnapshotCard = useCallback(async () => {
+    if (!contextSnapshotCopyText) return;
+    try {
+      await navigator.clipboard.writeText(contextSnapshotCopyText);
+      setContextSnapshotCardCopied(true);
+      if (contextSnapshotCardCopiedTimerRef.current != null) window.clearTimeout(contextSnapshotCardCopiedTimerRef.current);
+      contextSnapshotCardCopiedTimerRef.current = window.setTimeout(() => {
+        setContextSnapshotCardCopied(false);
+        contextSnapshotCardCopiedTimerRef.current = null;
+      }, 2000);
+    } catch {
+      pushToast({
+        title: orchestrationInjectionPage.copyFinalPromptFailedTitle,
+        body: orchestrationInjectionPage.copyFinalPromptFailedBody,
+        tone: "error",
+      });
+    }
+  }, [contextSnapshotCopyText, pushToast]);
+
+  const copyWakePayloadCard = useCallback(async () => {
+    if (!wakePayloadCopyText) return;
+    try {
+      await navigator.clipboard.writeText(wakePayloadCopyText);
+      setWakePayloadCardCopied(true);
+      if (wakePayloadCardCopiedTimerRef.current != null) window.clearTimeout(wakePayloadCardCopiedTimerRef.current);
+      wakePayloadCardCopiedTimerRef.current = window.setTimeout(() => {
+        setWakePayloadCardCopied(false);
+        wakePayloadCardCopiedTimerRef.current = null;
+      }, 2000);
+    } catch {
+      pushToast({
+        title: orchestrationInjectionPage.copyFinalPromptFailedTitle,
+        body: orchestrationInjectionPage.copyFinalPromptFailedBody,
+        tone: "error",
+      });
+    }
+  }, [wakePayloadCopyText, pushToast]);
 
   if (!selectedCompanyId) {
     return <EmptyState icon={Workflow} message={orchestrationInjectionPage.selectCompany} />;
@@ -223,13 +580,31 @@ export function OrchestrationInjection() {
             <div className="space-y-4">
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Activity className="h-4 w-4 text-muted-foreground" />
-                    {orchestrationInjectionPage.run}
-                  </CardTitle>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Activity className="h-4 w-4 text-muted-foreground" />
+                      {orchestrationInjectionPage.run}
+                    </CardTitle>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full shrink-0 sm:w-auto"
+                      disabled={!runCardCopyText}
+                      aria-label={orchestrationInjectionPage.copyRunCardAria}
+                      onClick={() => void copyRunCard()}
+                    >
+                      {runCardCopied ? (
+                        <Check className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                      ) : (
+                        <Copy className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                      )}
+                      {runCardCopied ? orchestrationInjectionPage.copyFinalPromptDone : orchestrationInjectionPage.copyFinalPrompt}
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <DetailRow label="ID" value={selectedRun.id} />
+                  <DetailRow label={orchestrationInjectionPage.runRowIdLabel} value={selectedRun.id} />
                   <DetailRow label={orchestrationInjectionPage.status} value={selectedRun.status} />
                   <DetailRow label={orchestrationInjectionPage.source} value={runReason(selectedRun)} />
                   <DetailRow label={orchestrationInjectionPage.startedAt} value={selectedRun.startedAt ? formatDateTime(selectedRun.startedAt) : null} />
@@ -248,10 +623,30 @@ export function OrchestrationInjection() {
 
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Terminal className="h-4 w-4 text-muted-foreground" />
-                    {orchestrationInjectionPage.adapterInvocation}
-                  </CardTitle>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Terminal className="h-4 w-4 text-muted-foreground" />
+                      {orchestrationInjectionPage.adapterInvocation}
+                    </CardTitle>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full shrink-0 sm:w-auto"
+                      disabled={!adapterInvocationCardCopyText}
+                      aria-label={orchestrationInjectionPage.copyAdapterInvocationCardAria}
+                      onClick={() => void copyAdapterInvocationCard()}
+                    >
+                      {adapterInvocationCardCopied ? (
+                        <Check className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                      ) : (
+                        <Copy className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                      )}
+                      {adapterInvocationCardCopied
+                        ? orchestrationInjectionPage.copyFinalPromptDone
+                        : orchestrationInjectionPage.copyFinalPrompt}
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {!adapterEvent ? (
@@ -282,10 +677,28 @@ export function OrchestrationInjection() {
 
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    {orchestrationInjectionPage.finalPrompt}
-                  </CardTitle>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      {orchestrationInjectionPage.finalPrompt}
+                    </CardTitle>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full shrink-0 sm:w-auto"
+                      disabled={!fullPromptForCopy}
+                      aria-label={orchestrationInjectionPage.copyFinalPromptAria}
+                      onClick={() => void copyFullFinalPrompt()}
+                    >
+                      {finalPromptCopied ? (
+                        <Check className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                      ) : (
+                        <Copy className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                      )}
+                      {finalPromptCopied ? orchestrationInjectionPage.copyFinalPromptDone : orchestrationInjectionPage.copyFinalPrompt}
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {metricEntries.length > 0 ? (
@@ -295,17 +708,49 @@ export function OrchestrationInjection() {
                       ))}
                     </div>
                   ) : null}
-                  <PromptBlock prompt={prompt} />
+                  {parsedPromptSections ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">{orchestrationInjectionPage.promptCombinationHint}</p>
+                      <PromptSectionsList key={selectedRun.id} sections={parsedPromptSections} />
+                    </div>
+                  ) : paragraphSplitChunks.length > 1 ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">{orchestrationInjectionPage.promptParagraphFallbackHint}</p>
+                      <ParagraphSplitChunksList key={selectedRun.id} chunks={paragraphSplitChunks} />
+                    </div>
+                  ) : (
+                    <PromptBlock prompt={displayPromptForBlock} />
+                  )}
                 </CardContent>
               </Card>
 
               <div className="grid gap-4 xl:grid-cols-2">
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Braces className="h-4 w-4 text-muted-foreground" />
-                      {orchestrationInjectionPage.contextSnapshot}
-                    </CardTitle>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Braces className="h-4 w-4 text-muted-foreground" />
+                        {orchestrationInjectionPage.contextSnapshot}
+                      </CardTitle>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full shrink-0 sm:w-auto"
+                        disabled={!contextSnapshotCopyText}
+                        aria-label={orchestrationInjectionPage.copyContextSnapshotCardAria}
+                        onClick={() => void copyContextSnapshotCard()}
+                      >
+                        {contextSnapshotCardCopied ? (
+                          <Check className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                        ) : (
+                          <Copy className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                        )}
+                        {contextSnapshotCardCopied
+                          ? orchestrationInjectionPage.copyFinalPromptDone
+                          : orchestrationInjectionPage.copyFinalPrompt}
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <JsonBlock value={selectedRun.contextSnapshot} />
@@ -314,10 +759,30 @@ export function OrchestrationInjection() {
 
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Workflow className="h-4 w-4 text-muted-foreground" />
-                      {orchestrationInjectionPage.wakePayload}
-                    </CardTitle>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Workflow className="h-4 w-4 text-muted-foreground" />
+                        {orchestrationInjectionPage.wakePayload}
+                      </CardTitle>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full shrink-0 sm:w-auto"
+                        disabled={!wakePayloadCopyText}
+                        aria-label={orchestrationInjectionPage.copyWakePayloadCardAria}
+                        onClick={() => void copyWakePayloadCard()}
+                      >
+                        {wakePayloadCardCopied ? (
+                          <Check className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                        ) : (
+                          <Copy className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                        )}
+                        {wakePayloadCardCopied
+                          ? orchestrationInjectionPage.copyFinalPromptDone
+                          : orchestrationInjectionPage.copyFinalPrompt}
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <JsonBlock value={context?.paperclipWake ?? null} />
