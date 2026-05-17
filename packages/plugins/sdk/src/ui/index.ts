@@ -111,6 +111,7 @@ export type {
   AssigneePickerProps,
   ProjectPickerProps,
   ManagedRoutineMissingRef,
+  ManagedRoutineDefaultDrift,
   ManagedRoutinesListAgent,
   ManagedRoutinesListItem,
   ManagedRoutinesListProject,
