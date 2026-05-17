@@ -158,6 +158,7 @@ export {
   issueBlockedInboxReasonSchema,
   issueBlockedInboxSeveritySchema,
   issueBlockedInboxStateSchema,
+  issueCommentWakeTierSchema,
   updateIssueSchema,
   issueExecutionPolicySchema,
   issueExecutionStateSchema,

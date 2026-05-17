@@ -99,6 +99,7 @@ import {
 } from "../services/issue-execution-policy.js";
 import { parseIssueExecutionWorkspaceSettings } from "../services/execution-workspace-policy.js";
 import type { PluginWorkerManager } from "../services/plugin-worker-manager.js";
+import { resolveEffectiveCommentWakeTier } from "../services/comment-wake-tier.js";
 
 const MAX_ISSUE_COMMENT_LIMIT = 500;
 const updateIssueRouteSchema = updateIssueSchema.extend({
@@ -574,7 +575,7 @@ function isExplicitResumeCapableStatus(status: string | null | undefined) {
 
 function queueResolvedInteractionContinuationWakeup(input: {
   heartbeat: ReturnType<typeof heartbeatService>;
-  issue: { id: string; assigneeAgentId: string | null; status: string };
+  issue: { id: string; assigneeAgentId: string | null; status: string; commentWakeTier?: string | null };
   interaction: {
     id: string;
     kind: string;
@@ -622,6 +623,10 @@ function queueResolvedInteractionContinuationWakeup(input: {
       sourceRunId: input.interaction.sourceRunId ?? null,
       wakeReason: "issue_commented",
       source: input.source,
+      commentWakeTier: resolveEffectiveCommentWakeTier({
+        storedTier: input.issue.commentWakeTier ?? null,
+        wakeKind: "assignee_comment",
+      }),
     },
   }).catch((err) => logger.warn({
     err,
@@ -3252,6 +3257,14 @@ export function issueRoutes(
             source: "issue.update",
             ...(resumeRequested === true ? { resumeIntent: true, followUpRequested: true } : {}),
             ...(interruptedRunId ? { interruptedRunId } : {}),
+            ...(comment
+              ? {
+                  commentWakeTier: resolveEffectiveCommentWakeTier({
+                    storedTier: issue.commentWakeTier ?? null,
+                    wakeKind: "assignee_comment",
+                  }),
+                }
+              : {}),
           },
         });
       }
@@ -3313,6 +3326,10 @@ export function issueRoutes(
               ...(reopened ? { reopenedFrom: reopenFromStatus } : {}),
               ...(resumeRequested === true ? { resumeIntent: true, followUpRequested: true } : {}),
               ...(interruptedRunId ? { interruptedRunId } : {}),
+              commentWakeTier: resolveEffectiveCommentWakeTier({
+                storedTier: issue.commentWakeTier ?? null,
+                wakeKind: "assignee_comment",
+              }),
             },
           });
         }
@@ -3340,6 +3357,10 @@ export function issueRoutes(
               wakeCommentId: comment.id,
               wakeReason: "issue_comment_mentioned",
               source: "comment.mention",
+              commentWakeTier: resolveEffectiveCommentWakeTier({
+                storedTier: issue.commentWakeTier ?? null,
+                wakeKind: "mention",
+              }),
             },
           });
         }
@@ -4325,6 +4346,10 @@ export function issueRoutes(
               reopenedFrom: reopenFromStatus,
               ...(resumeRequested === true ? { resumeIntent: true, followUpRequested: true } : {}),
               ...(interruptedRunId ? { interruptedRunId } : {}),
+              commentWakeTier: resolveEffectiveCommentWakeTier({
+                storedTier: currentIssue.commentWakeTier ?? null,
+                wakeKind: "assignee_comment",
+              }),
             },
           });
         } else {
@@ -4350,6 +4375,10 @@ export function issueRoutes(
               wakeReason: "issue_commented",
               ...(resumeRequested === true ? { resumeIntent: true, followUpRequested: true } : {}),
               ...(interruptedRunId ? { interruptedRunId } : {}),
+              commentWakeTier: resolveEffectiveCommentWakeTier({
+                storedTier: currentIssue.commentWakeTier ?? null,
+                wakeKind: "assignee_comment",
+              }),
             },
           });
         }
@@ -4379,6 +4408,10 @@ export function issueRoutes(
             wakeCommentId: comment.id,
             wakeReason: "issue_comment_mentioned",
             source: "comment.mention",
+            commentWakeTier: resolveEffectiveCommentWakeTier({
+              storedTier: currentIssue.commentWakeTier ?? null,
+              wakeKind: "mention",
+            }),
           },
         });
       }

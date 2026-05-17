@@ -166,6 +166,25 @@ export const ISSUE_WORK_MODES = ["standard", "planning"] as const;
 export type IssueWorkMode = (typeof ISSUE_WORK_MODES)[number];
 export const MAX_ISSUE_REQUEST_DEPTH = 1024;
 
+/**
+ * Comment-invocation wake tier (issue-level `commentWakeTier` column; `26` / `041`).
+ * Index in array = rank; **lower rank = lighter** context.
+ */
+export const ISSUE_COMMENT_WAKE_TIERS = [
+  "receipt_only",
+  "read_thread",
+  "allow_api_context",
+  "allow_full_skills",
+  "allow_repo_write",
+] as const;
+export type IssueCommentWakeTier = (typeof ISSUE_COMMENT_WAKE_TIERS)[number];
+
+/** Company default when `issues.commentWakeTier` is null (`26` 默认轻). */
+export const DEFAULT_COMPANY_COMMENT_WAKE_TIER: IssueCommentWakeTier = "read_thread";
+
+/** @mention wakes are capped to at most this tier (`26`). */
+export const ISSUE_COMMENT_WAKE_TIER_MENTION_CAP: IssueCommentWakeTier = "read_thread";
+
 export const ISSUE_COMMENT_AUTHOR_TYPES = ["user", "agent", "system"] as const;
 export type IssueCommentAuthorType = (typeof ISSUE_COMMENT_AUTHOR_TYPES)[number];
 

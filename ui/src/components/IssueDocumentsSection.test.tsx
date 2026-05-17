@@ -181,6 +181,9 @@ function createIssueDocument(overrides: Partial<IssueDocument> = {}): IssueDocum
     createdAt: new Date("2026-03-31T12:00:00.000Z"),
     updatedAt: new Date("2026-03-31T12:05:00.000Z"),
     ...overrides,
+    lockedAt: overrides.lockedAt ?? null,
+    lockedByAgentId: overrides.lockedByAgentId ?? null,
+    lockedByUserId: overrides.lockedByUserId ?? null,
   };
 }
 

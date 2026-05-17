@@ -240,6 +240,7 @@ describe("issue update comment wakeups", () => {
           commentId: "comment-1",
           wakeCommentId: "comment-1",
           source: "issue.update",
+          commentWakeTier: "read_thread",
         }),
       }),
     );
@@ -286,6 +287,7 @@ describe("issue update comment wakeups", () => {
           wakeCommentId: "comment-2",
           wakeReason: "issue_commented",
           source: "issue.comment",
+          commentWakeTier: "read_thread",
         }),
       }),
     );

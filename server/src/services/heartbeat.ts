@@ -9,6 +9,8 @@ import {
   AGENT_DEFAULT_MAX_CONCURRENT_RUNS,
   AGENT_MAX_CONCURRENT_RUNS_CAP,
   COMPANY_MAX_CONCURRENT_ACTIVE_AGENTS,
+  DEFAULT_COMPANY_COMMENT_WAKE_TIER,
+  ISSUE_COMMENT_WAKE_TIERS,
   ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY,
   MODEL_PROFILE_KEYS,
   isCodexCliAdapterType,
@@ -19,6 +21,7 @@ import {
   type ExecutionWorkspaceConfig,
   type IssueExecutionMonitorClearReason,
   type IssueExecutionMonitorPolicy,
+  type IssueCommentWakeTier,
   type IssueExecutionMonitorRecoveryPolicy,
   type ModelProfileKey,
   type RunLivenessState,
@@ -94,6 +97,20 @@ import {
   type RealizedExecutionWorkspace,
   sanitizeRuntimeServiceBaseEnv,
 } from "./workspace-runtime.js";
+import { compressWakeCommentBodiesForInjection } from "./comment-wake-tier.js";
+import {
+  initialEffectiveTrigger,
+  mergeEffectiveTriggerPayload,
+  omitEffectiveTrigger,
+  type WakeupInvocationMeta,
+} from "./wakeup-merge-attribution.js";
+
+export type { WakeupInvocationMeta } from "./wakeup-merge-attribution.js";
+export {
+  initialEffectiveTrigger,
+  mergeEffectiveTriggerPayload,
+  wakeupInvocationPriority,
+} from "./wakeup-merge-attribution.js";
 import { issueService } from "./issues.js";
 import {
   HEARTBEAT_SKIP_ON_DEMAND_BARE_WAKE,
@@ -1853,6 +1870,21 @@ function enrichWakeContextSnapshot(input: {
   };
 }
 
+function attachInitialEffectiveTriggerIfMissing(
+  snapshot: Record<string, unknown>,
+  source: string,
+  reason: string | null,
+  triggerDetail: string | null,
+) {
+  if (snapshot.effectiveTrigger != null) return;
+  const resolvedReason = readNonEmptyString(snapshot.wakeReason) ?? reason ?? "unknown";
+  snapshot.effectiveTrigger = initialEffectiveTrigger({
+    source,
+    reason: resolvedReason,
+    triggerDetail,
+  });
+}
+
 const INTERACTION_CONTINUATION_CONTEXT_KEYS = [
   "interactionId",
   "interactionKind",
@@ -1885,12 +1917,20 @@ function normalizeInteractionContinuationWakeContext(
 export function mergeCoalescedContextSnapshot(
   existingRaw: unknown,
   incoming: Record<string, unknown>,
+  attribution?: {
+    existingMeta: WakeupInvocationMeta;
+    incomingMeta: WakeupInvocationMeta;
+  },
 ) {
   const existing = parseObject(existingRaw);
+  const incomingForSpread = attribution ? omitEffectiveTrigger(incoming) : incoming;
   const merged: Record<string, unknown> = {
     ...existing,
-    ...incoming,
+    ...incomingForSpread,
   };
+  if (attribution) {
+    delete merged.effectiveTrigger;
+  }
   const mergedCommentIds = mergeWakeCommentIds(existing, incoming);
   if (mergedCommentIds.length > 0) {
     const latestCommentId = mergedCommentIds[mergedCommentIds.length - 1];
@@ -1904,7 +1944,27 @@ export function mergeCoalescedContextSnapshot(
   if (!hasInteractionContinuationWakeContext(incoming)) {
     clearInteractionContinuationWakeContext(merged);
   }
+  if (attribution) {
+    merged.effectiveTrigger = mergeEffectiveTriggerPayload(
+      existing,
+      attribution.incomingMeta,
+      attribution.existingMeta,
+    );
+  }
   return merged;
+}
+
+function wakeupMetaFromRunRow(run: {
+  invocationSource: string;
+  triggerDetail: string | null;
+  contextSnapshot: unknown;
+}): WakeupInvocationMeta {
+  const ctx = parseObject(run.contextSnapshot);
+  return {
+    source: run.invocationSource,
+    reason: readNonEmptyString(ctx.wakeReason) ?? "unknown",
+    triggerDetail: run.triggerDetail,
+  };
 }
 
 async function buildPaperclipWakePayload(input: {
@@ -2020,6 +2080,27 @@ async function buildPaperclipWakePayload(input: {
           ? { type: "user", id: row.authorUserId }
           : { type: "system", id: null },
     });
+  }
+
+  const wakeTierToken = readNonEmptyString(input.contextSnapshot.commentWakeTier);
+  const wakeTier: IssueCommentWakeTier =
+    wakeTierToken && (ISSUE_COMMENT_WAKE_TIERS as readonly string[]).includes(wakeTierToken)
+      ? (wakeTierToken as IssueCommentWakeTier)
+      : DEFAULT_COMPANY_COMMENT_WAKE_TIER;
+  const wakeTierIdx = ISSUE_COMMENT_WAKE_TIERS.indexOf(wakeTier);
+  const readThreadIdx = ISSUE_COMMENT_WAKE_TIERS.indexOf("read_thread");
+  if (comments.length > 1 && wakeTierIdx <= readThreadIdx) {
+    const flattened = compressWakeCommentBodiesForInjection(comments.map((c) => String(c.body ?? "")));
+    if (flattened.length < comments.length && flattened.length >= 1) {
+      const anchor = comments[comments.length - 1]!;
+      comments.length = 0;
+      comments.push({
+        ...anchor,
+        body: flattened.join("\n---\n"),
+        bodyTruncated: true,
+      });
+      truncated = true;
+    }
   }
 
   return {
@@ -8674,6 +8755,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       triggerDetail,
       payload,
     });
+    attachInitialEffectiveTriggerIfMissing(enrichedContextSnapshot, source, reason, triggerDetail);
     let issueId = readNonEmptyString(enrichedContextSnapshot.issueId) ?? issueIdFromPayload;
 
     const agent = await getAgent(agentId);
@@ -9088,9 +9170,18 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             isSameExecutionAgent;
 
           if (isSameExecutionAgent && !shouldQueueFollowupForRunningWake) {
+            const incomingMeta: WakeupInvocationMeta = {
+              source,
+              reason: reason ?? readNonEmptyString(enrichedContextSnapshot.wakeReason) ?? "unknown",
+              triggerDetail,
+            };
             const mergedContextSnapshot = mergeCoalescedContextSnapshot(
               activeExecutionRun.contextSnapshot,
               enrichedContextSnapshot,
+              {
+                existingMeta: wakeupMetaFromRunRow(activeExecutionRun),
+                incomingMeta,
+              },
             );
             const mergedRun = await tx
               .update(heartbeatRuns)
@@ -9145,9 +9236,22 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           if (existingDeferred) {
             const existingDeferredPayload = parseObject(existingDeferred.payload);
             const existingDeferredContext = parseObject(existingDeferredPayload[DEFERRED_WAKE_CONTEXT_KEY]);
+            const incomingMeta: WakeupInvocationMeta = {
+              source,
+              reason: reason ?? readNonEmptyString(enrichedContextSnapshot.wakeReason) ?? "unknown",
+              triggerDetail,
+            };
             const mergedDeferredContext = mergeCoalescedContextSnapshot(
               existingDeferredContext,
               enrichedContextSnapshot,
+              {
+                existingMeta: {
+                  source: existingDeferred.source,
+                  reason: existingDeferred.reason ?? "unknown",
+                  triggerDetail: existingDeferred.triggerDetail,
+                },
+                incomingMeta,
+              },
             );
             const mergedDeferredPayload = {
               ...existingDeferredPayload,
@@ -9281,9 +9385,18 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       (shouldQueueFollowupForRunningWake ? null : sameScopeRunningRun ?? null);
 
     if (coalescedTargetRun) {
+      const incomingMeta: WakeupInvocationMeta = {
+        source,
+        reason: reason ?? readNonEmptyString(enrichedContextSnapshot.wakeReason) ?? "unknown",
+        triggerDetail,
+      };
       const mergedContextSnapshot = mergeCoalescedContextSnapshot(
         coalescedTargetRun.contextSnapshot,
         enrichedContextSnapshot,
+        {
+          existingMeta: wakeupMetaFromRunRow(coalescedTargetRun),
+          incomingMeta,
+        },
       );
       const mergedRun = await db
         .update(heartbeatRuns)

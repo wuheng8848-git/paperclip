@@ -12,6 +12,7 @@ import {
   ISSUE_COMMENT_METADATA_ROW_TYPES,
   ISSUE_COMMENT_PRESENTATION_KINDS,
   ISSUE_COMMENT_PRESENTATION_TONES,
+  ISSUE_COMMENT_WAKE_TIERS,
   ISSUE_MONITOR_SCHEDULED_BY,
   ISSUE_PRIORITIES,
   ISSUE_RECOVERY_ACTION_KINDS,
@@ -27,6 +28,8 @@ import {
   MODEL_PROFILE_KEYS,
 } from "../constants.js";
 import { multilineTextSchema } from "./text.js";
+
+export const issueCommentWakeTierSchema = z.enum(ISSUE_COMMENT_WAKE_TIERS);
 
 export const issueBlockedInboxStateSchema = z.enum([
   "needs_attention",
@@ -381,6 +384,7 @@ const createIssueBaseSchema = z.object({
   requestDepth: issueRequestDepthInputSchema.optional().default(0),
   billingCode: z.string().optional().nullable(),
   assigneeAdapterOverrides: issueAssigneeAdapterOverridesSchema.optional().nullable(),
+  commentWakeTier: issueCommentWakeTierSchema.optional().nullable(),
   executionPolicy: issueExecutionPolicySchema.optional().nullable(),
   executionWorkspaceId: z.string().uuid().optional().nullable(),
   executionWorkspacePreference: z.enum(ISSUE_EXECUTION_WORKSPACE_PREFERENCES).optional().nullable(),

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, Braces, Check, ChevronDown, Copy, FileText, Terminal, Workflow } from "lucide-react";
+import { Activity, Braces, Check, ChevronDown, Copy, FileText, ListTree, Terminal, Workflow } from "lucide-react";
 import type { Agent, HeartbeatRun, HeartbeatRunEvent } from "@paperclipai/shared";
 import type { PromptCacheCorrelation } from "@paperclipai/adapter-utils";
 import { agentsApi } from "../api/agents";
@@ -15,6 +15,7 @@ import { useToastActions } from "@/context/ToastContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useCompany } from "../context/CompanyContext";
 import { queryKeys } from "../lib/queryKeys";
+import { parseEffectiveTrigger } from "../lib/wake-attribution";
 import { agentUrl, formatDateTime, relativeTime } from "../lib/utils";
 import { Link } from "@/lib/router";
 import { nav, orchestrationInjectionPage } from "../lib/i18n";
@@ -56,6 +57,16 @@ function runTimeLabel(run: HeartbeatRun) {
 function runReason(run: HeartbeatRun) {
   const context = asRecord(run.contextSnapshot);
   return asString(context?.wakeReason) ?? run.invocationSource;
+}
+
+function wakeAttributionSourceLabel(source: string): string {
+  const labels = orchestrationInjectionPage.wakeAttributionSourceLabels;
+  return source in labels ? labels[source as keyof typeof labels] : source;
+}
+
+function wakeAttributionReasonLabel(reason: string): string {
+  const labels = orchestrationInjectionPage.wakeReasonLabels;
+  return reason in labels ? labels[reason as keyof typeof labels] : reason;
 }
 
 function JsonBlock({ value }: { value: unknown }) {
@@ -307,6 +318,11 @@ export function OrchestrationInjection() {
     if (selectedRunId) return runs.find((run) => run.id === selectedRunId) ?? runs[0] ?? null;
     return runs[0] ?? null;
   }, [runsQuery.data, selectedRunId]);
+
+  const parsedEffectiveTrigger = useMemo(
+    () => (selectedRun ? parseEffectiveTrigger(selectedRun.contextSnapshot) : null),
+    [selectedRun],
+  );
 
   useEffect(() => {
     if (!selectedRunId && selectedRun?.id) setSelectedRunId(selectedRun.id);
@@ -772,6 +788,65 @@ export function OrchestrationInjection() {
                     </div>
                   ) : (
                     <PromptBlock prompt={displayPromptForBlock} />
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <ListTree className="h-4 w-4 text-muted-foreground" />
+                    {orchestrationInjectionPage.wakeAttributionTitle}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {parsedEffectiveTrigger ? (
+                    <>
+                      <DetailRow
+                        label={orchestrationInjectionPage.wakeAttributionWinningLabel}
+                        value={`${wakeAttributionSourceLabel(parsedEffectiveTrigger.winning.source)} · ${wakeAttributionReasonLabel(parsedEffectiveTrigger.winning.reason)}`}
+                      />
+                      {parsedEffectiveTrigger.winning.triggerDetail ? (
+                        <DetailRow
+                          label={orchestrationInjectionPage.wakeAttributionTriggerDetailLabel}
+                          value={parsedEffectiveTrigger.winning.triggerDetail}
+                        />
+                      ) : null}
+                      {parsedEffectiveTrigger.lastMergeAt ? (
+                        <DetailRow
+                          label={orchestrationInjectionPage.wakeAttributionLastMergeLabel}
+                          value={formatDateTime(parsedEffectiveTrigger.lastMergeAt)}
+                        />
+                      ) : null}
+                      {parsedEffectiveTrigger.absorbed.length > 0 ? (
+                        <div>
+                          <div className="mb-2 text-xs font-medium text-muted-foreground">
+                            {orchestrationInjectionPage.wakeAttributionAbsorbedTitle}
+                          </div>
+                          <ul className="space-y-2">
+                            {parsedEffectiveTrigger.absorbed.map((row, index) => (
+                              <li
+                                key={`${row.absorbedAt}-${row.source}-${row.reason}-${index}`}
+                                className="border-l border-border pl-3 text-sm leading-relaxed"
+                              >
+                                <div>
+                                  {wakeAttributionSourceLabel(row.source)} ·{" "}
+                                  {wakeAttributionReasonLabel(row.reason)}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {orchestrationInjectionPage.wakeAttributionAbsorbedAtLabel}：{" "}
+                                  {formatDateTime(row.absorbedAt)}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </>
+                  ) : (
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      {orchestrationInjectionPage.wakeAttributionFallbackHint}
+                    </p>
                   )}
                 </CardContent>
               </Card>

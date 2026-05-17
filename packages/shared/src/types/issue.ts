@@ -3,6 +3,7 @@ import type {
   IssueCommentMetadataRowType,
   IssueCommentPresentationKind,
   IssueCommentPresentationTone,
+  IssueCommentWakeTier,
   IssueExecutionMonitorClearReason,
   IssueExecutionMonitorKind,
   IssueExecutionMonitorRecoveryPolicy,
@@ -458,6 +459,7 @@ export interface Issue {
   requestDepth: number;
   billingCode: string | null;
   assigneeAdapterOverrides: IssueAssigneeAdapterOverrides | null;
+  commentWakeTier?: IssueCommentWakeTier | null;
   executionPolicy?: IssueExecutionPolicy | null;
   executionState?: IssueExecutionState | null;
   monitorNextCheckAt?: Date | null;

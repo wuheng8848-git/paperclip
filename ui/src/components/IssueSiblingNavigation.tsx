@@ -56,8 +56,6 @@ function SiblingLink({
       to={createIssueDetailPath(issuePathId)}
       state={withIssueDetailHeaderSeed(linkState, issue)}
       issuePrefetch={issue}
-      issueQuicklookSide="top"
-      issueQuicklookAlign={direction === "previous" ? "start" : "end"}
       aria-label={`${ariaDirection}: ${identifier} - ${issue.title}`}
       className={cn(
         "group min-w-0 rounded-lg border border-border bg-card px-3 py-2.5 text-left no-underline transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring",
