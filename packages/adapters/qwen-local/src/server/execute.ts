@@ -20,6 +20,7 @@ import {
   readPaperclipIssueWorkModeFromContext,
   readPaperclipRuntimeSkillEntries,
   resolvePaperclipDesiredSkillNames,
+  shouldMinimizeAdapterRuntimeSkillNotes,
   DEFAULT_PAPERCLIP_AGENT_PROMPT_TEMPLATE,
 } from "@paperclipai/adapter-utils/server-utils";
 import { runChildProcess } from "@paperclipai/adapter-utils/server-utils";
@@ -202,7 +203,7 @@ function renderPaperclipApiAccessNote(env: Record<string, string>): string {
   ].join("\n");
 }
 
-async function renderQwenSkillNote(config: Record<string, unknown>): Promise<string> {
+async function renderQwenSkillNote(config: Record<string, unknown>, minimize: boolean): Promise<string> {
   const availableEntries = await readPaperclipRuntimeSkillEntries(config, __moduleDir);
   const selectedSkills = resolvePaperclipDesiredSkillNames(config, availableEntries)
     .map((key) => availableEntries.find((entry) => entry.key === key)?.runtimeName)
@@ -211,6 +212,12 @@ async function renderQwenSkillNote(config: Record<string, unknown>): Promise<str
   if (selectedSkills.length === 0) return "";
 
   const skillsHome = path.join(os.homedir(), ".qwen", "skills");
+  if (minimize) {
+    const line = `Paperclip skills: ${skillsHome}; ${selectedSkills.join(", ")}`;
+    return selectedSkills.includes("paperclip")
+      ? `${line}; paperclip protocol: ${path.join(skillsHome, "paperclip", "SKILL.md")}`
+      : line;
+  }
   const lines = [
     "Paperclip runtime skills note:",
     `Skill root: ${skillsHome}`,
@@ -379,7 +386,8 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const taskContextNote = asString(context.paperclipTaskMarkdown, "").trim();
   const paperclipEnvNote = renderPaperclipEnvNote(env);
   const apiAccessNote = renderPaperclipApiAccessNote(env);
-  const skillNote = await renderQwenSkillNote(config);
+  const minimizeRuntimeSkillNotes = shouldMinimizeAdapterRuntimeSkillNotes(context, Boolean(sessionId));
+  const skillNote = await renderQwenSkillNote(config, minimizeRuntimeSkillNotes);
   const { prompt, promptSections } = joinPromptSectionsLabeled([
     { id: "agent_instructions", body: instructionsPrefix },
     { id: "bootstrap", body: renderedBootstrapPrompt },

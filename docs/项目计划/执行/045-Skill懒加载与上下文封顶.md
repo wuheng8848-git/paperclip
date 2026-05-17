@@ -51,3 +51,11 @@ status: 进行中
 ---
 
 ## 验证证据（完成后填写）
+
+### 2026-05-17（首轮 · stdin 技能说明封顶）
+
+- **共享逻辑：** `packages/adapter-utils/src/server-utils.ts` 新增 `shouldMinimizeAdapterRuntimeSkillNotes(context, resumedSession)`：**接续会话** 或 **`commentWakeTier` ∈ `receipt_only` / `read_thread` / `allow_api_context`** 时，适配器侧技能提示走**单行精简**。
+- **Qwen：** `packages/adapters/qwen-local/src/server/execute.ts` — `renderQwenSkillNote` 按上文精简 `skill_note`。
+- **CodeBuddy：** `packages/adapters/codebuddy-local/src/server/execute.ts` — 新增与同口径的 `skill_note` 段；磁盘同步路径不变。
+- **Cursor：** 本轮 **未改** stdin（技能仍以磁盘 symlink 注入为主，与 Qwen 的「显式 skill 段」不同层）；后续若需与低档对齐，可单列极小 `onLog` 或一行指针。
+- **测试：** `packages/adapter-utils/src/server-utils.test.ts` — `shouldMinimizeAdapterRuntimeSkillNotes` 单测；`pnpm exec vitest run packages/adapter-utils/src/server-utils.test.ts -t shouldMinimizeAdapterRuntimeSkillNotes`。

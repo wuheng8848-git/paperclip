@@ -17,6 +17,7 @@ import {
   runChildProcess,
   sanitizeSshRemoteEnv,
   shapePaperclipWorkspaceEnvForExecution,
+  shouldMinimizeAdapterRuntimeSkillNotes,
   rewriteWorkspaceCwdEnvVarsForExecution,
   stringifyPaperclipWakePayload,
 } from "./server-utils.js";
@@ -982,6 +983,27 @@ describe("refreshPaperclipWorkspaceEnvForExecution", () => {
         workspaceId: "workspace-2",
       },
     ]);
+  });
+});
+
+describe("shouldMinimizeAdapterRuntimeSkillNotes", () => {
+  it("minimizes when resuming a session", () => {
+    expect(shouldMinimizeAdapterRuntimeSkillNotes({}, true)).toBe(true);
+    expect(shouldMinimizeAdapterRuntimeSkillNotes({ commentWakeTier: "allow_repo_write" }, true)).toBe(true);
+  });
+
+  it("minimizes for low comment wake tiers", () => {
+    expect(shouldMinimizeAdapterRuntimeSkillNotes({ commentWakeTier: "receipt_only" }, false)).toBe(true);
+    expect(shouldMinimizeAdapterRuntimeSkillNotes({ commentWakeTier: "read_thread" }, false)).toBe(true);
+    expect(shouldMinimizeAdapterRuntimeSkillNotes({ commentWakeTier: "allow_api_context" }, false)).toBe(true);
+  });
+
+  it("does not minimize for higher tiers when not resuming", () => {
+    expect(shouldMinimizeAdapterRuntimeSkillNotes({ commentWakeTier: "allow_full_skills" }, false)).toBe(false);
+  });
+
+  it("does not minimize when tier is absent", () => {
+    expect(shouldMinimizeAdapterRuntimeSkillNotes({}, false)).toBe(false);
   });
 });
 

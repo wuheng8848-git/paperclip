@@ -1834,6 +1834,28 @@ export function resolvePaperclipDesiredSkillNames(
   return Array.from(new Set([...requiredSkills, ...desiredSkills]));
 }
 
+/** Tiers where stdin skill guidance stays short (`045`, comment wake). See `ISSUE_COMMENT_WAKE_TIERS`. */
+const MINIMAL_ADAPTER_RUNTIME_SKILL_NOTE_TIERS = new Set([
+  "receipt_only",
+  "read_thread",
+  "allow_api_context",
+]);
+
+/**
+ * When true, adapters should emit a **short** Paperclip runtime skill note (root path + keys only).
+ * - Resumed session: minimize redundant boilerplate.
+ * - Comment wake at low tiers (`read_thread`, `allow_api_context`): minimize.
+ */
+export function shouldMinimizeAdapterRuntimeSkillNotes(
+  context: Record<string, unknown>,
+  resumedSession: boolean,
+): boolean {
+  if (resumedSession) return true;
+  const tier = asString(context.commentWakeTier, "").trim();
+  if (!tier) return false;
+  return MINIMAL_ADAPTER_RUNTIME_SKILL_NOTE_TIERS.has(tier);
+}
+
 export function writePaperclipSkillSyncPreference(
   config: Record<string, unknown>,
   desiredSkills: string[],

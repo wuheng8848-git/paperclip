@@ -1,3 +1,4 @@
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AdapterExecutionContext, AdapterExecutionResult } from "@paperclipai/adapter-utils";
@@ -17,6 +18,9 @@ import {
   renderPaperclipWakePrompt,
   stringifyPaperclipWakePayload,
   readPaperclipIssueWorkModeFromContext,
+  readPaperclipRuntimeSkillEntries,
+  resolvePaperclipDesiredSkillNames,
+  shouldMinimizeAdapterRuntimeSkillNotes,
   DEFAULT_PAPERCLIP_AGENT_PROMPT_TEMPLATE,
 } from "@paperclipai/adapter-utils/server-utils";
 import { runChildProcess } from "@paperclipai/adapter-utils/server-utils";
@@ -181,6 +185,45 @@ export function resolveCodeBuddyBillingType(env: Record<string, string>): "api" 
     : "subscription";
 }
 
+function resolveCodebuddySkillsHomeForPrompt(config: Record<string, unknown>): string {
+  const envConfig = parseObject(config.env);
+  const configuredHome = asString(envConfig.HOME, "").trim();
+  const home = configuredHome ? path.resolve(configuredHome) : os.homedir();
+  return path.join(home, ".codebuddy", "skills");
+}
+
+async function renderCodebuddyRuntimeSkillNote(
+  config: Record<string, unknown>,
+  minimize: boolean,
+): Promise<string> {
+  const availableEntries = await readPaperclipRuntimeSkillEntries(config, __moduleDir);
+  const selectedSkills = resolvePaperclipDesiredSkillNames(config, availableEntries)
+    .map((key) => availableEntries.find((entry) => entry.key === key)?.runtimeName)
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .sort();
+  if (selectedSkills.length === 0) return "";
+
+  const skillsHome = resolveCodebuddySkillsHomeForPrompt(config);
+  if (minimize) {
+    const line = `Paperclip skills: ${skillsHome}; ${selectedSkills.join(", ")}`;
+    return selectedSkills.includes("paperclip")
+      ? `${line}; paperclip protocol: ${path.join(skillsHome, "paperclip", "SKILL.md")}`
+      : line;
+  }
+  const lines = [
+    "Paperclip runtime skills note:",
+    `Skill root: ${skillsHome}`,
+    `Selected skills: ${selectedSkills.join(", ")}`,
+    "When the task involves Paperclip issues, heartbeats, status changes, delegation, comments, or API calls, read and follow the paperclip skill SKILL.md before acting.",
+  ];
+  if (selectedSkills.includes("paperclip")) {
+    lines.push(
+      `For this heartbeat, the Paperclip control-plane protocol is available at ${path.join(skillsHome, "paperclip", "SKILL.md")}.`,
+    );
+  }
+  return lines.join("\n");
+}
+
 // ---------------------------------------------------------------------------
 // Execute
 // ---------------------------------------------------------------------------
@@ -331,11 +374,14 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const renderedPrompt = renderTemplate(promptTemplate, templateData);
   const sessionHandoffNote = asString(context.paperclipSessionHandoffMarkdown, "").trim();
   const taskContextNote = asString(context.paperclipTaskMarkdown, "").trim();
+  const minimizeRuntimeSkillNotes = shouldMinimizeAdapterRuntimeSkillNotes(context, Boolean(sessionId));
+  const skillNote = await renderCodebuddyRuntimeSkillNote(config, minimizeRuntimeSkillNotes);
   const { prompt, promptSections } = joinPromptSectionsLabeled([
     { id: "bootstrap", body: renderedBootstrapPrompt },
     { id: "wake", body: wakePrompt },
     { id: "session_handoff", body: sessionHandoffNote },
     { id: "task_context", body: taskContextNote },
+    { id: "skill_note", body: skillNote },
     { id: "heartbeat_template", body: renderedPrompt },
   ]);
 
