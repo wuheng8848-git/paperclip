@@ -3,12 +3,14 @@ import path from "node:path";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
 import { createHash, randomUUID } from "node:crypto";
-import { and, asc, desc, eq, getTableColumns, gt, inArray, isNull, lt, lte, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, getTableColumns, gt, inArray, isNull, lt, lte, notInArray, or, sql } from "drizzle-orm";
 import type { Db } from "@paperclipai/db";
 import {
   AGENT_DEFAULT_MAX_CONCURRENT_RUNS,
   AGENT_DEFAULT_TIMER_HEARTBEAT_INTERVAL_SEC,
   AGENT_MAX_CONCURRENT_RUNS_CAP,
+  HEARTBEAT_INVOCATION_SOURCES,
+  HEARTBEAT_RUN_STATUSES,
   COMPANY_MAX_CONCURRENT_ACTIVE_AGENTS,
   DEFAULT_COMPANY_COMMENT_WAKE_TIER,
   ISSUE_COMMENT_WAKE_TIERS,
@@ -9896,6 +9898,114 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
               }),
         };
       });
+    },
+
+    listPaged: async (
+      companyId: string,
+      options: {
+        offset: number;
+        limit: number;
+        agentId?: string;
+        statuses?: string[];
+        invocationSource?: string;
+      },
+    ) => {
+      const safeForLegacyEncoding = await hasUnsafeTextProjectionDatabase();
+      const statusSet = new Set(HEARTBEAT_RUN_STATUSES as readonly string[]);
+      const allowedStatuses =
+        options.statuses?.filter((s): s is (typeof HEARTBEAT_RUN_STATUSES)[number] => statusSet.has(s)) ?? [];
+      const sourceOk =
+        options.invocationSource &&
+        (HEARTBEAT_INVOCATION_SOURCES as readonly string[]).includes(options.invocationSource)
+          ? options.invocationSource
+          : undefined;
+
+      const whereClause = and(
+        eq(heartbeatRuns.companyId, companyId),
+        ...(options.agentId ? [eq(heartbeatRuns.agentId, options.agentId)] : []),
+        ...(allowedStatuses.length > 0 ? [inArray(heartbeatRuns.status, allowedStatuses)] : []),
+        ...(sourceOk ? [eq(heartbeatRuns.invocationSource, sourceOk)] : []),
+      );
+
+      const totalRow = await db.select({ n: count() }).from(heartbeatRuns).where(whereClause);
+      const total = Number(totalRow[0]?.n ?? 0);
+
+      const query = db
+        .select(
+          safeForLegacyEncoding
+            ? {
+                ...heartbeatRunListColumns,
+                error: sql<string | null>`NULL`.as("error"),
+                ...heartbeatRunListContextColumns,
+              }
+            : {
+                ...heartbeatRunListColumns,
+                ...heartbeatRunListContextColumns,
+                ...heartbeatRunListResultColumns,
+              },
+        )
+        .from(heartbeatRuns)
+        .where(whereClause)
+        .orderBy(desc(heartbeatRuns.createdAt))
+        .limit(options.limit)
+        .offset(options.offset);
+
+      const rows = await query;
+      const runs = rows.map((row) => {
+        const {
+          contextIssueId,
+          contextTaskId,
+          contextTaskKey,
+          contextCommentId,
+          contextWakeCommentId,
+          contextWakeReason,
+          contextWakeSource,
+          contextWakeTriggerDetail,
+          resultSummary,
+          resultResult,
+          resultMessage,
+          resultError,
+          resultTotalCostUsd,
+          resultCostUsd,
+          resultCostUsdCamel,
+          ...rest
+        } = row as typeof row & {
+          resultSummary?: string | null;
+          resultResult?: string | null;
+          resultMessage?: string | null;
+          resultError?: string | null;
+          resultTotalCostUsd?: string | null;
+          resultCostUsd?: string | null;
+          resultCostUsdCamel?: string | null;
+        };
+
+        return {
+          ...rest,
+          contextSnapshot: summarizeHeartbeatRunContextSnapshot({
+            issueId: contextIssueId,
+            taskId: contextTaskId,
+            taskKey: contextTaskKey,
+            commentId: contextCommentId,
+            wakeCommentId: contextWakeCommentId,
+            wakeReason: contextWakeReason,
+            wakeSource: contextWakeSource,
+            wakeTriggerDetail: contextWakeTriggerDetail,
+          }),
+          resultJson: safeForLegacyEncoding
+            ? null
+            : summarizeHeartbeatRunListResultJson({
+                summary: resultSummary,
+                result: resultResult,
+                message: resultMessage,
+                error: resultError,
+                totalCostUsd: resultTotalCostUsd,
+                costUsd: resultCostUsd,
+                costUsdCamel: resultCostUsdCamel,
+              }),
+        };
+      });
+
+      return { runs, total };
     },
 
     getRun,

@@ -3130,6 +3130,36 @@ export function agentRoutes(
     res.json(runs);
   });
 
+  router.get("/companies/:companyId/heartbeat-runs/paged", async (req, res) => {
+    const companyId = req.params.companyId as string;
+    assertCompanyAccess(req, companyId);
+    const offsetRaw = req.query.offset as string | undefined;
+    const limitRaw = req.query.limit as string | undefined;
+    const offset = offsetRaw ? Math.max(0, parseInt(offsetRaw, 10) || 0) : 0;
+    const limit = limitRaw ? Math.max(1, Math.min(100, parseInt(limitRaw, 10) || 25)) : 25;
+    const agentId = typeof req.query.agentId === "string" && req.query.agentId.trim().length > 0 ? req.query.agentId.trim() : undefined;
+    const invocationSource =
+      typeof req.query.invocationSource === "string" && req.query.invocationSource.trim().length > 0
+        ? req.query.invocationSource.trim()
+        : undefined;
+    const statusParam = typeof req.query.status === "string" ? req.query.status : undefined;
+    const statuses =
+      statusParam && statusParam.trim().length > 0
+        ? statusParam
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0)
+        : undefined;
+    const result = await heartbeat.listPaged(companyId, {
+      offset,
+      limit,
+      agentId,
+      statuses,
+      invocationSource,
+    });
+    res.json(result);
+  });
+
   router.get("/companies/:companyId/live-runs", async (req, res) => {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);

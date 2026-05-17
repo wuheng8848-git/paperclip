@@ -20,6 +20,7 @@ import { Routines } from "./pages/Routines";
 import { RoutineDetail } from "./pages/RoutineDetail";
 import { HeartbeatTasks } from "./pages/HeartbeatTasks";
 import { OrchestrationInjection } from "./pages/OrchestrationInjection";
+import { OrchestrationInjectionRunDetail } from "./pages/OrchestrationInjectionRunDetail";
 import { OrchestrationGates } from "./pages/OrchestrationGates";
 import { UserProfile } from "./pages/UserProfile";
 import { ExecutionWorkspaceDetail } from "./pages/ExecutionWorkspaceDetail";
@@ -115,6 +116,7 @@ function boardRoutes() {
       <Route path="routines" element={<Routines />} />
       <Route path="routines/:routineId" element={<RoutineDetail />} />
       <Route path="heartbeat-tasks" element={<HeartbeatTasks />} />
+      <Route path="orchestration-injection/runs/:runId" element={<OrchestrationInjectionRunDetail />} />
       <Route path="orchestration-injection" element={<OrchestrationInjection />} />
       <Route path="orchestration-gates" element={<OrchestrationGates />} />
       <Route path="execution-workspaces/:workspaceId" element={<ExecutionWorkspaceDetail />} />
@@ -299,6 +301,7 @@ export function App() {
           <Route path="routines" element={<UnprefixedBoardRedirect />} />
           <Route path="routines/:routineId" element={<UnprefixedBoardRedirect />} />
           <Route path="heartbeat-tasks" element={<UnprefixedBoardRedirect />} />
+          <Route path="orchestration-injection/runs/:runId" element={<UnprefixedBoardRedirect />} />
           <Route path="orchestration-injection" element={<UnprefixedBoardRedirect />} />
           <Route path="orchestration-gates" element={<UnprefixedBoardRedirect />} />
           <Route path="u/:userSlug" element={<UnprefixedBoardRedirect />} />

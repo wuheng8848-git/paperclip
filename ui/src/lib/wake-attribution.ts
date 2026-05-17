@@ -1,5 +1,5 @@
 /**
- * 042 / 050：从运行 contextSnapshot 解析 effectiveTrigger（v1），供编排注入页等人读展示。
+ * 042 / 050：从运行 contextSnapshot 解析 effectiveTrigger（v1），供运行清单页等人读展示。
  */
 
 export type ParsedWakeupInvocation = {

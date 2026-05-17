@@ -78,6 +78,27 @@ export const heartbeatsApi = {
     const qs = searchParams.toString();
     return api.get<HeartbeatRun[]>(`/companies/${companyId}/heartbeat-runs${qs ? `?${qs}` : ""}`);
   },
+  listPaged: (
+    companyId: string,
+    params: {
+      offset?: number;
+      limit?: number;
+      agentId?: string;
+      status?: string[];
+      invocationSource?: string;
+    },
+  ) => {
+    const searchParams = new URLSearchParams();
+    if (params.offset != null) searchParams.set("offset", String(params.offset));
+    if (params.limit != null) searchParams.set("limit", String(params.limit));
+    if (params.agentId) searchParams.set("agentId", params.agentId);
+    if (params.status?.length) searchParams.set("status", params.status.join(","));
+    if (params.invocationSource) searchParams.set("invocationSource", params.invocationSource);
+    const qs = searchParams.toString();
+    return api.get<{ runs: HeartbeatRun[]; total: number }>(
+      `/companies/${companyId}/heartbeat-runs/paged${qs ? `?${qs}` : ""}`,
+    );
+  },
   get: (runId: string) => api.get<HeartbeatRun>(`/heartbeat-runs/${runId}`),
   events: (runId: string, afterSeq = 0, limit = 200) =>
     api.get<HeartbeatRunEvent[]>(
