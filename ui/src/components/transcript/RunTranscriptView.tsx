@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { TranscriptEntry } from "../../adapters";
 import { MarkdownBody } from "../MarkdownBody";
 import { cn, formatTokens } from "../../lib/utils";
-import { agentDetailUi } from "../../lib/i18n";
+import { agentDetailUi, translatePaperclipTranscriptLine, translatePaperclipTranscriptText } from "../../lib/i18n";
 import {
   Check,
   ChevronDown,
@@ -1272,7 +1272,7 @@ function TranscriptStderrGroup({
           {block.lines.map((line, i) => (
             <span key={`${line.ts}-${i}`}>
               <span className="select-none text-amber-500/50 dark:text-amber-400/40">{i > 0 ? "\n" : ""}</span>
-              {line.text}
+              {translatePaperclipTranscriptLine(line.text)}
             </span>
           ))}
         </pre>
@@ -1309,7 +1309,7 @@ function TranscriptSystemGroup({
           {block.lines.map((line, i) => (
             <span key={`${line.ts}-${i}`}>
               <span className="select-none text-blue-500/40 dark:text-blue-400/30">{i > 0 ? "\n" : ""}</span>
-              {line.text}
+              {translatePaperclipTranscriptLine(line.text)}
             </span>
           ))}
         </pre>
@@ -1328,6 +1328,7 @@ function TranscriptStdoutRow({
   collapseByDefault: boolean;
 }) {
   const [open, setOpen] = useState(!collapseByDefault);
+  const displayText = useMemo(() => translatePaperclipTranscriptText(block.text), [block.text]);
 
   return (
     <div>
@@ -1349,7 +1350,7 @@ function TranscriptStdoutRow({
           "mt-2 overflow-x-auto whitespace-pre-wrap break-words font-mono text-foreground/80",
           density === "compact" ? "text-[11px]" : "text-xs",
         )}>
-          {block.text}
+          {displayText}
         </pre>
       )}
     </div>
@@ -1380,6 +1381,9 @@ function rawEntryContent(entry: TranscriptEntry): string {
   }
   if (entry.kind === "init") {
     return `模型=${entry.model}${entry.sessionId ? ` 会话=${entry.sessionId}` : ""}`;
+  }
+  if (entry.kind === "stdout" || entry.kind === "stderr" || entry.kind === "system") {
+    return translatePaperclipTranscriptText(entry.text);
   }
   return entry.text;
 }

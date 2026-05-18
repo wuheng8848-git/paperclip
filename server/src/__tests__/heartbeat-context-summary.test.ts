@@ -18,8 +18,8 @@ describe("buildPaperclipTaskMarkdown", () => {
       },
     });
 
-    expect(assignment).toContain("- Work mode: \"planning\"");
-    expect(assignment).toContain("Make the plan only. Do not write code or perform implementation work.");
+    expect(assignment).toContain('- 工作模式："planning"');
+    expect(assignment).toContain("仅产出规划；不要编写代码或做实现类工作。");
 
     const commentWake = buildPaperclipTaskMarkdown({
       issue: {
@@ -35,7 +35,7 @@ describe("buildPaperclipTaskMarkdown", () => {
       },
     });
 
-    expect(commentWake).toContain("Update the plan only. Do not write code or perform implementation work.");
+    expect(commentWake).toContain("仅更新规划；不要编写代码或做实现类工作。");
 
     const acceptedConfirmation = buildPaperclipTaskMarkdown({
       issue: {
@@ -51,8 +51,8 @@ describe("buildPaperclipTaskMarkdown", () => {
       },
     });
 
-    expect(acceptedConfirmation).toContain("Create child issues from the approved plan only");
-    expect(acceptedConfirmation).not.toContain("Make the plan only.");
+    expect(acceptedConfirmation).toContain("仅根据已获准的规划创建子事务");
+    expect(acceptedConfirmation).not.toContain("仅产出规划；不要编写代码或做实现类工作。");
   });
 
   it("prefers ordinary comment planning guidance over stale accepted confirmation state", () => {
@@ -74,8 +74,8 @@ describe("buildPaperclipTaskMarkdown", () => {
       },
     });
 
-    expect(commentWake).toContain("Update the plan only. Do not write code or perform implementation work.");
-    expect(commentWake).not.toContain("Create child issues from the approved plan only");
+    expect(commentWake).toContain("仅更新规划；不要编写代码或做实现类工作。");
+    expect(commentWake).not.toContain("仅根据已获准的规划创建子事务");
   });
 });
 

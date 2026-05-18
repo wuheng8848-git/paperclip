@@ -1465,6 +1465,49 @@ export const sidebarAccountMenu = {
   versionPrefix: "回形针 v",
 } as const;
 
+/** 已知英文的 [paperclip] 转写行 → 界面中文；未匹配则原样返回。 */
+export function translatePaperclipTranscriptLine(line: string): string {
+  if (!line.includes("[paperclip]")) return line;
+  const trimmedEnd = line.replace(/\s+$/, "");
+  const sessionSkipReasonZh: Record<string, string> = {
+    "wake reason is issue_assigned": "唤醒原因为工单指派（issue_assigned）",
+    "wake reason is execution_review_requested": "唤醒原因为执行审查请求（execution_review_requested）",
+    "wake reason is execution_approval_requested": "唤醒原因为执行审批请求（execution_approval_requested）",
+    "wake reason is execution_changes_requested": "唤醒原因为执行变更请求（execution_changes_requested）",
+    "forceFreshSession was requested": "已请求强制开启新会话（forceFreshSession）",
+  };
+
+  const forTask = /^\[paperclip\]\s*Skipping saved session resume for task "([^"]+)" because (.+?)\.?\s*$/i.exec(
+    trimmedEnd,
+  );
+  if (forTask) {
+    const taskKey = forTask[1] ?? "";
+    const reasonRaw = (forTask[2] ?? "").trim();
+    const reasonZh = sessionSkipReasonZh[reasonRaw] ?? reasonRaw;
+    return `[paperclip] 已跳过任务「${taskKey}」的已保存会话续用（${reasonZh}）。`;
+  }
+  const noTask = /^\[paperclip\]\s*Skipping saved session resume because (.+?)\.?\s*$/i.exec(trimmedEnd);
+  if (noTask) {
+    const reasonRaw = (noTask[1] ?? "").trim();
+    const reasonZh = sessionSkipReasonZh[reasonRaw] ?? reasonRaw;
+    return `[paperclip] 已跳过已保存会话续用（${reasonZh}）。`;
+  }
+
+  if (
+    /^\[paperclip\]\s*Plan A: bypassing cmd\.exe wrapper, spawning node directly\s*$/i.test(trimmedEnd)
+  ) {
+    return "[paperclip] 方案 A：已绕过 cmd.exe 包装，直接由 Node 启动（Windows 优化路径）。";
+  }
+
+  return line;
+}
+
+/** 转写多行文本：逐行套用 {@link translatePaperclipTranscriptLine}。 */
+export function translatePaperclipTranscriptText(text: string): string {
+  if (!text.includes("[paperclip]")) return text;
+  return text.split(/\r?\n/).map((l) => translatePaperclipTranscriptLine(l)).join("\n");
+}
+
 export const agentDetailUi = {
   invocation: "调用适配器",
   // AgentProperties labels
@@ -1597,6 +1640,10 @@ export const agentDetailUi = {
   /** 运行详情「事件」里服务端写入的 lifecycle 英文短句 → 界面中文（库内仍存英文） */
   runLifecycleMessageDisplay: (message: string) => {
     const trimmed = message.trim();
+    if (trimmed.toLowerCase().startsWith("[paperclip]")) {
+      const t = translatePaperclipTranscriptLine(trimmed);
+      if (t !== trimmed) return t;
+    }
     const exact: Record<string, string> = {
       "run started": "运行已开始",
       "run cancelled": "运行已取消",

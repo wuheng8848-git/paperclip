@@ -47,8 +47,10 @@
 
 ## 6. 委派与子事务
 
+- **去重优先于新建**：详见 **`AGENTS.md`** 的 **「委派与去重（防同题双子单）」**。要义：`GET …/issues?parentId=` 看清已有子单后再 **`POST`**；同题优先用评论/改派/改状态，避免两条文案实质相同的子单。
+- **已取消（`cancelled`）的子事务**：允许你 **`PATCH /api/issues/{id}`** 改 **`status`**（例如拉回 `todo`）、**改 `assigneeAgentId` / `assigneeUserId`**、补描述与评论——作为**复活单**继续派工；不要默认「取消过就必须新开一条同题子单」。
 - 子事务：`POST /api/companies/{companyId}/issues`。务必带上 `parentId` 与 `goalId`。若须在 **同一 checkout / worktree** 上继续做非父子跟随，设 `inheritExecutionWorkspaceFromIssueId` 指向源事务。
-- 责任已清时直接建子事务；需要先让人类在候选树或问卷里选型时，`POST /api/issues/{issueId}/interactions`，`kind` 取 `"suggest_tasks"`、`"ask_user_questions"` 或 `"request_confirmation"`；若要人类答完叫醒你，`continuationPolicy: "wake_assignee"`。
+- 责任已清、且已做子单去重核对后，再建子事务；需要先让人类在候选树或问卷里选型时，`POST /api/issues/{issueId}/interactions`，`kind` 取 `"suggest_tasks"`、`"ask_user_questions"` 或 `"request_confirmation"`；若要人类答完叫醒你，`continuationPolicy: "wake_assignee"`。
 - 批计划：**先更新 `plan`**；再对该 **最新 plan revision** 建 `request_confirmation`；幂等键示例 `confirmation:{issueId}:plan:{revisionId}`；来源事务锁 `in_review`；在人类 **接受前**别开实现性子任务。
 - 若人类线程讨论会让旧 confirmation失效，设 `supersedeOnUserComment: true`；若因上位评论唤醒，重写提案并按需立新 confirmation。
 - 招聘走 `paperclip-create-agent` 技能。
