@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { AdapterExecutionTarget } from "@paperclipai/adapter-utils/execution-target";
 import { runChildProcess } from "@paperclipai/adapter-utils/server-utils";
 import { SANDBOX_INSTALL_COMMAND } from "../index.js";
+import { win32ShebangSpawnUnsupported } from "./local-test-path.js";
 import { execute } from "./execute.js";
 
 type PrepareCursorSandboxCommandInput = {
@@ -136,7 +137,7 @@ function createFreshLeaseSandboxRunner(options: {
   };
 }
 
-describe("cursor execute", () => {
+describe.skipIf(win32ShebangSpawnUnsupported)("cursor execute", () => {
   it("installs the default agent command on a fresh sandbox lease before execution", async () => {
     setPrepareCursorSandboxCommand.mockReset();
     setPrepareCursorSandboxCommand.mockImplementation(async (input) => {
@@ -181,6 +182,7 @@ describe("cursor execute", () => {
         executionTarget: {
           kind: "remote",
           transport: "sandbox",
+          shellCommand: "bash",
           remoteCwd: remoteWorkspace,
           runner,
           timeoutMs: 30_000,
@@ -247,9 +249,15 @@ printf '%s\\n' '{"type":"result","subtype":"success","session_id":"cursor-sessio
       expect(input.remoteSystemHomeDirHint).toBe(systemHomeDir);
       const preferredCommandPath = path.join(systemHomeDir, ".local", "bin", input.command);
       finalPreparedCommand = preferredCommandPath;
+      const inheritedPath =
+        typeof input.env.PATH === "string"
+          ? input.env.PATH
+          : typeof input.env.Path === "string"
+            ? input.env.Path
+            : "";
       const runtimeEnv = {
         ...input.env,
-        PATH: `${path.join(systemHomeDir, ".local", "bin")}${path.delimiter}${input.env.PATH}`,
+        PATH: `${path.join(systemHomeDir, ".local", "bin")}${path.delimiter}${inheritedPath}`,
       };
       await fs.mkdir(path.dirname(preferredCommandPath), { recursive: true });
       await fs.writeFile(preferredCommandPath, preferredAgentScript);
@@ -271,7 +279,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","session_id":"cursor-sessio
     const runner = {
       execute: async (input: { command: string; args?: string[]; env?: Record<string, string> }) => {
         runnerState.commands.push(input.command);
-        if (input.command === "sh") {
+        if (input.command === "sh" || input.command === "bash") {
           return {
             exitCode: 0,
           signal: null,
@@ -318,6 +326,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","session_id":"cursor-sessio
         executionTarget: {
           kind: "remote",
           transport: "sandbox",
+          shellCommand: "bash",
           remoteCwd: remoteWorkspace,
           providerKey: "fixture",
           runner: runner,
@@ -339,10 +348,10 @@ printf '%s\\n' '{"type":"result","subtype":"success","session_id":"cursor-sessio
       expect(result.exitCode).toBe(0);
       expect(prepareInputs).toHaveLength(2);
       expect(finalPreparedCommand).not.toBeNull();
-      expect(finalPreparedCommand).toMatch(/\.local\/(bin|sbin)\/agent$/);
+      const expectedLocalAgentPath = path.normalize(path.join(systemHomeDir, ".local", "bin", command));
+      expect(path.normalize(finalPreparedCommand!)).toBe(expectedLocalAgentPath);
       const resolvedCommand = runMeta.find(Boolean)?.command as string | undefined;
-      expect(resolvedCommand).toMatch(/\.local\/bin\/agent$/);
-      expect(resolvedCommand).toContain(path.join(systemHomeDir, ".local", "bin", command));
+      expect(path.normalize(resolvedCommand!)).toBe(expectedLocalAgentPath);
     } finally {
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;

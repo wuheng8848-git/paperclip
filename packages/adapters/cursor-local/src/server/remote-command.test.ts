@@ -3,6 +3,9 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { runChildProcess } from "@paperclipai/adapter-utils/server-utils";
+import {
+  canSpawnBashForCursorTests,
+} from "./local-test-path.js";
 import { augmentEnvPathForLocalCursorAgent, prepareCursorSandboxCommand } from "./remote-command.js";
 
 function createLocalSandboxRunner() {
@@ -43,7 +46,13 @@ printf '%s\\n' ok
   await fs.chmod(commandPath, 0o755);
 }
 
-describe("prepareCursorSandboxCommand", () => {
+function pathDirEntriesForAssert(pathValue: string | undefined): string[] {
+  if (!pathValue) return [];
+  const sep = pathValue.includes(";") ? ";" : ":";
+  return pathValue.split(sep).filter(Boolean);
+}
+
+describe.skipIf(!canSpawnBashForCursorTests())("prepareCursorSandboxCommand", () => {
   it("prefers the Cursor installer bin directory when the default agent entrypoint is installed there", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-remote-command-cursor-bin-"));
     const systemHomeDir = path.join(root, "system-home");
@@ -68,21 +77,22 @@ describe("prepareCursorSandboxCommand", () => {
         cwd: remoteWorkspace,
         env: {
           HOME: managedHomeDir,
-          PATH: "/usr/bin:/bin",
+          PATH: `${process.env.PATH ?? ""}${path.delimiter}/usr/bin${path.delimiter}/bin`,
         },
         remoteSystemHomeDirHint: systemHomeDir,
         timeoutSec: 30,
         graceSec: 5,
       });
 
-      expect(result.command).toBe(cursorAgentPath);
-      expect(result.preferredCommandPath).toBe(cursorAgentPath);
+      expect(path.normalize(result.command)).toBe(path.normalize(cursorAgentPath));
+      expect(path.normalize(result.preferredCommandPath!)).toBe(path.normalize(cursorAgentPath));
       expect(result.remoteSystemHomeDir).toBe(systemHomeDir);
-      expect(result.addedPathEntry).toBe(path.join(systemHomeDir, ".local", "bin"));
-      expect(result.env.PATH?.split(":").slice(0, 2)).toEqual([
-        path.join(systemHomeDir, ".local", "bin"),
-        path.join(systemHomeDir, ".cursor", "bin"),
-      ]);
+      expect(path.normalize(result.addedPathEntry!)).toBe(
+        path.normalize(path.join(systemHomeDir, ".local", "bin")),
+      );
+      const pathParts = pathDirEntriesForAssert(result.env.PATH);
+      expect(path.normalize(pathParts[0]!)).toBe(path.normalize(path.join(systemHomeDir, ".local", "bin")));
+      expect(path.normalize(pathParts[1]!)).toBe(path.normalize(path.join(systemHomeDir, ".cursor", "bin")));
       expect(result.env.PATH).not.toContain(path.join(managedHomeDir, ".cursor", "bin"));
       expect(result.env.PATH).not.toContain(path.join(managedHomeDir, ".local", "bin"));
     } finally {
@@ -114,21 +124,22 @@ describe("prepareCursorSandboxCommand", () => {
         cwd: remoteWorkspace,
         env: {
           HOME: managedHomeDir,
-          PATH: "/usr/bin:/bin",
+          PATH: `${process.env.PATH ?? ""}${path.delimiter}/usr/bin${path.delimiter}/bin`,
         },
         remoteSystemHomeDirHint: systemHomeDir,
         timeoutSec: 30,
         graceSec: 5,
       });
 
-      expect(result.command).toBe(systemAgentPath);
-      expect(result.preferredCommandPath).toBe(systemAgentPath);
+      expect(path.normalize(result.command)).toBe(path.normalize(systemAgentPath));
+      expect(path.normalize(result.preferredCommandPath!)).toBe(path.normalize(systemAgentPath));
       expect(result.remoteSystemHomeDir).toBe(systemHomeDir);
-      expect(result.addedPathEntry).toBe(path.join(systemHomeDir, ".local", "bin"));
-      expect(result.env.PATH?.split(":").slice(0, 2)).toEqual([
-        path.join(systemHomeDir, ".local", "bin"),
-        path.join(systemHomeDir, ".cursor", "bin"),
-      ]);
+      expect(path.normalize(result.addedPathEntry!)).toBe(
+        path.normalize(path.join(systemHomeDir, ".local", "bin")),
+      );
+      const pathParts2 = pathDirEntriesForAssert(result.env.PATH);
+      expect(path.normalize(pathParts2[0]!)).toBe(path.normalize(path.join(systemHomeDir, ".local", "bin")));
+      expect(path.normalize(pathParts2[1]!)).toBe(path.normalize(path.join(systemHomeDir, ".cursor", "bin")));
       expect(result.env.PATH).not.toContain(path.join(managedHomeDir, ".local", "bin"));
     } finally {
       await fs.rm(root, { recursive: true, force: true });

@@ -35,6 +35,21 @@ function prependPosixPathEntries(pathValue: string, entries: string[]): string {
   return entries.reduceRight((value, entry) => prependPosixPathEntry(value, entry), pathValue);
 }
 
+/** Use `;` when the ambient PATH already uses it (e.g. Windows host), else `:`. */
+function prependPathEntriesWithDetectedSeparator(pathValue: string, entries: string[]): string {
+  const sep = pathValue.includes(";") ? ";" : ":";
+  const parts = pathValue.split(sep).filter((p) => p.trim().length > 0);
+  const seen = new Set(parts.map((p) => normalizePathForDedup(p)));
+  const out = [...parts];
+  for (const entry of [...entries].reverse()) {
+    const norm = normalizePathForDedup(entry);
+    if (seen.has(norm)) continue;
+    seen.add(norm);
+    out.unshift(entry);
+  }
+  return out.join(sep);
+}
+
 function normalizePathForDedup(segment: string): string {
   const n = path.normalize(segment.trim());
   return process.platform === "win32" ? n.toLowerCase() : n;
@@ -99,18 +114,25 @@ function preferredSandboxCommandBasenames(command: string): string[] {
     : ["agent", "cursor-agent"];
 }
 
+/** Normalize a host absolute path for POSIX `[ -x … ]` / `[ -f … ]` probes (Windows backslashes → `/`). */
+function posixStyleAbsoluteForShellProbe(absPath: string): string {
+  return absPath.replace(/\\/g, "/");
+}
+
 function candidateSandboxCommandPaths(homeDir: string, basenames: string[]): string[] {
+  const posixHome = posixStyleAbsoluteForShellProbe(homeDir);
   // Iterate dirs first, then basenames within each dir, so directory
   // preference (CURSOR_SANDBOX_BIN_DIRS order) wins over basename
   // preference. Both basenames inside `.local/bin` are checked before
   // falling through to `.cursor/bin`.
   return CURSOR_SANDBOX_BIN_DIRS.flatMap((relativeDir) =>
-    basenames.map((basename) => path.posix.join(homeDir, relativeDir, basename))
+    basenames.map((basename) => path.posix.join(posixHome, relativeDir, basename))
   );
 }
 
 function candidateSandboxPathEntries(homeDir: string): string[] {
-  return CURSOR_SANDBOX_BIN_DIRS.map((relativeDir) => path.posix.join(homeDir, relativeDir));
+  const posixHome = posixStyleAbsoluteForShellProbe(homeDir);
+  return CURSOR_SANDBOX_BIN_DIRS.map((relativeDir) => path.posix.join(posixHome, relativeDir));
 }
 
 type SandboxCursorRuntimeInfo = {
@@ -164,7 +186,7 @@ async function readSandboxCursorRuntimeInfo(input: {
     const preferredProbeBranches = [
       ...fixedCandidatePaths.map(
         (fixedPath) =>
-          `[ -x ${JSON.stringify(fixedPath)} ] && printf ${JSON.stringify(`${preferredMarker}%s\\n`)} ${JSON.stringify(fixedPath)}`,
+          `( [ -x ${JSON.stringify(fixedPath)} ] || [ -f ${JSON.stringify(fixedPath)} ] ) && printf ${JSON.stringify(`${preferredMarker}%s\\n`)} ${JSON.stringify(fixedPath)}`,
       ),
       ...preferredBasenames.map(
         (basename) =>
@@ -201,9 +223,11 @@ async function readSandboxCursorRuntimeInfo(input: {
       };
     }
     const lines = result.stdout.split(/\r?\n/);
+    const preferredRaw = readMarkedValue(lines, preferredMarker);
+    const homeRaw = readMarkedValue(lines, homeMarker);
     return {
-      remoteSystemHomeDir: readMarkedValue(lines, homeMarker),
-      preferredCommandPath: readMarkedValue(lines, preferredMarker),
+      remoteSystemHomeDir: homeRaw ? path.normalize(homeRaw) : null,
+      preferredCommandPath: preferredRaw ? path.normalize(preferredRaw) : null,
     };
   } catch {
     return {
@@ -271,9 +295,10 @@ export async function prepareCursorSandboxCommand(input: {
   const sandboxPathEntries = candidateSandboxPathEntries(remoteSystemHomeDir);
   const runtimeEnv = ensurePathInEnv(input.env);
   const currentPath = runtimeEnv.PATH ?? runtimeEnv.Path ?? "";
-  const nextPath = prependPosixPathEntries(currentPath, sandboxPathEntries);
+  const nextPath = prependPathEntriesWithDetectedSeparator(currentPath, sandboxPathEntries);
   const env = nextPath === currentPath ? input.env : { ...input.env, PATH: nextPath };
-  const addedPathEntry = nextPath === currentPath ? null : sandboxPathEntries[0];
+  const addedPathEntry =
+    nextPath === currentPath ? null : path.normalize(sandboxPathEntries[0]);
 
   if (!runtimeInfo.preferredCommandPath) {
     return {

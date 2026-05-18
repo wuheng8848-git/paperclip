@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { runChildProcess } from "@paperclipai/adapter-utils/server-utils";
 import { SANDBOX_INSTALL_COMMAND } from "../index.js";
+import { win32ShebangSpawnUnsupported } from "./local-test-path.js";
 import { testEnvironment } from "./test.js";
 
 function buildFakeAgentScript(): string {
@@ -69,7 +70,7 @@ function createSandboxRunner(options: { homeDir: string; installCommandPath: str
   };
 }
 
-describe("cursor testEnvironment", () => {
+describe.skipIf(win32ShebangSpawnUnsupported)("cursor testEnvironment", () => {
   it("re-resolves the installed agent under ~/.cursor/bin and verifies --version before the hello probe", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-envtest-"));
     const homeDir = path.join(root, "home");
