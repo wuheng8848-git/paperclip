@@ -338,7 +338,7 @@ export const orchestrationGatesRows: ReadonlyArray<OrchestrationGatesTableRow> =
     configurable:
       "实例级：是否打开调度、整轮间隔多长（默认开、约每 30s 一轮，最短约 10s）；改部署后要重启。与「智能体心跳任务」页里每人自己的间隔是两层：这里管服务器多久跑一整轮，那里管某个经办多久巡检一次。具体变量名见代码位置。",
     hardcoded:
-      "调度说明：服务端按固定周期拉起整链恢复，并决定每轮间隔。\n\n调度开启时：API 启动后先跑一轮，之后每到间隔再跑；每轮按序做孤儿回收、队列续跑、滞留对账、关系图、无输出、产出审查等，并与同一节拍上的定时唤醒、例行唤醒并行。\n\n调度关闭时：整链不再触发。\n\n触发：进程已起、调度为开，且每到一轮间隔。\n\n结果：各子项含义与顺序见本表后文；整链与两类唤醒在同一间隔内跑完。",
+      "调度说明：服务端按固定周期拉起整链恢复，并决定每轮间隔。\n\n调度开启时：API 启动后先跑一轮，之后每到间隔再跑；每轮按序做孤儿回收、队列续跑、滞留对账、关系图、无输出、**产出纠偏**等，并与同一节拍上的定时唤醒、例行唤醒并行。\n\n调度关闭时：整链不再触发。\n\n触发：进程已起、调度为开，且每到一轮间隔。\n\n结果：各子项含义与顺序见本表后文；整链与两类唤醒在同一间隔内跑完。",
     codeRef: "server/index.ts · config HEARTBEAT_SCHEDULER_ENABLED · HEARTBEAT_SCHEDULER_INTERVAL_MS",
   },
   {
@@ -496,9 +496,10 @@ export const orchestrationGatesRows: ReadonlyArray<OrchestrationGatesTableRow> =
     id: "productivity",
     component: "产出纠偏",
     uiLinks: [],
-    configurable: "当前看板没有单独设置页，门槛写在产品里；将来若做成可配，会出现在实例或团队级设置。",
+    configurable:
+      "无单独设置页；默认门槛写在服务端（如：无评论连击次数、活跃过久小时数、高波动窗口内跑次/评论数、24h 内最多自动新开几张复查单等）。升级或自建实例后数值可能微调。",
     hardcoded:
-      "产出纠偏说明：觉得产出不对劲，自动开审查单让你拍板。\n\n例如：连着多轮跑完却一直没人回评论、单次拖得太久、改动过于频繁等；并且通常在 24 小时内同类自动开单有次数上限，避免单子雪崩。\n\n触发：与「关系图活性」「活跃无输出」等同在一轮调度尾部执行；命中产出或节奏异常模式时。\n\n结果：生成供你人工判断的审查类事务（与滞留回收单不是同一条链：这里是产出或节奏异常触发的审查），而不是默默替你改业务结论。",
+      "产出纠偏说明：系统觉得「产出或节奏不对劲」时，自动开一张审查类子事务给你拍板（单子 originKind 与滞留回收不同；不会在后台默默改掉业务结论）。\n\n主要几种命中模式（产品话，对应实现里的触发）：\n· 连着多轮跑完，经办却始终没有在事务上留下跑关联的评论（无评论连击 streak；默认约 10 次一档量级）。\n· 当前活跃执行段拖太久（默认约 6 小时这一档量级，以版本常量为准）。\n· 短时间内心跳跑次或经办相关评论过于频繁（实现里按 1 小时 / 6 小时窗口看 churn）。\n\n节制：默认 24 小时滚动窗口内，同类自动新建复查单有次数上限（避免雪崩；命中会表现为暂不再新建）。已在开的单子会按策略刷新证据评论，不等同于无限新建。\n\n触发：启动首轮与之后每个调度间隔里，紧跟「关系图活性」「活跃无输出盯梢」之后跑（整链顺序见上行「API 心跳调度」）。\n\n结果：新开或更新审查事务，描述里会带证据摘要（首句常为英文固定提示）；经办侧可能被叫醒；由人类决定是否改单、关单或改策略——系统不替你定业务结论。",
     codeRef: "heartbeat.reconcileProductivityReviews · productivity-review",
   },
   {
@@ -530,13 +531,14 @@ export const orchestrationInjectionPage = {
   runDetailTitle: "运行详情",
   detailTabEnqueue: "唤起入队",
   detailTabInput: "输入编排",
+  detailTabFinalPrompt: "最终提示词",
   detailTabExecution: "执行回传",
   detailTabRecord: "运行记录",
   detailTabEnqueueIntro:
     "本栏说明「入执行队列之前」的门控与排队语义。当前条目对应的一次运行**已经落库**，历史上若在入队前曾被预算、审批等拦截，需结合活动日志或实例策略查看。下列入口可对照调度与闸门说明。",
   detailTabLinkGates: "编排闸门",
   detailTabLinkHeartbeatTasks: "心跳任务",
-  executionPromptCrossRef: "完整提示词拼装、分块与控制面指标见「输入编排」标签。",
+  executionPromptCrossRef: "完整提示词全文见「最终提示词」标签；拼装块与控制面指标见「输入编排」。",
   backToList: "返回运行列表",
   runNotFound: "未找到该运行，可能已清理或不属于当前团队。",
   subtitle: "对照最近运行：看调度上下文、唤醒载荷与适配器提示词如何拼装，和事务侧现象是否对得上。",
@@ -588,8 +590,8 @@ export const orchestrationInjectionPage = {
   createdAt: "创建时间",
   promptUnavailable: "这次运行没有上报最终提示词。适配器可能不是提示词型运行，或运行发生在该事件记录之前。",
   eventUnavailable: "这次运行没有 adapter.invoke 事件。",
-  promptCombinationHint:
-    "以下为控制面拼装块（折叠展示）；块顺序及内容与上报的整块最终提示词一致。仅在 adapter.invoke 携带 promptSections 时显示分块。",
+  finalPromptMarkdownHint:
+    "以下为完整一段提示词原文，按 Markdown 排版展示（#、##、列表 - 等）。空行只是版面，不等于服务端分块；若仅上报了分块数组而没有整段字符串，会用双换行拼成一段再渲染。",
   promptCacheCorrelationTitle: "提示词与缓存对齐（invoke 语义）",
   promptCacheModeCold: "冷启动：stdin 按拼装块完整下发；模型侧 token 缓存是否命中以计费/用量回执为准。",
   promptCacheModeResumed: "续会话：此前缀多由模型或 CLI 会话承接；下列块本次未再随 stdin 下发（不等同于 KV 命中计数）。",
@@ -617,9 +619,6 @@ export const orchestrationInjectionPage = {
   copyFinalPromptFailedBody: "浏览器未允许访问剪贴板，或页面不在安全上下文中。",
   copyPromptSectionAria: (sectionTitle: string) => `复制：${sectionTitle}`,
   copyAdapterInvocationCardAria: "复制适配器调用卡片全文",
-  promptParagraphFallbackHint:
-    "本次运行未上报控制面分块。下面按连续空行（双换行）切成多段，便于逐段复制；分段边界不一定等于服务端真实组件，仅作辅助。",
-  promptParagraphLabel: (n: number) => `段落 ${n}`,
   promptMetrics: "提示词指标",
   adapterInvocation: "适配器调用",
   contextSnapshot: "运行快照",

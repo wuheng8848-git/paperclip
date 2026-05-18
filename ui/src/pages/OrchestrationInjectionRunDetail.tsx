@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, ArrowLeft, Braces, Check, ChevronDown, Copy, FileText, ListTree, Terminal, Workflow } from "lucide-react";
+import { Activity, ArrowLeft, Braces, Check, Copy, FileText, ListTree, Terminal, Workflow } from "lucide-react";
 import type { Agent, HeartbeatRun, HeartbeatRunEvent } from "@paperclipai/shared";
 import { ApiError } from "../api/client";
 import type { PromptCacheCorrelation } from "@paperclipai/adapter-utils";
 import { agentsApi } from "../api/agents";
 import { heartbeatsApi } from "../api/heartbeats";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "../components/EmptyState";
@@ -17,6 +16,7 @@ import { useCompany } from "../context/CompanyContext";
 import { queryKeys } from "../lib/queryKeys";
 import { parseEffectiveTrigger } from "../lib/wake-attribution";
 import { HeartbeatRunDetailPanel } from "../components/HeartbeatRunDetailPanel";
+import { MarkdownBody } from "../components/MarkdownBody";
 import { agentRouteRef, agentUrl, formatDateTime } from "../lib/utils";
 import { Link, useParams, useSearchParams } from "@/lib/router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -120,120 +120,6 @@ function promptSectionLabel(sectionId: string): string {
   return sectionId in titles ? titles[sectionId as keyof typeof titles] : sectionId;
 }
 
-function CollapsiblePromptChunksList({ items }: { items: Array<{ key: string; title: string; body: string }> }) {
-  const { pushToast } = useToastActions();
-  const [copiedSectionKey, setCopiedSectionKey] = useState<string | null>(null);
-  const sectionCopiedTimerRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (sectionCopiedTimerRef.current != null) window.clearTimeout(sectionCopiedTimerRef.current);
-    };
-  }, []);
-
-  const copySectionBody = useCallback(
-    async (sectionKey: string, text: string) => {
-      if (!text) return;
-      try {
-        await navigator.clipboard.writeText(text);
-        setCopiedSectionKey(sectionKey);
-        if (sectionCopiedTimerRef.current != null) window.clearTimeout(sectionCopiedTimerRef.current);
-        sectionCopiedTimerRef.current = window.setTimeout(() => {
-          setCopiedSectionKey(null);
-          sectionCopiedTimerRef.current = null;
-        }, 2000);
-      } catch {
-        pushToast({
-          title: orchestrationInjectionPage.copyFinalPromptFailedTitle,
-          body: orchestrationInjectionPage.copyFinalPromptFailedBody,
-          tone: "error",
-        });
-      }
-    },
-    [pushToast],
-  );
-
-  return (
-    <div className="space-y-2">
-      {items.map((row, index) => {
-        const sectionCopied = copiedSectionKey === row.key;
-        return (
-          <Collapsible key={row.key} defaultOpen={index === 0} className="overflow-hidden border border-border">
-            <div className="flex items-stretch">
-              <CollapsibleTrigger className="flex min-h-10 min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted/40 [&[data-state=open]>svg]:rotate-180">
-                <ChevronDown className="h-4 w-4 shrink-0 transition-transform text-muted-foreground" aria-hidden />
-                <span className="min-w-0 flex-1 font-medium">{row.title}</span>
-                <span className="tabular-nums text-xs text-muted-foreground">{orchestrationInjectionPage.chars(row.body.length)}</span>
-              </CollapsibleTrigger>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-auto min-h-10 w-11 shrink-0 rounded-none border-b-0 border-r-0 border-t-0 bg-background"
-                aria-label={orchestrationInjectionPage.copyPromptSectionAria(row.title)}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  void copySectionBody(row.key, row.body);
-                }}
-              >
-                {sectionCopied ? <Check className="h-3.5 w-3.5 text-green-600" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
-              </Button>
-            </div>
-            <CollapsibleContent>
-              <pre className="max-h-[340px] overflow-auto whitespace-pre-wrap break-words border-t border-border bg-muted/15 p-3 font-mono text-xs leading-relaxed">
-                {row.body}
-              </pre>
-            </CollapsibleContent>
-          </Collapsible>
-        );
-      })}
-    </div>
-  );
-}
-
-function PromptSectionsList({ sections }: { sections: Array<{ id: string; body: string }> }) {
-  const items = useMemo(
-    () =>
-      sections.map((section, index) => ({
-        key: `${index}:${section.id}`,
-        title: promptSectionLabel(section.id),
-        body: section.body,
-      })),
-    [sections],
-  );
-  return <CollapsiblePromptChunksList items={items} />;
-}
-
-function ParagraphSplitChunksList({ chunks }: { chunks: string[] }) {
-  const items = useMemo(
-    () =>
-      chunks.map((body, index) => ({
-        key: `p:${index}`,
-        title: orchestrationInjectionPage.promptParagraphLabel(index + 1),
-        body,
-      })),
-    [chunks],
-  );
-  return <CollapsiblePromptChunksList items={items} />;
-}
-
-function PromptBlock({ prompt }: { prompt: string | null }) {
-  if (!prompt) {
-    return (
-      <div className="border border-dashed border-border p-3 text-sm text-muted-foreground">
-        {orchestrationInjectionPage.promptUnavailable}
-      </div>
-    );
-  }
-
-  return (
-    <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap break-words border border-border bg-muted/20 p-3 font-mono text-xs leading-relaxed">
-      {prompt}
-    </pre>
-  );
-}
-
 function MetricPill({ label, value }: { label: string; value: number }) {
   return (
     <div className="border border-border px-3 py-2">
@@ -281,7 +167,7 @@ function DetailRow({ label, value }: { label: string; value: string | null }) {
     </div>
   );
 }
-const DETAIL_TAB_VALUES = ["enqueue", "input", "execution", "record"] as const;
+const DETAIL_TAB_VALUES = ["enqueue", "input", "finalPrompt", "execution", "record"] as const;
 type DetailTab = (typeof DETAIL_TAB_VALUES)[number];
 
 export function OrchestrationInjectionRunDetail() {
@@ -294,8 +180,6 @@ export function OrchestrationInjectionRunDetail() {
   const { selectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
   const { pushToast } = useToastActions();
-  const [finalPromptCopied, setFinalPromptCopied] = useState(false);
-  const finalPromptCopiedTimerRef = useRef<number | null>(null);
   const [adapterInvocationCardCopied, setAdapterInvocationCardCopied] = useState(false);
   const adapterInvocationCardCopiedTimerRef = useRef<number | null>(null);
   const [runCardCopied, setRunCardCopied] = useState(false);
@@ -334,10 +218,6 @@ export function OrchestrationInjectionRunDetail() {
   );
 
   useEffect(() => {
-    if (finalPromptCopiedTimerRef.current != null) {
-      window.clearTimeout(finalPromptCopiedTimerRef.current);
-      finalPromptCopiedTimerRef.current = null;
-    }
     if (adapterInvocationCardCopiedTimerRef.current != null) {
       window.clearTimeout(adapterInvocationCardCopiedTimerRef.current);
       adapterInvocationCardCopiedTimerRef.current = null;
@@ -354,7 +234,6 @@ export function OrchestrationInjectionRunDetail() {
       window.clearTimeout(wakePayloadCardCopiedTimerRef.current);
       wakePayloadCardCopiedTimerRef.current = null;
     }
-    setFinalPromptCopied(false);
     setAdapterInvocationCardCopied(false);
     setRunCardCopied(false);
     setContextSnapshotCardCopied(false);
@@ -363,7 +242,6 @@ export function OrchestrationInjectionRunDetail() {
 
   useEffect(() => {
     return () => {
-      if (finalPromptCopiedTimerRef.current != null) window.clearTimeout(finalPromptCopiedTimerRef.current);
       if (adapterInvocationCardCopiedTimerRef.current != null) window.clearTimeout(adapterInvocationCardCopiedTimerRef.current);
       if (runCardCopiedTimerRef.current != null) window.clearTimeout(runCardCopiedTimerRef.current);
       if (contextSnapshotCardCopiedTimerRef.current != null) window.clearTimeout(contextSnapshotCardCopiedTimerRef.current);
@@ -388,47 +266,20 @@ export function OrchestrationInjectionRunDetail() {
   const payload = asRecord(adapterEvent?.payload);
   const context = asRecord(payload?.context);
   const promptMetrics = asRecord(payload?.promptMetrics);
-  const prompt = asString(payload?.prompt);
   const commandNotes = Array.isArray(payload?.commandNotes)
     ? payload.commandNotes.filter((item): item is string => typeof item === "string")
     : [];
   const metricEntries = Object.entries(promptMetrics ?? {})
     .map(([key, value]) => ({ key, value: asNumber(value) }))
     .filter((entry): entry is { key: string; value: number } => entry.value !== null);
-  const parsedPromptSections = parsePromptSections(payload?.promptSections);
   const promptCacheCorrelation = parsePromptCacheCorrelation(payload?.promptCacheCorrelation);
   const promptRawUnknown = payload?.prompt;
-  const fullPromptForCopy = useMemo(() => {
-    if (typeof promptRawUnknown === "string" && promptRawUnknown.length > 0) return promptRawUnknown;
-    if (parsedPromptSections?.length) return parsedPromptSections.map((section) => section.body).join("\n\n");
-    return "";
-  }, [promptRawUnknown, parsedPromptSections]);
-
-  const rawPromptStr = typeof promptRawUnknown === "string" ? promptRawUnknown : "";
-  const paragraphSplitChunks = useMemo(
-    () => rawPromptStr.split(/\n\n+/).map((paragraph) => paragraph.trim()).filter((paragraph) => paragraph.length > 0),
-    [rawPromptStr],
-  );
-  const displayPromptForBlock = prompt ?? (rawPromptStr.trim().length > 0 ? rawPromptStr : null);
-
-  const copyFullFinalPrompt = useCallback(async () => {
-    if (!fullPromptForCopy) return;
-    try {
-      await navigator.clipboard.writeText(fullPromptForCopy);
-      setFinalPromptCopied(true);
-      if (finalPromptCopiedTimerRef.current != null) window.clearTimeout(finalPromptCopiedTimerRef.current);
-      finalPromptCopiedTimerRef.current = window.setTimeout(() => {
-        setFinalPromptCopied(false);
-        finalPromptCopiedTimerRef.current = null;
-      }, 2000);
-    } catch {
-      pushToast({
-        title: orchestrationInjectionPage.copyFinalPromptFailedTitle,
-        body: orchestrationInjectionPage.copyFinalPromptFailedBody,
-        tone: "error",
-      });
-    }
-  }, [fullPromptForCopy, pushToast]);
+  const fullPromptMarkdown = useMemo(() => {
+    if (typeof promptRawUnknown === "string" && promptRawUnknown.trim().length > 0) return promptRawUnknown;
+    const sections = parsePromptSections(payload?.promptSections);
+    if (sections?.length) return sections.map((s) => s.body).join("\n\n");
+    return null;
+  }, [promptRawUnknown, payload?.promptSections]);
 
   const adapterInvocationCardCopyText = useMemo(() => {
     if (!adapterEvent) return "";
@@ -628,6 +479,7 @@ export function OrchestrationInjectionRunDetail() {
         <TabsList className="mb-1 flex h-auto min-h-10 w-full flex-wrap justify-start gap-1 sm:w-fit">
           <TabsTrigger value="enqueue">{orchestrationInjectionPage.detailTabEnqueue}</TabsTrigger>
           <TabsTrigger value="input">{orchestrationInjectionPage.detailTabInput}</TabsTrigger>
+          <TabsTrigger value="finalPrompt">{orchestrationInjectionPage.detailTabFinalPrompt}</TabsTrigger>
           <TabsTrigger value="execution">{orchestrationInjectionPage.detailTabExecution}</TabsTrigger>
           <TabsTrigger value="record">{orchestrationInjectionPage.detailTabRecord}</TabsTrigger>
         </TabsList>
@@ -709,24 +561,10 @@ export function OrchestrationInjectionRunDetail() {
 
           <Card>
             <CardHeader className="pb-3">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <FileText className="h-4 w-4 text-muted-foreground" aria-hidden />
-                  {orchestrationInjectionPage.finalPrompt}
-                </CardTitle>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full shrink-0 sm:w-auto"
-                  disabled={!fullPromptForCopy}
-                  aria-label={orchestrationInjectionPage.copyFinalPromptAria}
-                  onClick={() => void copyFullFinalPrompt()}
-                >
-                  {finalPromptCopied ? <Check className="mr-1.5 h-3.5 w-3.5" aria-hidden /> : <Copy className="mr-1.5 h-3.5 w-3.5" aria-hidden />}
-                  {finalPromptCopied ? orchestrationInjectionPage.copyFinalPromptDone : orchestrationInjectionPage.copyFinalPrompt}
-                </Button>
-              </div>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <FileText className="h-4 w-4 text-muted-foreground" aria-hidden />
+                {orchestrationInjectionPage.finalPrompt}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {promptCacheCorrelation ? (
@@ -762,18 +600,19 @@ export function OrchestrationInjectionRunDetail() {
                   ))}
                 </div>
               ) : null}
-              {parsedPromptSections ? (
+              {fullPromptMarkdown ? (
                 <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">{orchestrationInjectionPage.promptCombinationHint}</p>
-                  <PromptSectionsList key={run.id} sections={parsedPromptSections} />
-                </div>
-              ) : paragraphSplitChunks.length > 1 ? (
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">{orchestrationInjectionPage.promptParagraphFallbackHint}</p>
-                  <ParagraphSplitChunksList key={run.id} chunks={paragraphSplitChunks} />
+                  <p className="text-xs text-muted-foreground">{orchestrationInjectionPage.finalPromptMarkdownHint}</p>
+                  <div className="max-h-[min(70vh,42rem)] overflow-y-auto rounded-md border border-border bg-muted/10 p-4">
+                    <MarkdownBody className="text-sm" softBreaks linkIssueReferences={false}>
+                      {fullPromptMarkdown}
+                    </MarkdownBody>
+                  </div>
                 </div>
               ) : (
-                <PromptBlock prompt={displayPromptForBlock} />
+                <div className="border border-dashed border-border p-3 text-sm text-muted-foreground">
+                  {orchestrationInjectionPage.promptUnavailable}
+                </div>
               )}
             </CardContent>
           </Card>
@@ -833,9 +672,30 @@ export function OrchestrationInjectionRunDetail() {
           </div>
         </TabsContent>
 
+        <TabsContent value="finalPrompt" className="mt-4">
+          {fullPromptMarkdown ? (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">{orchestrationInjectionPage.finalPromptMarkdownHint}</p>
+              <div className="rounded-md border border-border bg-muted/10 p-4">
+                <MarkdownBody className="text-sm" softBreaks linkIssueReferences={false}>
+                  {fullPromptMarkdown}
+                </MarkdownBody>
+              </div>
+            </div>
+          ) : (
+            <div className="border border-dashed border-border p-3 text-sm text-muted-foreground">
+              {orchestrationInjectionPage.promptUnavailable}
+            </div>
+          )}
+        </TabsContent>
+
         <TabsContent value="execution" className="mt-4 space-y-4">
           <p className="text-sm text-muted-foreground">
             {orchestrationInjectionPage.executionPromptCrossRef}{" "}
+            <Link to="?tab=finalPrompt" replace className="text-primary hover:underline">
+              {orchestrationInjectionPage.detailTabFinalPrompt}
+            </Link>
+            {" · "}
             <Link to="?tab=input" replace className="text-primary hover:underline">
               {orchestrationInjectionPage.detailTabInput}
             </Link>
