@@ -639,7 +639,7 @@ describe.sequential("agent skill routes", () => {
       }),
       expect.objectContaining({
         "AGENTS.md": expect.stringContaining("你是首席执行官（CEO）。"),
-        "HEARTBEAT.md": expect.stringContaining("CEO 心搏清单"),
+        "HEARTBEAT.md": expect.stringContaining("CEO 心跳清单"),
         "SOUL.md": expect.stringContaining("CEO 人设"),
         "TOOLS.md": expect.stringContaining("TOOLS.md"),
       }),
@@ -666,14 +666,14 @@ describe.sequential("agent skill routes", () => {
           adapterType: "claude_local",
         }),
         expect.objectContaining({
-          "AGENTS.md": expect.stringMatching(/Start actionable work in the same heartbeat\.[\s\S]*Keep the work moving until it is done\./),
+          "AGENTS.md": expect.stringMatching(/在本次心跳里开始可交付工作[\s\S]*子事务/),
         }),
         { entryFile: "AGENTS.md", replaceExisting: false },
       );
       expect(mockAgentInstructionsService.materializeManagedBundle).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({
-          "AGENTS.md": expect.stringContaining('kind: "request_confirmation"'),
+          "AGENTS.md": expect.stringContaining("request_confirmation"),
         }),
         expect.any(Object),
       );

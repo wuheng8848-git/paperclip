@@ -800,7 +800,7 @@ describe("claude execute", () => {
       expect(capture1.skillEntries).toContain("paperclip");
       expect(capture2.argv).toContain("--resume");
       expect(capture2.argv).toContain("claude-session-1");
-      expect(capture2.prompt).toContain("## Paperclip Resume Delta");
+      expect(capture2.prompt).toContain("## Paperclip 恢复增量");
       expect(capture2.prompt).not.toContain("Follow the paperclip heartbeat.");
     } finally {
       if (previousHome === undefined) delete process.env.HOME;

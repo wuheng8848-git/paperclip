@@ -1090,11 +1090,11 @@ describe("heartbeat comment wake batching", () => {
           commentIds: [],
         },
       });
-      expect(String(firstPayload.message ?? "")).toContain("## Paperclip Wake Payload");
-      expect(String(firstPayload.message ?? "")).toContain("Do not switch to another issue until you have handled this wake.");
-      expect(String(firstPayload.message ?? "")).toContain("- checkout: already claimed by the harness for this run");
+      expect(String(firstPayload.message ?? "")).toContain("## Paperclip 唤醒负载");
+      expect(String(firstPayload.message ?? "")).toContain("在处理好本次唤醒前，不要切换到其他事务。");
+      expect(String(firstPayload.message ?? "")).toContain("- 签出：本次运行已被 harness 认领");
       expect(String(firstPayload.message ?? "")).toContain(
-        "The harness already checked out this issue for the current run.",
+        "本次运行 harness 已签出本事务。",
       );
       expect(String(firstPayload.message ?? "")).toContain(`${issuePrefix}-1 Require a comment`);
       const checkedOutIssue = await db

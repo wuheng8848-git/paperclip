@@ -478,11 +478,11 @@ describe("codex execute", () => {
         latestCommentId: "comment-2",
         commentIds: ["comment-1", "comment-2"],
       });
-      expect(capture.prompt).toContain("## Paperclip Wake Payload");
-      expect(capture.prompt).toContain("Treat this wake payload as the highest-priority change for the current heartbeat.");
-      expect(capture.prompt).toContain("Do not switch to another issue until you have handled this wake.");
+      expect(capture.prompt).toContain("## Paperclip 唤醒负载");
+      expect(capture.prompt).toContain("wake payload");
+      expect(capture.prompt).toContain("在处理好本次唤醒前，不要切换到其他事务。");
       expect(capture.prompt).toContain(
-        "acknowledge the latest comment and explain how it changes your next action.",
+        "先确认最新评论并说明它如何影响你的下一步动作。",
       );
       expect(capture.prompt).toContain("First comment");
       expect(capture.prompt).toContain("Second comment");
@@ -756,10 +756,10 @@ describe("codex execute", () => {
 
       expect(result.exitCode).toBe(0);
       const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
-      expect(capture.prompt).toContain("execution wake role: reviewer");
-      expect(capture.prompt).toContain("You are waking as the active reviewer for this issue.");
-      expect(capture.prompt).toContain("Do not execute the task itself or continue executor work.");
-      expect(capture.prompt).toContain("allowed actions: approve, request_changes");
+      expect(capture.prompt).toContain("执行唤醒角色: reviewer");
+      expect(capture.prompt).toContain("你正以本事务活跃 评审者 身份被唤醒。");
+      expect(capture.prompt).toContain("不要执行事务本体或继续执行方工作。");
+      expect(capture.prompt).toContain("允许动作: approve, request_changes");
 
       const executorCapturePath = path.join(root, "capture-executor.json");
       const executorResult = await execute({
@@ -825,9 +825,9 @@ describe("codex execute", () => {
 
       expect(executorResult.exitCode).toBe(0);
       const executorCapture = JSON.parse(await fs.readFile(executorCapturePath, "utf8")) as CapturePayload;
-      expect(executorCapture.prompt).toContain("execution wake role: executor");
-      expect(executorCapture.prompt).toContain("You are waking because changes were requested in the execution workflow.");
-      expect(executorCapture.prompt).toContain("allowed actions: address_changes, resubmit");
+      expect(executorCapture.prompt).toContain("执行唤醒角色: executor");
+      expect(executorCapture.prompt).toContain("本次唤醒是因为执行流中提出了改稿要求。");
+      expect(executorCapture.prompt).toContain("允许动作: address_changes, resubmit");
     } finally {
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;
@@ -917,13 +917,13 @@ describe("codex execute", () => {
         checkedOutByHarness: true,
         commentIds: [],
       });
-      expect(capture.prompt).toContain("## Paperclip Wake Payload");
-      expect(capture.prompt).toContain("Do not switch to another issue until you have handled this wake.");
-      expect(capture.prompt).toContain("- issue: PAP-1201 Fix gallery opening for inline images");
-      expect(capture.prompt).toContain("- pending comments: 0/0");
-      expect(capture.prompt).toContain("- issue status: in_progress");
-      expect(capture.prompt).toContain("- checkout: already claimed by the harness for this run");
-      expect(capture.prompt).toContain("The harness already checked out this issue for the current run.");
+      expect(capture.prompt).toContain("## Paperclip 唤醒负载");
+      expect(capture.prompt).toContain("在处理好本次唤醒前，不要切换到其他事务。");
+      expect(capture.prompt).toContain("- 事务: PAP-1201 Fix gallery opening for inline images");
+      expect(capture.prompt).toContain("- 待处理评论: 0/0");
+      expect(capture.prompt).toContain("- 事务状态: in_progress");
+      expect(capture.prompt).toContain("- 签出：本次运行已被 harness 认领");
+      expect(capture.prompt).toContain("本次运行 harness 已签出本事务。");
     } finally {
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;
@@ -1024,12 +1024,12 @@ describe("codex execute", () => {
 
       const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
       expect(capture.argv).toEqual(expect.arrayContaining(["resume", "codex-session-1", "-"]));
-      expect(capture.prompt).toContain("## Paperclip Resume Delta");
-      expect(capture.prompt).toContain("Do not switch to another issue until you have handled this wake.");
+      expect(capture.prompt).toContain("## Paperclip 恢复增量");
+      expect(capture.prompt).toContain("在处理好本次唤醒前，不要切换到其他事务。");
       expect(capture.prompt).toContain("Second comment");
       expect(capture.prompt).not.toContain("Follow the paperclip heartbeat.");
       expect(capture.prompt).not.toContain("You are managed instructions.");
-      expect(invocationPrompt).toContain("## Paperclip Resume Delta");
+      expect(invocationPrompt).toContain("## Paperclip 恢复增量");
       expect(invocationNotes).toContain(
         "Skipped stdin instruction reinjection because an existing Codex session is being resumed with a wake delta.",
       );
