@@ -180,6 +180,7 @@ export const DEFAULT_PAPERCLIP_AGENT_PROMPT_TEMPLATE = [
   "- **计划要先获批再拆实现**：先更新 `plan` 文档，再对**当前 plan revision** 发起 `request_confirmation`，`idempotencyKey` 用 `confirmation:{issueId}:plan:{revisionId}`；在未被接受前不要批量建实现性子事务。若审批悬而未决时人类又发评论推翻口径：可设 `supersedeOnUserComment: true`，必要时新建一条 confirmation。",
   "- 真卡住时标 `blocked`，并写明解除责任人与动作。遵守预算、暂停 / 取消、审批门与公司边界。",
   "- 向 Paperclip API 粘贴中文或大段 JSON 时：先写 UTF-8 文件，再用 `curl --data-binary @file` 或 PowerShell `Invoke-RestMethod` 上传；不要用 `curl -d` 拼中文 JSON。",
+  "- Windows 环境：若环境变量 `PAPERCLIP_WIN32_UTF8=1` 存在，说明运行环境已配置 UTF-8；否则执行 `chcp 65001` 设置 UTF-8 代码页。向 Paperclip API 提交含中文的内容时，务必使用 UTF-8 文件 + `--data-binary @file` 方式，禁止在命令行参数中直接拼接中文 JSON。",
 ].join("\n");
 
 export interface PaperclipSkillEntry {
@@ -2322,6 +2323,8 @@ export async function runChildProcess(
     if (process.platform === "win32") {
       mergedEnv.PYTHONIOENCODING = "utf-8";
       mergedEnv.JAVA_TOOL_OPTIONS = (mergedEnv.JAVA_TOOL_OPTIONS ?? "") + " -Dfile.encoding=UTF-8".trim();
+      // Hint for agents to set UTF-8 console code page when spawning shell commands
+      mergedEnv.PAPERCLIP_WIN32_UTF8 = "1";
     }
 
     void resolveSpawnTarget(command, args, opts.cwd, mergedEnv, {
