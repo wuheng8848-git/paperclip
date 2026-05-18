@@ -205,21 +205,19 @@ async function renderCodebuddyRuntimeSkillNote(
 
   const skillsHome = resolveCodebuddySkillsHomeForPrompt(config);
   if (minimize) {
-    const line = `Paperclip skills: ${skillsHome}; ${selectedSkills.join(", ")}`;
+    const line = `Paperclip 运行时技能（精简）：根 ${skillsHome}；已选 ${selectedSkills.join(", ")}`;
     return selectedSkills.includes("paperclip")
-      ? `${line}; paperclip protocol: ${path.join(skillsHome, "paperclip", "SKILL.md")}`
+      ? `${line}；paperclip 协议文件 ${path.join(skillsHome, "paperclip", "SKILL.md")}`
       : line;
   }
   const lines = [
-    "Paperclip runtime skills note:",
-    `Skill root: ${skillsHome}`,
-    `Selected skills: ${selectedSkills.join(", ")}`,
-    "When the task involves Paperclip issues, heartbeats, status changes, delegation, comments, or API calls, read and follow the paperclip skill SKILL.md before acting.",
+    "Paperclip 运行时技能说明：",
+    `- 技能根目录：${skillsHome}`,
+    `- 本次挂载的运行时技能名：${selectedSkills.join(", ")}`,
+    "- 当事务涉及 Paperclip 的 issue、`heartbeat`、状态变更、委派、评论或 API 调用时，先阅读并按 `paperclip` 技能的 `SKILL.md` 再行动。",
   ];
   if (selectedSkills.includes("paperclip")) {
-    lines.push(
-      `For this heartbeat, the Paperclip control-plane protocol is available at ${path.join(skillsHome, "paperclip", "SKILL.md")}.`,
-    );
+    lines.push(`- 本次心跳内，控制面协议（与 API 路由一致的操作说明）文件：${path.join(skillsHome, "paperclip", "SKILL.md")}`);
   }
   return lines.join("\n");
 }
