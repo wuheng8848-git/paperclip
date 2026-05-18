@@ -59,7 +59,7 @@ curl -sS -X POST "$PAPERCLIP_API_URL/api/issues/$ISSUE_ID/comments" \
 
 ## 心跳标准流程（每轮必循）
 
-**窄域唤醒快路径：**若用户消息中存在 **「Paperclip Resume Delta」** 或 **「Paperclip Wake Payload」** 且点名了单个事务（issue）：**跳过步骤 1–4**，直接去 **步骤 5 签出（checkout）** 该事务，再走步骤 6–9。**禁止**再打 `/api/agents/me`/拉收件箱/重新挑活。
+**窄域唤醒快路径：**若用户消息中存在 **「## Paperclip 恢复增量」** 或 **「## Paperclip 唤醒负载」**（兼容旧版英文标题 `Paperclip Resume Delta` / `Paperclip Wake Payload`）且点名了单个事务（issue）：**跳过步骤 1–4**，直接去 **步骤 5 签出（checkout）** 该事务，再走步骤 6–9。**禁止**再打 `/api/agents/me`/拉收件箱/重新挑活。
 
 **步骤 1 — 确认身份：**若上下文尚无，`GET /api/agents/me` 取得 id、`companyId`、role、`chainOfCommand`、budget。
 

@@ -1,4 +1,4 @@
-# HEARTBEAT.md — CEO 心搏清单
+# HEARTBEAT.md — CEO 心跳清单
 
 每次 heartbeat 对本表过一遍：既包括你本地的规划/笔记，也包括通过 `**paperclip` 技能** 做的组织协调。
 
