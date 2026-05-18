@@ -13,6 +13,18 @@ import type {
   AdapterPromptSection,
   PromptCacheCorrelation,
 } from "./types.js";
+import {
+  ACCEPTED_PLAN_CONTINUATION_LINE_ZH,
+  formatWakePrincipalLabelZh,
+  formatWakeRoleLabelZh,
+  PAPERCLIP_RESUME_DELTA_SECTION_ZH,
+  PAPERCLIP_WAKE_SECTION_ZH,
+  PLANNING_DIRECTIVE_COMMENT_ZH,
+  PLANNING_DIRECTIVE_ASSIGNMENT_ZH,
+  PLANNING_DIRECTIVE_ACCEPTED_ZH,
+  RESUME_DELTA_INTRO_ZH,
+  WAKE_PAYLOAD_INTRO_ZH,
+} from "./paperclip-wake-prompt-zh.js";
 
 export interface RunProcessResult {
   exitCode: number | null;
@@ -152,21 +164,22 @@ export function resolvePaperclipInstanceRootForAdapter(input: {
 export const DEFAULT_PAPERCLIP_AGENT_PROMPT_TEMPLATE = [
   "你是智能体 {{agent.id}}（{{agent.name}}）。继续你在 Paperclip 中的工作。",
   "",
+  "文风：规则、顺序、责任用中文写清楚；凡要和服务器对齐的 **API 路径、HTTP 方法、issue 状态、`kind`、`continuationPolicy`、`idempotencyKey`、JSON 字段名** 一律 **保留英文**，正文里常用反引号包起来，避免叫法和实现对不上。",
+  "",
   "执行契约：",
-  "- 在本次心搏启动可交付动作；除非事务明确要求只做规划，否则不要停在「只出计划」。",
-  "- 在评论、文档或工件中留下可核验的进展，并在结束心搏前把事务收口为明确的最终处置。",
-  "- 评论、文档、截图、工件以及 `Remaining` 条目是佐证，单凭它们不构成有效的存活路径。",
-  "- 最终处置检查清单：完成后标为 `done`；仅在确有评审人、审批、交互或监控路径时使用 `in_review`；仅在有一级阻塞或可指明的解除负责人/动作时使用 `blocked`；下一步由别的智能体负责时，建立带阻塞说明的委派子事务；仅在仍有可持续推进的实况路径时保持 `in_progress`。",
-  "- 优先用最小的验证手段证明改动成立；除非任务范围需要，不要每次心搏都默认跑全仓库 typecheck/build/test。",
-  "- 并行或可长期委派的活儿用子事务拆出去，不要用轮询智能体、会话或进程来代替。",
-  "- 若在依赖阻塞的事务上被人评论叫醒，回应或分拣该评论，但不要把受阻的可交付实现当作已经解除阻塞。",
-  "- 已知下一步该做什么就直接建子事务；需要看板/操作者选用建议任务、回答结构化问题或确认方案时，再走事务线程上的交互。",
-  "- 要向对方索取这些信息时，用 POST /api/issues/{issueId}/interactions 在当前事务创建交互，kind 为 suggest_tasks、ask_user_questions 或 request_confirmation。需在回应后继续推进时设置 continuationPolicy wake_assignee；request_confirmation 仅在对方接受后才继续唤醒。",
-  "- 在完成态的已分配事务上有意重启后续工作时，在 POST /api/issues/{issueId}/comments 或 PATCH /api/issues/{issueId} 的评论载荷里结构化带上 `resume: true`。关闭事务上的普通 agent 评论默认不产生效果。",
-  "- 涉及计划审批时，先更新计划文档，再对最新修订创建 request_confirmation，idempotencyKey 为 confirmation:{issueId}:plan:{revisionId}。在获准前不要拆实现性子事务；若在审批仍进行中又覆盖了看板/操作者评论导致需要重申，创建新的 confirmation。",
-  "- 受阻时标为 blocked，并写明谁来解除、做什么事。",
-  "- 遵守预算、暂停/取消、审批门禁与公司边界。",
-  "- 向 Paperclip API 写入中文或多行正文时，必须先写入 UTF-8 文件再用 curl --data-binary @file 或 PowerShell Invoke-RestMethod 传递，禁止 curl -d 内联中文 JSON。",
+  "- 在本次心跳里开始可交付工作；除非事务处于 `planning` 且只让你改规划，否则不要停在「只出计划、不落地」。",
+  "- 把可核验的进展留在评论、文档或工件里；在结束本次心跳前，把事务标到一个**明确的最终状态**（见下条）。",
+  "- 评论、文档、截图、工件以及 `Remaining` 列表只是**佐证**；单靠堆积它们，不能代替「你仍有一条 Paperclip 认可的、可持续推进的路径」（liveness）。",
+  "- **状态怎么标（最终处置）**：`done` — 活干完且核对过；`in_review` — **仅当**真有评审 / 审批 / 交互或盯盘路径；`blocked` — **仅当**存在一级阻塞，且写清**谁**解除、**下一步动作**；要交给别的智能体主推 — 建**子事务**（child issue）并写明阻塞/依赖；`in_progress` — **仅当**仍能继续推进。",
+  "- 验证够用就行：优先最小的命令或单测证明改动成立；除非本任务范围需要，不要每次心跳都默认全仓库 `typecheck` / `build` / `test`。",
+  "- 可并行或长期委派的活，用子事务拆出去；不要靠轮询别的智能体、会话或进程来代替推进。",
+  "- 若在「仍被依赖阻塞」的事务上被人类评论叫醒：可以回复或**分拣（triage）**那条评论，但**不要**把尚不能交付的实现当成已经解阻。",
+  "- 你自己已经知道下一斧子砍哪：直接建子事务；需要人类在**多种候选任务 / 结构化问答 / 是否采纳方案**里选一条路时，再走 **issue-thread 交互**。",
+  "- 创建交互：调用 `POST /api/issues/{issueId}/interactions`，`kind` 为 `suggest_tasks`、`ask_user_questions` 之一，或 `request_confirmation`。需要在人类回应后**继续唤醒当前经办人**时，设 `continuationPolicy: wake_assignee`；`request_confirmation` 只在对方**接受**后才进入后续唤醒。",
+  "- 在已 `done` 且已分配给你的事务上，**故意接着干后续活**：在 `POST /api/issues/{issueId}/comments` 或 `PATCH /api/issues/{issueId}` 的评论 JSON 里带结构化字段 `resume: true`（别把普通闲聊当成续跑信号；**已关闭**事务上的普通 agent 评论默认不会当续跑处理）。",
+  "- **计划要先获批再拆实现**：先更新 `plan` 文档，再对**当前 plan revision** 发起 `request_confirmation`，`idempotencyKey` 用 `confirmation:{issueId}:plan:{revisionId}`；在未被接受前不要批量建实现性子事务。若审批悬而未决时人类又发评论推翻口径：可设 `supersedeOnUserComment: true`，必要时新建一条 confirmation。",
+  "- 真卡住时标 `blocked`，并写明解除责任人与动作。遵守预算、暂停 / 取消、审批门与公司边界。",
+  "- 向 Paperclip API 粘贴中文或大段 JSON 时：先写 UTF-8 文件，再用 `curl --data-binary @file` 或 PowerShell `Invoke-RestMethod` 上传；不要用 `curl -d` 拼中文 JSON。",
 ].join("\n");
 
 export interface PaperclipSkillEntry {
@@ -737,133 +750,122 @@ export function renderPaperclipWakePrompt(
   if (!normalized) return "";
   const resumedSession = options.resumedSession === true;
   const executionStage = normalized.executionStage;
-  const principalLabel = (principal: PaperclipWakeExecutionPrincipal | null) => {
-    if (!principal || !principal.type) return "unknown";
-    if (principal.type === "agent") return principal.agentId ? `agent ${principal.agentId}` : "agent";
-    return principal.userId ? `user ${principal.userId}` : "user";
-  };
-
   const lines = resumedSession
       ? [
-        "## Paperclip Resume Delta",
+        PAPERCLIP_RESUME_DELTA_SECTION_ZH,
         "",
-        "You are resuming an existing Paperclip session.",
-        "This heartbeat is scoped to the issue below. Do not switch to another issue until you have handled this wake.",
-        "Focus on the new wake delta below and continue the current task without restating the full heartbeat boilerplate.",
-        "Fetch the API thread only when `fallbackFetchNeeded` is true or you need broader history than this batch.",
+        ...RESUME_DELTA_INTRO_ZH,
         "",
-        "执行契约：当事务可做时在本心搏采取实质动作；除非被要求只做规划，否则不要停在「只写计划」。留下可核验的进展，并在结束心搏前给出明确最终处置：`done`、`in_review`（确有评审人/审批/交互路径）、`blocked`（有一级或可指明的解除负责人与动作）、带阻塞的委派子事务，或仅在仍有可持续实况路径时使用 `in_progress`。长耗时或可并行的委派用子事务拆分，不要用轮询代替。评论、文档、截图、工件与 `Remaining` 条目仅是佐证，不能单凭它们充当存活路径。",
+        "执行契约（唤醒摘要）：中文说明 + 下述英文枚举/字段保持原样并常用反引号。本心跳内能交付则交付；事务为 `planning` 且只让你改规划时，不要写实现。留下可核验进展；结束本心跳前状态明确：`done`、`in_review`、`blocked`、需要时建子事务并写阻塞、否则仅在仍有推进路径时保持 `in_progress`。长活并行请拆子事务；勿轮询会话/进程顶替推进。评论、截图、工件与 `Remaining` 只作佐证，不能单凭它们充当 liveness。",
         "",
-        `- reason: ${normalized.reason ?? "unknown"}`,
-        `- issue: ${normalized.issue?.identifier ?? normalized.issue?.id ?? "unknown"}${normalized.issue?.title ? ` ${normalized.issue.title}` : ""}`,
-        `- pending comments: ${normalized.includedCount}/${normalized.requestedCount}`,
-        `- latest comment id: ${normalized.latestCommentId ?? "unknown"}`,
-        `- fallback fetch needed: ${normalized.fallbackFetchNeeded ? "yes" : "no"}`,
+        `- 原因: ${normalized.reason ?? "未知"}`,
+        `- 事务: ${normalized.issue?.identifier ?? normalized.issue?.id ?? "未知"}${normalized.issue?.title ? ` ${normalized.issue.title}` : ""}`,
+        `- 待处理评论: ${normalized.includedCount}/${normalized.requestedCount}`,
+        `- 最新评论 id: ${normalized.latestCommentId ?? "未知"}`,
+        `- 需要降级拉取: ${normalized.fallbackFetchNeeded ? "是" : "否"}`,
       ]
     : [
-        "## Paperclip Wake Payload",
+        PAPERCLIP_WAKE_SECTION_ZH,
         "",
-        "Treat this wake payload as the highest-priority change for the current heartbeat.",
-        "This heartbeat is scoped to the issue below. Do not switch to another issue until you have handled this wake.",
-        "Before generic repo exploration or boilerplate heartbeat updates, acknowledge the latest comment and explain how it changes your next action.",
-        "Use this inline wake data first before refetching the issue thread.",
-        "Only fetch the API thread when `fallbackFetchNeeded` is true or you need broader history than this batch.",
+        ...WAKE_PAYLOAD_INTRO_ZH,
         "",
-        "执行契约：当事务可做时在本心搏采取实质动作；除非被要求只做规划，否则不要停在「只写计划」。留下可核验的进展，并在结束心搏前给出明确最终处置：`done`、`in_review`（确有评审人/审批/交互路径）、`blocked`（有一级或可指明的解除负责人与动作）、带阻塞的委派子事务，或仅在仍有可持续实况路径时使用 `in_progress`。长耗时或可并行的委派用子事务拆分，不要用轮询代替。评论、文档、截图、工件与 `Remaining` 条目仅是佐证，不能单凭它们充当存活路径。",
+        "执行契约（唤醒摘要）：中文说明 + 下述英文枚举/字段保持原样并常用反引号。本心跳内能交付则交付；事务为 `planning` 且只让你改规划时，不要写实现。留下可核验进展；结束本心跳前状态明确：`done`、`in_review`、`blocked`、需要时建子事务并写阻塞、否则仅在仍有推进路径时保持 `in_progress`。长活并行请拆子事务；勿轮询会话/进程顶替推进。评论、截图、工件与 `Remaining` 只作佐证，不能单凭它们充当 liveness。",
         "",
-        `- reason: ${normalized.reason ?? "unknown"}`,
-        `- issue: ${normalized.issue?.identifier ?? normalized.issue?.id ?? "unknown"}${normalized.issue?.title ? ` ${normalized.issue.title}` : ""}`,
-        `- pending comments: ${normalized.includedCount}/${normalized.requestedCount}`,
-        `- latest comment id: ${normalized.latestCommentId ?? "unknown"}`,
-        `- fallback fetch needed: ${normalized.fallbackFetchNeeded ? "yes" : "no"}`,
+        `- 原因: ${normalized.reason ?? "未知"}`,
+        `- 事务: ${normalized.issue?.identifier ?? normalized.issue?.id ?? "未知"}${normalized.issue?.title ? ` ${normalized.issue.title}` : ""}`,
+        `- 待处理评论: ${normalized.includedCount}/${normalized.requestedCount}`,
+        `- 最新评论 id: ${normalized.latestCommentId ?? "未知"}`,
+        `- 需要降级拉取: ${normalized.fallbackFetchNeeded ? "是" : "否"}`,
       ];
 
   if (normalized.issue?.status) {
-    lines.push(`- issue status: ${normalized.issue.status}`);
+    lines.push(`- 事务状态: ${normalized.issue.status}`);
   }
   if (normalized.issue?.workMode) {
-    lines.push(`- issue work mode: ${normalized.issue.workMode}`);
+    lines.push(`- 事务工作模式: ${normalized.issue.workMode}`);
   }
   if (normalized.issue?.priority) {
-    lines.push(`- issue priority: ${normalized.issue.priority}`);
+    lines.push(`- 事务优先级: ${normalized.issue.priority}`);
   }
   if (normalized.issue?.workMode === "planning") {
     const hasWakeComments = normalized.comments.length > 0;
     const acceptedPlanContinuation =
       !hasWakeComments &&
       normalized.interactionKind === "request_confirmation" && normalized.interactionStatus === "accepted";
-    let directive = "Make the plan only. Do not write code or perform implementation work.";
+    let directive = PLANNING_DIRECTIVE_ASSIGNMENT_ZH;
     if (hasWakeComments) {
-      directive = "Update the plan only. Do not write code or perform implementation work.";
+      directive = PLANNING_DIRECTIVE_COMMENT_ZH;
     }
     if (acceptedPlanContinuation) {
-      directive = "Create child issues from the approved plan only. Do not write code or perform implementation work on the planning issue.";
+      directive = PLANNING_DIRECTIVE_ACCEPTED_ZH;
     }
-    lines.push(`- planning directive: ${directive}`);
+    lines.push(`- 规划指令: ${directive}`);
     if (acceptedPlanContinuation) {
-      lines.push(
-        "- accepted-plan continuation: you may create child implementation issues from the approved plan, but must not start implementation work on the planning issue itself",
-      );
+      lines.push(ACCEPTED_PLAN_CONTINUATION_LINE_ZH);
     }
   }
   if (normalized.checkedOutByHarness) {
-    lines.push("- checkout: already claimed by the harness for this run");
+    lines.push("- 签出：本次运行已被 harness 认领");
   }
   if (normalized.dependencyBlockedInteraction) {
-    lines.push("- dependency-blocked interaction: yes");
-    lines.push("- execution scope: respond or triage the human comment; do not treat blocker-dependent deliverable work as unblocked");
+    lines.push("- 依赖阻塞交互：是");
+    lines.push(
+      "- 执行范围：回复或分流人类评论；勿将仍依赖阻塞的可交付工作视为已解除阻塞",
+    );
     if (normalized.unresolvedBlockerSummaries.length > 0) {
       const blockers = normalized.unresolvedBlockerSummaries
-        .map((blocker) => `${blocker.identifier ?? blocker.id ?? "unknown"}${blocker.title ? ` ${blocker.title}` : ""}${blocker.status ? ` (${blocker.status})` : ""}`)
-        .join("; ");
-      lines.push(`- unresolved blockers: ${blockers}`);
+        .map((blocker) => `${blocker.identifier ?? blocker.id ?? "未知"}${blocker.title ? ` ${blocker.title}` : ""}${blocker.status ? ` (${blocker.status})` : ""}`)
+        .join("； ");
+      lines.push(`- 未解决阻塞项: ${blockers}`);
     } else if (normalized.unresolvedBlockerIssueIds.length > 0) {
-      lines.push(`- unresolved blocker issue ids: ${normalized.unresolvedBlockerIssueIds.join(", ")}`);
+      lines.push(`- 未解决阻塞事务 id: ${normalized.unresolvedBlockerIssueIds.join(", ")}`);
     }
   }
   if (normalized.treeHoldInteraction) {
-    lines.push("- tree-hold interaction: yes");
-    lines.push("- execution scope: respond or triage the human comment; the subtree remains paused until an explicit resume action");
+    lines.push("- 树挂起交互：是");
+    lines.push("- 执行范围：回复或分流人类评论；子树在显式恢复前保持暂停");
     if (normalized.activeTreeHold) {
       const hold = normalized.activeTreeHold;
-      lines.push(`- active tree hold: ${hold.holdId ?? "unknown"}${hold.rootIssueId ? ` rooted at ${hold.rootIssueId}` : ""}${hold.mode ? ` (${hold.mode})` : ""}`);
+      lines.push(
+        `- 当前树挂起: ${hold.holdId ?? "未知"}${hold.rootIssueId ? ` 根于 ${hold.rootIssueId}` : ""}${hold.mode ? ` (${hold.mode})` : ""}`,
+      );
     }
   }
   if (normalized.missingCount > 0) {
-    lines.push(`- omitted comments: ${normalized.missingCount}`);
+    lines.push(`- 省略的评论数: ${normalized.missingCount}`);
   }
 
   if (executionStage) {
     lines.push(
-      `- execution wake role: ${executionStage.wakeRole ?? "unknown"}`,
-      `- execution stage: ${executionStage.stageType ?? "unknown"}`,
-      `- execution participant: ${principalLabel(executionStage.currentParticipant)}`,
-      `- execution return assignee: ${principalLabel(executionStage.returnAssignee)}`,
-      `- last decision outcome: ${executionStage.lastDecisionOutcome ?? "none"}`,
+      `- 执行唤醒角色: ${executionStage.wakeRole ?? "未知"}`,
+      `- 执行阶段: ${executionStage.stageType ?? "未知"}`,
+      `- 执行参与者: ${formatWakePrincipalLabelZh(executionStage.currentParticipant)}`,
+      `- 执行回转经办人: ${formatWakePrincipalLabelZh(executionStage.returnAssignee)}`,
+      `- 上次决策结果: ${executionStage.lastDecisionOutcome ?? "无"}`,
     );
     if (executionStage.allowedActions.length > 0) {
-      lines.push(`- allowed actions: ${executionStage.allowedActions.join(", ")}`);
+      lines.push(`- 允许动作: ${executionStage.allowedActions.join(", ")}`);
     }
     if (executionStage.reviewRequest) {
       lines.push(
         "",
-        "Review request instructions:",
+        "评审请求说明:",
         executionStage.reviewRequest.instructions,
       );
     }
     lines.push("");
     if (executionStage.wakeRole === "reviewer" || executionStage.wakeRole === "approver") {
       lines.push(
-        `You are waking as the active ${executionStage.wakeRole} for this issue.`,
-        "Do not execute the task itself or continue executor work.",
-        "Review the issue and choose one of the allowed actions above.",
-        "If you request changes, the workflow routes back to the stored return assignee.",
+        `你正以本事务活跃 ${formatWakeRoleLabelZh(executionStage.wakeRole)} 身份被唤醒。`,
+        "不要执行事务本体或继续执行方工作。",
+        "审阅该事务并从上文「允许动作」中择一。",
+        "若你要求改稿，工作流会回到已存储的回转经办人。",
         "",
       );
     } else if (executionStage.wakeRole === "executor") {
       lines.push(
-        "You are waking because changes were requested in the execution workflow.",
-        "Address the requested changes on this issue and resubmit when the work is ready.",
+        "本次唤醒是因为执行流中提出了改稿要求。",
+        "在本事务上处理所要求的修改，工作就绪后再重新提交。",
         "",
       );
     }
@@ -872,40 +874,40 @@ export function renderPaperclipWakePrompt(
   if (normalized.continuationSummary) {
     lines.push(
       "",
-      "Issue continuation summary:",
+      "事务延续摘要:",
       normalized.continuationSummary.body,
     );
     if (normalized.continuationSummary.bodyTruncated) {
-      lines.push("[continuation summary truncated]");
+      lines.push("[延续摘要已截断]");
     }
   }
 
   if (normalized.livenessContinuation) {
     const continuation = normalized.livenessContinuation;
-    lines.push("", "Run liveness continuation:");
+    lines.push("", "存活延续：");
     if (continuation.attempt) {
       lines.push(
-        `- attempt: ${continuation.attempt}${continuation.maxAttempts ? `/${continuation.maxAttempts}` : ""}`,
+        `- 尝试: ${continuation.attempt}${continuation.maxAttempts ? `/${continuation.maxAttempts}` : ""}`,
       );
     }
     if (continuation.sourceRunId) {
-      lines.push(`- source run: ${continuation.sourceRunId}`);
+      lines.push(`- 来源运行: ${continuation.sourceRunId}`);
     }
     if (continuation.state) {
-      lines.push(`- liveness state: ${continuation.state}`);
+      lines.push(`- 存活状态: ${continuation.state}`);
     }
     if (continuation.reason) {
-      lines.push(`- reason: ${continuation.reason}`);
+      lines.push(`- 原因: ${continuation.reason}`);
     }
     if (continuation.instruction) {
-      lines.push(`- instruction: ${continuation.instruction}`);
+      lines.push(`- 指示: ${continuation.instruction}`);
     }
   }
 
   if (normalized.childIssueSummaries.length > 0) {
-    lines.push("", "Direct child issue summaries:");
+    lines.push("", "直接子事务摘要:");
     for (const child of normalized.childIssueSummaries) {
-      const label = child.identifier ?? child.id ?? "unknown";
+      const label = child.identifier ?? child.id ?? "未知";
       lines.push(
         `- ${label}${child.title ? ` ${child.title}` : ""}${child.status ? ` (${child.status})` : ""}`,
       );
@@ -914,33 +916,39 @@ export function renderPaperclipWakePrompt(
       }
     }
     if (normalized.childIssueSummaryTruncated) {
-      lines.push("[child issue summaries truncated]");
+      lines.push("[子事务摘要已截断]");
     }
   }
 
   if (normalized.checkedOutByHarness) {
     lines.push(
       "",
-      "The harness already checked out this issue for the current run.",
-      "Do not call `/api/issues/{id}/checkout` again unless you intentionally switch to a different task.",
+      "本次运行 harness 已签出本事务。",
+      "除非你刻意切换任务，否则不要再次调用 `/api/issues/{id}/checkout`。",
       "",
     );
   }
 
   if (normalized.comments.length > 0) {
-    lines.push("New comments in order:");
+    lines.push("新评论（按序）：");
   }
 
   for (const [index, comment] of normalized.comments.entries()) {
+    const authorTypeZh =
+      comment.authorType === "user"
+        ? "用户"
+        : comment.authorType === "agent"
+          ? "智能体"
+          : (comment.authorType ?? "未知");
     const authorLabel = comment.authorId
-      ? `${comment.authorType ?? "unknown"} ${comment.authorId}`
-      : comment.authorType ?? "unknown";
+      ? `${authorTypeZh} ${comment.authorId}`
+      : authorTypeZh;
     lines.push(
-      `${index + 1}. comment ${comment.id ?? "unknown"} at ${comment.createdAt ?? "unknown"} by ${authorLabel}`,
+      `${index + 1}. 评论 ${comment.id ?? "未知"}，时间 ${comment.createdAt ?? "未知"}，作者 ${authorLabel}`,
       comment.body,
     );
     if (comment.bodyTruncated) {
-      lines.push("[comment body truncated]");
+      lines.push("[评论正文已截断]");
     }
     lines.push("");
   }
