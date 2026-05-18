@@ -170,6 +170,31 @@ function parseQwenJsonOutput(
   return { resultEvent, assistantText, sessionId, usage };
 }
 
+function excerptStdioForDiagnostics(stdout: string, maxChars = 900): string {
+  const normalized = stdout.replace(/\r\n/g, "\n");
+  const trimmed = normalized.trim();
+  if (!trimmed) return "";
+  if (trimmed.length <= maxChars) return trimmed;
+  const head = Math.ceil((maxChars - 24) * 0.55);
+  const tail = maxChars - 24 - head;
+  return `${trimmed.slice(0, head)}\n…(truncated)…\n${trimmed.slice(-Math.max(tail, 0))}`;
+}
+
+const PARSE_SKIPPED_SUMMARY_MAX_CHARS = 120_000;
+
+/** When `type:result` / subtype:success cannot be parsed but the CLI exited 0 — cap summary field size only. */
+export function buildQwenParseSkippedSummary(stdout: string): string {
+  const normalized = stdout.replace(/\r\n/g, "\n").trim();
+  if (!normalized) {
+    return "Qwen exited 0 but produced no parseable JSON output; raw stderr/stdout are stored on the run record.";
+  }
+  if (normalized.length <= PARSE_SKIPPED_SUMMARY_MAX_CHARS) return normalized;
+  return (
+    `${normalized.slice(0, PARSE_SKIPPED_SUMMARY_MAX_CHARS)}\n\n` +
+    "…(summary truncated; full stdout is stored in result JSON)…"
+  );
+}
+
 function hasNonEmptyEnvValue(env: Record<string, string>, key: string): boolean {
   const raw = env[key];
   return typeof raw === "string" && raw.trim().length > 0;
@@ -484,23 +509,61 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     };
   }
 
-  // No parsed result
+  // No parsed `type:result` + subtype:success (truncated output, schema drift, etc.)
   if (!resultEvent) {
+    if ((proc.exitCode ?? 0) === 0) {
+      await onLog(
+        "stdout",
+        "[paperclip] Qwen JSON/stream output not parsed (exit 0). Persisting raw stdout/stderr on the run; skipping parse-based usage/session extraction.\n",
+      );
+      const summary = buildQwenParseSkippedSummary(proc.stdout);
+      return {
+        exitCode: proc.exitCode,
+        signal: proc.signal,
+        timedOut: false,
+        errorMessage: null,
+        errorCode: null,
+        usage: undefined,
+        sessionId: null,
+        sessionParams: null,
+        sessionDisplayId: null,
+        provider: "dashscope",
+        model,
+        billingType: "subscription",
+        costUsd: 0,
+        resultJson: {
+          stdout: proc.stdout,
+          stderr: proc.stderr,
+          qwenParseSkipped: true,
+          qwenParseNote:
+            "Qwen -o json/stream-json output was not parsed (often oversized, truncated, or unexpected shape). Raw streams are stored; inspect stdout in the run record or logs.",
+        },
+        summary,
+        clearSession: false,
+      };
+    }
+
     const stderrLine =
       proc.stderr.split(/\r?\n/).map((l: string) => l.trim()).find(Boolean) ?? "";
-    const errorMessage =
-      (proc.exitCode ?? 0) !== 0
-        ? stderrLine
-          ? `Qwen exited with code ${proc.exitCode ?? -1}: ${stderrLine}`
-          : `Qwen exited with code ${proc.exitCode ?? -1}`
-        : "Failed to parse Qwen output";
+    const baseMessage =
+      stderrLine
+        ? `Qwen exited with code ${proc.exitCode ?? -1}: ${stderrLine}`
+        : `Qwen exited with code ${proc.exitCode ?? -1}`;
+
+    const extra: string[] = [];
+    const outExcerpt = excerptStdioForDiagnostics(proc.stdout);
+    if (outExcerpt) extra.push(`stdout excerpt:\n${outExcerpt}`);
+    const errExcerpt = excerptStdioForDiagnostics(proc.stderr, 420);
+    if (errExcerpt) extra.push(`stderr excerpt:\n${errExcerpt}`);
+
+    const errorMessage = extra.length > 0 ? `${baseMessage}\n\n${extra.join("\n\n")}` : baseMessage;
 
     return {
       exitCode: proc.exitCode,
       signal: proc.signal,
       timedOut: false,
       errorMessage,
-      errorCode: (proc.exitCode ?? 0) !== 0 ? "qwen_execution_error" : "qwen_parse_error",
+      errorCode: "qwen_execution_error",
       resultJson: { stdout: proc.stdout, stderr: proc.stderr },
       clearSession: true,
     };

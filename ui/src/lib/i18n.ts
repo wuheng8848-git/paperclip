@@ -276,8 +276,8 @@ export const heartbeatTasksPage = {
   empty: "当前团队还没有配置过心跳的智能体。",
   agent: "智能体",
   state: "状态",
-  interval: "间隔",
-  cooldown: "冷却",
+  interval: "定时周期",
+  cooldown: "派发冷却",
   concurrent: "并行",
   continuation: "接续等待 / 次数",
   lastHeartbeat: "上次心跳",
@@ -618,9 +618,9 @@ export const orchestrationInjectionPage = {
   copyFinalPromptFailedTitle: "复制失败",
   copyFinalPromptFailedBody: "浏览器未允许访问剪贴板，或页面不在安全上下文中。",
   copyPromptSectionAria: (sectionTitle: string) => `复制：${sectionTitle}`,
-  copyAdapterInvocationCardAria: "复制适配器调用卡片全文",
+  copyAdapterInvocationCardAria: "复制调用适配器卡片全文",
   promptMetrics: "提示词指标",
-  adapterInvocation: "适配器调用",
+  adapterInvocation: "调用适配器",
   contextSnapshot: "运行快照",
   wakePayload: "唤醒载荷",
   wakeAttributionTitle: "唤起归因",
@@ -1466,7 +1466,7 @@ export const sidebarAccountMenu = {
 } as const;
 
 export const agentDetailUi = {
-  invocation: "调用",
+  invocation: "调用适配器",
   // AgentProperties labels
   propStatus: "状态",
   propRole: "角色",
@@ -1551,6 +1551,12 @@ export const agentDetailUi = {
   unsupportedSkillHint: "请在适配器中直接管理技能。",
   noRunsYet: "尚无运行记录。",
   backToRuns: "返回运行列表",
+  runDetailLoading: "正在加载运行详情…",
+  runNotFound: "未找到该运行，可能已清理或不属于当前团队。",
+  runWrongAgentPage: "这条运行对应的智能体不是当前页这位，无法在此展示详情。",
+  openRunOnCorrectAgent: "在对应智能体下打开此运行",
+  runDetailNotInRecentList:
+    "此运行未包含在当前加载的近期列表中，详情已单独拉取；若需对比可回到完整运行列表或改用分页视图。",
   sessionLabel: "会话",
   sessionChanged: "（已变更）",
   sessionBefore: "之前",
@@ -1575,6 +1581,78 @@ export const agentDetailUi = {
   transcriptCount: (n: number) => `转写（${n}）`,
   transcriptModeNice: "友好",
   transcriptModeRaw: "原始",
+  transcriptStdoutExpandAria: "展开标准输出",
+  transcriptStdoutCollapseAria: "收起标准输出",
+  /** stderr 折叠条：批处理后的日志行数 */
+  transcriptStderrLogLineCount: (n: number) => (n === 1 ? "1 条日志行" : `${n} 条日志行`),
+  /** 运行详情「事件」列表左侧 `[stream]`，与心跳 payload 的 stream 对齐 */
+  logEventStreamBracket: (stream: string) => {
+    const labels: Record<string, string> = {
+      stdout: "标准输出",
+      stderr: "标准错误",
+      system: "系统",
+    };
+    return `[${labels[stream] ?? stream}]`;
+  },
+  /** 运行详情「事件」里服务端写入的 lifecycle 英文短句 → 界面中文（库内仍存英文） */
+  runLifecycleMessageDisplay: (message: string) => {
+    const trimmed = message.trim();
+    const exact: Record<string, string> = {
+      "run started": "运行已开始",
+      "run cancelled": "运行已取消",
+      "adapter invocation": "调用适配器",
+    };
+    if (exact[trimmed]) return exact[trimmed] ?? message;
+
+    const staleTerminalQueued = /^Cancelled because issue reached terminal status \((\w+)\) before the queued run could start$/.exec(
+      trimmed,
+    );
+    if (staleTerminalQueued) {
+      const raw = staleTerminalQueued[1] ?? "";
+      const statusZh: Record<string, string> = { done: "已完成", cancelled: "已取消" };
+      return `事务在排队运行启动前已进入终态（${statusZh[raw] ?? raw}），本运行已取消。`;
+    }
+
+    const outcomeMatch = /^run (succeeded|failed|cancelled|timed_out)$/.exec(trimmed);
+    if (outcomeMatch) {
+      const o = outcomeMatch[1] ?? "";
+      const byOutcome: Record<string, string> = {
+        succeeded: "运行成功",
+        failed: "运行失败",
+        cancelled: "运行已取消",
+        timed_out: "运行超时",
+      };
+      return byOutcome[o] ?? message;
+    }
+    return message;
+  },
+  /** 原始转写左侧列：TranscriptEntry.kind */
+  transcriptEntryKindLabel: (kind: string) => {
+    const labels: Record<string, string> = {
+      assistant: "助手",
+      thinking: "思考",
+      user: "用户",
+      tool_call: "工具调用",
+      tool_result: "工具结果",
+      init: "初始化",
+      result: "运行结束",
+      stderr: "标准错误",
+      system: "系统",
+      stdout: "标准输出",
+      diff: "代码差异",
+    };
+    return labels[kind] ?? kind;
+  },
+  /** 友好转写里事件条的小标题（init / result） */
+  transcriptEventRowLabel: (label: string) => {
+    const labels: Record<string, string> = {
+      init: "初始化",
+      result: "运行结束",
+    };
+    return labels[label] ?? label;
+  },
+  transcriptRunCompletedFallback: "已完成",
+  transcriptRunFailedFallback: "运行失败",
   jumpToLive: "跳到实时",
   loadMoreLog: "加载更多日志",
   loadingShort: "加载中…",
@@ -1718,12 +1796,14 @@ export const agentConfigHelp: Record<string, string> = {
     "可选：在 Paperclip 拼装标准负载之前，与对方 Webhook/API 载荷合并的一段 JSON。",
   webhookUrl: "收到唤醒事件时向对方 POST 的有效 URL。",
   heartbeatInterval:
-    "按固定周期间隔为该智能体派发心跳运行；常用于后台巡检类的定时任务。",
-  intervalSec: "两次心跳运行之间的最短间隔秒数。",
+    "打开后启用「定时」来源的心跳：按下方「每隔」秒数尝试派发 timer 运行，常用于巡检类节奏。与「允许按需唤醒」独立——关掉此项即不再排定时节拍，指派等是否仍能拉起取决于按需开关。",
+  intervalSec:
+    "与「每隔」输入框对应：定时心跳的周期（秒），是实际上决定多久可以再考虑派下一轮「定时」运行的主参数（仍受角色、暂停、避让等闸门约束）。",
   timeoutSec: "单个运行可被允许的最长时间（秒）；0 表示不按时间强制终止。",
   graceSec: "发送中断信号后等待进程自行退出的宽限秒数，超时再强制结束。",
   wakeOnDemand: "允许工作流在需要时按需唤醒智能体（任务分配、界面操作、调用 API、自动化流水线等）。",
-  cooldownSec: "两次心跳派发之间的最短冷却间隔秒数。",
+  cooldownSec:
+    "与上一项「周期」含义不同：表示两次派发之间的冷却意图。当前版本定时调度以「每隔」的周期为准；本键主要为配置兼容保留，服务端暂未单独按该值掐定时派发。",
   maxConcurrentRuns:
     "该智能体在任意时刻可同时存在的运行个数上限。当前产品与 SPEC 将把该值夹在 1。评论/指派/按需等较重的唤醒与定时心跳并排时：若已有较重运行处于排队或运行中，定时心跳会先退让（不产生新的 timer run，顺延下次触发时间）；与 **042** `effectiveTrigger` 优先级一起看时间线更清晰。",
   maxTurnContinuationEnabled:
@@ -1745,7 +1825,6 @@ export const agentConfigUi = {
   sectionAdapter: "适配器",
   sectionPermissionsAndConfig: "权限与适配器选项",
   sectionRunPolicy: "运行策略",
-  advancedRunPolicy: "高级运行策略",
 
   configUnsavedChanges: "尚未保存的修改",
 
@@ -1792,13 +1871,13 @@ export const agentConfigUi = {
   fieldTimeoutSeconds: "单轮超时（秒）",
   fieldGraceInterruptSeconds: "中断后的宽限期（秒）",
 
-  toggleHeartbeatInterval: "按固定间隔派发心跳",
+  toggleHeartbeatInterval: "定时心跳（固定间隔）",
   runHeartbeatEveryPrefix: "每隔",
   unitSecondsShort: "秒",
 
   toggleWakeOnDemand: "允许系统按需唤醒",
 
-  fieldCooldownSeconds: "心跳最小间隔（秒）",
+  fieldCooldownSeconds: "派发冷却（秒）",
   fieldMaxConcurrentRuns: "最大并行运行数",
 
   toggleContinuationAfterCap: "在触达轮数上限后自动接续",

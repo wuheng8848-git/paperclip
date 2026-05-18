@@ -30,7 +30,7 @@ export const HEARTBEAT_SKIP_ON_DEMAND_BARE_WAKE = "heartbeat.on_demand_bare_wake
 
 /** Cancel reason when reconciling zombie runs — HB-010. */
 export const RUN_CANCEL_ISSUE_TERMINAL_WHILE_RUNNING =
-  "Cancelled because issue reached terminal status while run was still marked running";
+  "事务已进入终态，但运行仍标记为进行中；为对账已取消本运行。";
 
 /** Skip reason on `agent_wakeup_requests.reason` — HB-043. */
 export const HEARTBEAT_SKIP_TIMER_NON_TIMER_PENDING = "heartbeat.timer_yield_non_timer_pending";

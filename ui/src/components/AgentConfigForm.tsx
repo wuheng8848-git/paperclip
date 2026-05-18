@@ -36,7 +36,6 @@ import {
   Field,
   ToggleField,
   ToggleWithNumber,
-  CollapsibleSection,
   DraftInput,
   DraftNumberInput,
   help,
@@ -415,8 +414,6 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
     hideInstructionsFile,
   };
 
-  // Section toggle state — advanced always starts collapsed
-  const [runPolicyAdvancedOpen, setRunPolicyAdvancedOpen] = useState(false);
   // Popover states
   const [modelOpen, setModelOpen] = useState(false);
   const [cheapModelOpen, setCheapModelOpen] = useState(false);
@@ -1197,7 +1194,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
             ? <h3 className="text-sm font-medium flex items-center gap-2 mb-3"><Heart className="h-3 w-3" /> {agentConfigUi.sectionRunPolicy}</h3>
             : <div className="px-4 py-2 text-xs font-medium text-muted-foreground flex items-center gap-2"><Heart className="h-3 w-3" /> {agentConfigUi.sectionRunPolicy}</div>
           }
-          <div className={cn(cards ? "border border-border rounded-lg overflow-hidden" : "")}>
+          <div className={cn(cards ? "border border-border rounded-lg" : "")}>
             <div className={cn(cards ? "p-4 space-y-3" : "px-4 pb-3 space-y-3")}>
               <ToggleWithNumber
                 label={agentConfigUi.toggleHeartbeatInterval}
@@ -1211,14 +1208,6 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                 numberHint={help.intervalSec}
                 showNumber={eff("heartbeat", "enabled", heartbeat.enabled === true)}
               />
-            </div>
-            <CollapsibleSection
-              title={agentConfigUi.advancedRunPolicy}
-              bordered={cards}
-              open={runPolicyAdvancedOpen}
-              onToggle={() => setRunPolicyAdvancedOpen(!runPolicyAdvancedOpen)}
-            >
-            <div className="space-y-3">
               <ToggleField
                 label={agentConfigUi.toggleWakeOnDemand}
                 hint={help.wakeOnDemand}
@@ -1288,7 +1277,6 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                 ) : null}
               </div>
             </div>
-          </CollapsibleSection>
           </div>
         </div>
       ) : null}

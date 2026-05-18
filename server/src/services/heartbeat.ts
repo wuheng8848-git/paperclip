@@ -74,9 +74,7 @@ import { secretService } from "./secrets.js";
 import { resolveDefaultAgentWorkspaceDir, resolveManagedProjectWorkspaceDir } from "../home-paths.js";
 import {
   buildHeartbeatRunIssueComment,
-  HEARTBEAT_RUN_RESULT_OUTPUT_MAX_CHARS,
   HEARTBEAT_RUN_RESULT_SUMMARY_MAX_CHARS,
-  HEARTBEAT_RUN_SAFE_RESULT_JSON_MAX_BYTES,
   mergeHeartbeatRunResultJson,
 } from "./heartbeat-run-summary.js";
 import {
@@ -817,56 +815,10 @@ const heartbeatRunListResultColumns = {
   resultCostUsdCamel: sql<string | null>`${heartbeatRuns.resultJson} ->> 'costUsd'`.as("resultCostUsdCamel"),
 } as const;
 
-const heartbeatRunSafeResultJsonColumn = sql<Record<string, unknown> | null>`
-  case
-    when ${heartbeatRuns.resultJson} is null then null
-    when pg_column_size(${heartbeatRuns.resultJson}) <= ${HEARTBEAT_RUN_SAFE_RESULT_JSON_MAX_BYTES}
-      then ${heartbeatRuns.resultJson}
-    else jsonb_strip_nulls(
-      jsonb_build_object(
-        'summary', left(${heartbeatRuns.resultJson} ->> 'summary', ${HEARTBEAT_RUN_RESULT_SUMMARY_MAX_CHARS}),
-        'result', left(${heartbeatRuns.resultJson} ->> 'result', ${HEARTBEAT_RUN_RESULT_SUMMARY_MAX_CHARS}),
-        'message', left(${heartbeatRuns.resultJson} ->> 'message', ${HEARTBEAT_RUN_RESULT_SUMMARY_MAX_CHARS}),
-        'error', left(${heartbeatRuns.resultJson} ->> 'error', ${HEARTBEAT_RUN_RESULT_SUMMARY_MAX_CHARS}),
-        'stdout', left(${heartbeatRuns.resultJson} ->> 'stdout', ${HEARTBEAT_RUN_RESULT_OUTPUT_MAX_CHARS}),
-        'stderr', left(${heartbeatRuns.resultJson} ->> 'stderr', ${HEARTBEAT_RUN_RESULT_OUTPUT_MAX_CHARS}),
-        'stdoutTruncated', case
-          when length(${heartbeatRuns.resultJson} ->> 'stdout') > ${HEARTBEAT_RUN_RESULT_OUTPUT_MAX_CHARS}
-            then to_jsonb(true)
-          else null
-        end,
-        'stderrTruncated', case
-          when length(${heartbeatRuns.resultJson} ->> 'stderr') > ${HEARTBEAT_RUN_RESULT_OUTPUT_MAX_CHARS}
-            then to_jsonb(true)
-          else null
-        end,
-        'costUsd', coalesce(
-          ${heartbeatRuns.resultJson} -> 'costUsd',
-          ${heartbeatRuns.resultJson} -> 'cost_usd',
-          ${heartbeatRuns.resultJson} -> 'total_cost_usd'
-        ),
-        'cost_usd', coalesce(
-          ${heartbeatRuns.resultJson} -> 'cost_usd',
-          ${heartbeatRuns.resultJson} -> 'costUsd',
-          ${heartbeatRuns.resultJson} -> 'total_cost_usd'
-        ),
-        'total_cost_usd', coalesce(
-          ${heartbeatRuns.resultJson} -> 'total_cost_usd',
-          ${heartbeatRuns.resultJson} -> 'cost_usd',
-          ${heartbeatRuns.resultJson} -> 'costUsd'
-        ),
-        'truncated', true,
-        'truncationReason', 'oversized_result_json',
-        'originalSizeBytes', pg_column_size(${heartbeatRuns.resultJson})
-      )
-    )
-  end
-`.as("resultJson");
-
+/** Full `resultJson` as stored; list endpoints still use summarized projections — see `list()`. */
 const heartbeatRunSafeColumns = {
   ...getTableColumns(heartbeatRuns),
   processGroupId: heartbeatRunProcessGroupIdColumn,
-  resultJson: heartbeatRunSafeResultJsonColumn,
 } as const;
 
 const heartbeatRunSqlAsciiSafeColumns = {
@@ -4965,7 +4917,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     if (issue.status === "cancelled" || issue.status === "done") {
       return {
         allowed: false,
-        reason: `Scheduled retry suppressed because issue reached terminal status (${issue.status})`,
+        reason: `已排期的重试已抑制：事务已进入终态（${issue.status}）。`,
         errorCode: issue.status === "cancelled" ? "issue_cancelled" : "issue_terminal_status",
         issueId,
         details: { issueId, currentStatus: issue.status },
@@ -5456,7 +5408,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
           if (lockedIssue.status === "cancelled" || lockedIssue.status === "done") {
             return {
               outcome: "not_scheduled",
-              reason: `Scheduled max-turn continuation suppressed because issue reached terminal status (${lockedIssue.status})`,
+              reason: `最大轮次续跑已抑制：事务已进入终态（${lockedIssue.status}）。`,
               errorCode: lockedIssue.status === "cancelled" ? "issue_cancelled" : "issue_terminal_status",
               issueId,
               details: { issueId, currentStatus: lockedIssue.status },
@@ -6236,10 +6188,11 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
 
     if (issue.status === "done" || issue.status === "cancelled") {
       if (!resumeIntent && !wakeCommentId) {
+        const terminalLabel = issue.status === "done" ? "已完成" : "已取消";
         return {
           stale: true,
           errorCode: "issue_terminal_status",
-          reason: `Cancelled because issue reached terminal status (${issue.status}) before the queued run could start`,
+          reason: `事务在排队运行启动前已进入终态（${terminalLabel}），本运行已取消。`,
           details: { issueId, currentStatus: issue.status },
         };
       }
@@ -6249,7 +6202,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
       return {
         stale: true,
         errorCode: "issue_not_in_progress",
-        reason: `Cancelled because max-turn continuation issue is no longer in_progress (current status: ${issue.status}) before the queued run could start`,
+        reason: `续跑要求事务处于进行中，当前为「${issue.status}」；排队运行未启动即已取消。`,
         details: { issueId, currentStatus: issue.status, requiredStatus: "in_progress" },
       };
     }

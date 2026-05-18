@@ -134,6 +134,21 @@ function excerptStdioForDiagnostics(stdout: string, maxChars = 900): string {
   return `${trimmed.slice(0, head)}\n…(truncated)…\n${trimmed.slice(-Math.max(tail, 0))}`;
 }
 
+/** Cap for `summary` when JSON parse is skipped but we still persist full stdout in `resultJson`. */
+const PARSE_SKIPPED_SUMMARY_MAX_CHARS = 120_000;
+
+export function buildParseSkippedSummary(stdout: string): string {
+  const normalized = stdout.replace(/\r\n/g, "\n").trim();
+  if (!normalized) {
+    return "CodeBuddy exited 0 but produced no parseable JSON; raw stderr/stdout are stored on the run record.";
+  }
+  if (normalized.length <= PARSE_SKIPPED_SUMMARY_MAX_CHARS) return normalized;
+  return (
+    `${normalized.slice(0, PARSE_SKIPPED_SUMMARY_MAX_CHARS)}\n\n` +
+    "…(summary truncated; full stdout is stored in result JSON)…"
+  );
+}
+
 /**
  * Parse stream-json output. Each line is a JSON object.
  * The last line with `type: "result"` is the terminal result.
@@ -538,24 +553,60 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     };
   }
 
-  // No parsed result
+  // No parsed `type:result` payload (truncated stdout, schema drift, etc.)
   if (!resultJson) {
+    // Pause strict JSON semantics for the happy path: if the CLI succeeded, treat the run as OK
+    // and persist raw streams for DB / log storage (source of truth). No codebuddy_parse_error.
+    if ((proc.exitCode ?? 0) === 0) {
+      await onLog(
+        "stdout",
+        "[paperclip] CodeBuddy JSON not parsed (exit 0). Persisting raw stdout/stderr on the run; skipping parse-based usage/session extraction.\n",
+      );
+      const summary = buildParseSkippedSummary(proc.stdout);
+      return {
+        exitCode: proc.exitCode,
+        signal: proc.signal,
+        timedOut: false,
+        errorMessage: null,
+        errorCode: null,
+        usage: undefined,
+        sessionId: null,
+        sessionParams: null,
+        sessionDisplayId: null,
+        provider: rawModel.startsWith("V-")
+          ? "volcengine"
+          : rawModel.startsWith("D-")
+            ? "deepseek"
+            : rawModel.startsWith("M-")
+              ? "xiaomi"
+              : "tencent",
+        model,
+        billingType,
+        costUsd: null,
+        resultJson: {
+          stdout: proc.stdout,
+          stderr: proc.stderr,
+          codebuddyParseSkipped: true,
+          codebuddyParseNote:
+            "CodeBuddy --print JSON was not parsed (often oversized, truncated, or non-array shape). Raw streams are stored; inspect stdout in the run record or logs.",
+        },
+        summary,
+        clearSession: false,
+      };
+    }
+
     const stderrLine =
       proc.stderr.split(/\r?\n/).map((l: string) => l.trim()).find(Boolean) ?? "";
     const baseMessage =
-      (proc.exitCode ?? 0) !== 0
-        ? stderrLine
-          ? `CodeBuddy exited with code ${proc.exitCode ?? -1}: ${stderrLine}`
-          : `CodeBuddy exited with code ${proc.exitCode ?? -1}`
-        : "Failed to parse CodeBuddy JSON output";
+      stderrLine
+        ? `CodeBuddy exited with code ${proc.exitCode ?? -1}: ${stderrLine}`
+        : `CodeBuddy exited with code ${proc.exitCode ?? -1}`;
 
     const extra: string[] = [];
     const outExcerpt = excerptStdioForDiagnostics(proc.stdout);
     if (outExcerpt) extra.push(`stdout excerpt:\n${outExcerpt}`);
-    if ((proc.exitCode ?? 0) === 0) {
-      const errExcerpt = excerptStdioForDiagnostics(proc.stderr, 420);
-      if (errExcerpt) extra.push(`stderr excerpt:\n${errExcerpt}`);
-    }
+    const errExcerpt = excerptStdioForDiagnostics(proc.stderr, 420);
+    if (errExcerpt) extra.push(`stderr excerpt:\n${errExcerpt}`);
 
     const errorMessage = extra.length > 0 ? `${baseMessage}\n\n${extra.join("\n\n")}` : baseMessage;
 
@@ -564,7 +615,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       signal: proc.signal,
       timedOut: false,
       errorMessage,
-      errorCode: (proc.exitCode ?? 0) !== 0 ? "codebuddy_execution_error" : "codebuddy_parse_error",
+      errorCode: "codebuddy_execution_error",
       resultJson: { stdout: proc.stdout, stderr: proc.stderr },
       clearSession: true,
     };

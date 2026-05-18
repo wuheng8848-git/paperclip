@@ -145,7 +145,7 @@ describeEmbeddedPostgres("heartbeat list", () => {
     });
   });
 
-  it("bounds oversized legacy result json payloads on getRun", async () => {
+  it("returns full legacy result json from getRun without sql stripping", async () => {
     const companyId = randomUUID();
     const agentId = randomUUID();
     const runId = randomUUID();
@@ -191,15 +191,14 @@ describeEmbeddedPostgres("heartbeat list", () => {
     const run = await heartbeatService(db).getRun(runId);
     const result = run?.resultJson as Record<string, unknown> | null;
 
-    expect(result).toMatchObject({
+    expect(result).toEqual({
       summary: "completed",
-      truncated: true,
-      truncationReason: "oversized_result_json",
-      stdoutTruncated: true,
+      stdout: oversizedStdout,
+      nestedHuge: { payload: oversizedNestedPayload },
     });
     expect(typeof result?.stdout).toBe("string");
-    expect((result?.stdout as string).length).toBeLessThan(oversizedStdout.length);
-    expect(result).not.toHaveProperty("nestedHuge");
+    expect((result?.stdout as string).length).toBe(oversizedStdout.length);
+    expect(result).not.toHaveProperty("truncated");
   });
 });
 

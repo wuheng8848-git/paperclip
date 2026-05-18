@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { TranscriptEntry } from "../../adapters";
 import { MarkdownBody } from "../MarkdownBody";
 import { cn, formatTokens } from "../../lib/utils";
+import { agentDetailUi } from "../../lib/i18n";
 import {
   Check,
   ChevronDown,
@@ -501,7 +502,7 @@ export function normalizeTranscript(entries: TranscriptEntry[], streaming: boole
         ts: entry.ts,
         label: "init",
         tone: "info",
-        text: `model ${entry.model}${entry.sessionId ? ` • session ${entry.sessionId}` : ""}`,
+        text: `模型 ${entry.model}${entry.sessionId ? ` · 会话 ${entry.sessionId}` : ""}`,
       });
       continue;
     }
@@ -512,7 +513,10 @@ export function normalizeTranscript(entries: TranscriptEntry[], streaming: boole
         ts: entry.ts,
         label: "result",
         tone: entry.isError ? "error" : "info",
-        text: entry.text.trim() || entry.errors[0] || (entry.isError ? "Run failed" : "Completed"),
+        text:
+          entry.text.trim()
+          || entry.errors[0]
+          || (entry.isError ? agentDetailUi.transcriptRunFailedFallback : agentDetailUi.transcriptRunCompletedFallback),
         detail:
           !entry.isError && entry.text.trim().length > 0
             ? `${formatTokens(entry.inputTokens)} / ${formatTokens(entry.outputTokens)} / $${entry.costUsd.toFixed(6)}`
@@ -1126,8 +1130,8 @@ function TranscriptEventRow({
             </MarkdownBody>
           ) : (
             <div className={cn("whitespace-pre-wrap break-words", compact ? "text-[11px]" : "text-xs")}>
-              <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">
-                {block.label}
+              <span className="text-xs font-medium tracking-normal text-muted-foreground/80">
+                {agentDetailUi.transcriptEventRowLabel(block.label)}
               </span>
               {block.text ? <span className="ml-2">{block.text}</span> : null}
             </div>
@@ -1258,8 +1262,8 @@ function TranscriptStderrGroup({
         onClick={() => setOpen((v) => !v)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen((v) => !v); } }}
       >
-        <span className={cn("text-[10px] font-semibold uppercase tracking-[0.14em]")}>
-          {block.lines.length} log {block.lines.length === 1 ? "line" : "lines"}
+        <span className="text-xs font-medium leading-normal tracking-normal">
+          {agentDetailUi.transcriptStderrLogLineCount(block.lines.length)}
         </span>
         {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
       </div>
@@ -1328,14 +1332,14 @@ function TranscriptStdoutRow({
   return (
     <div>
       <div className="flex items-center gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          stdout
+        <span className="text-xs font-medium leading-normal tracking-normal text-muted-foreground">
+          {agentDetailUi.stdoutHeading}
         </span>
         <button
           type="button"
           className="inline-flex h-5 w-5 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
           onClick={() => setOpen((value) => !value)}
-          aria-label={open ? "Collapse stdout" : "Expand stdout"}
+          aria-label={open ? agentDetailUi.transcriptStdoutCollapseAria : agentDetailUi.transcriptStdoutExpandAria}
         >
           {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </button>
@@ -1375,7 +1379,7 @@ function rawEntryContent(entry: TranscriptEntry): string {
     return `${entry.text}\n${formatTokens(entry.inputTokens)} / ${formatTokens(entry.outputTokens)} / $${entry.costUsd.toFixed(6)}`;
   }
   if (entry.kind === "init") {
-    return `model=${entry.model}${entry.sessionId ? ` session=${entry.sessionId}` : ""}`;
+    return `模型=${entry.model}${entry.sessionId ? ` 会话=${entry.sessionId}` : ""}`;
   }
   return entry.text;
 }
@@ -1450,8 +1454,8 @@ function RawTranscriptView({
             "grid-cols-[auto_1fr]",
           )}
         >
-          <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            {entry.kind}
+          <span className="text-xs font-medium tracking-normal text-muted-foreground">
+            {agentDetailUi.transcriptEntryKindLabel(entry.kind)}
           </span>
           <pre className="min-w-0 whitespace-pre-wrap break-words text-foreground/80">
             {rawEntryContent(entry)}

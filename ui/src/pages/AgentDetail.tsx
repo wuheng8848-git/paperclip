@@ -514,6 +514,25 @@ export function AgentDetail() {
         </div>
       </div>
 
+      {urlRunId && !isMobile && (
+        <div className="flex flex-wrap items-center gap-2 border-b border-border/60 pb-3 text-sm">
+          <Link
+            to={`/agents/${canonicalAgentRef}/runs`}
+            className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors no-underline"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            {agentDetailUi.backToRuns}
+          </Link>
+          <span className="text-muted-foreground/50">·</span>
+          <Link
+            to={`/agents/${canonicalAgentRef}/dashboard`}
+            className="text-muted-foreground hover:text-foreground transition-colors no-underline"
+          >
+            {agentDetail.dashboard}
+          </Link>
+        </div>
+      )}
+
       {!urlRunId && (
         <Tabs
           value={activeView}
@@ -2396,7 +2415,7 @@ export function AgentSkillsTab({
 
 function RunsTab({
   runs,
-  companyId,
+  companyId: _companyId,
   agentId,
   agentRouteId,
   selectedRunId,
@@ -2413,22 +2432,106 @@ function RunsTab({
 }) {
   const { isMobile } = useSidebar();
 
-  if (runs.length === 0) {
+  const sorted = useMemo(
+    () =>
+      [...runs].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
+    [runs],
+  );
+
+  const runFromList = useMemo(() => {
+    if (!selectedRunId) return null;
+    return sorted.find((r) => r.id === selectedRunId) ?? null;
+  }, [sorted, selectedRunId]);
+
+  const needsDirectFetch = Boolean(selectedRunId && !runFromList);
+  const { data: fetchedRun, isLoading: fetchLoading, isError: fetchIsError } = useQuery({
+    queryKey: selectedRunId ? queryKeys.runDetail(selectedRunId) : ["heartbeat-run", "__no_run__"],
+    queryFn: () => heartbeatsApi.get(selectedRunId!),
+    enabled: needsDirectFetch,
+    retry: (_count, err) => !(err instanceof ApiError && err.status === 404),
+  });
+
+  const wrongAgent = Boolean(fetchedRun && fetchedRun.agentId !== agentId);
+
+  const displayRun = runFromList ?? (!wrongAgent && fetchedRun ? fetchedRun : null);
+
+  const showOutsideListHint =
+    Boolean(displayRun && !runFromList && !fetchLoading && !wrongAgent && !fetchIsError);
+
+  const effectiveRunId = isMobile ? selectedRunId : selectedRunId ?? sorted[0]?.id ?? null;
+
+  const runDetailPanel =
+    displayRun ? (
+      <div className="space-y-3 min-w-0">
+        {showOutsideListHint && (
+          <div className="rounded-md border border-amber-500/30 bg-amber-50/70 px-3 py-2 text-xs text-amber-950 dark:bg-amber-950/25 dark:text-amber-100">
+            {agentDetailUi.runDetailNotInRecentList}
+          </div>
+        )}
+        <HeartbeatRunDetailPanel
+          key={displayRun.id}
+          run={displayRun}
+          agentRouteId={agentRouteId}
+          adapterType={adapterType}
+          adapterConfig={adapterConfig}
+        />
+      </div>
+    ) : null;
+
+  if (runs.length === 0 && !selectedRunId) {
     return <p className="text-sm text-muted-foreground">{agentDetailUi.noRunsYet}</p>;
   }
 
-  // Sort by created descending
-  const sorted = [...runs].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  if (needsDirectFetch && fetchLoading) {
+    return (
+      <div className="space-y-4 py-4">
+        <Link
+          to={`/agents/${agentRouteId}/runs`}
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors no-underline"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          {agentDetailUi.backToRuns}
+        </Link>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+          {agentDetailUi.runDetailLoading}
+        </div>
+      </div>
+    );
+  }
 
-  // On mobile, don't auto-select so the list shows first; on desktop, auto-select latest
-  const effectiveRunId = isMobile ? selectedRunId : (selectedRunId ?? sorted[0]?.id ?? null);
-  const selectedRun = sorted.find((r) => r.id === effectiveRunId) ?? null;
+  if (needsDirectFetch && (fetchIsError || wrongAgent) && !displayRun) {
+    if (wrongAgent && fetchedRun) {
+      return (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-50/50 px-4 py-3 text-sm text-amber-950 dark:bg-amber-950/20 dark:text-amber-100 space-y-2">
+          <p>{agentDetailUi.runWrongAgentPage}</p>
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/agents/${fetchedRun.agentId}/runs/${fetchedRun.id}`}>
+              {agentDetailUi.openRunOnCorrectAgent}
+            </Link>
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm space-y-2">
+        <p>{agentDetailUi.runNotFound}</p>
+        <Link
+          to={`/agents/${agentRouteId}/runs`}
+          className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          {agentDetailUi.backToRuns}
+        </Link>
+      </div>
+    );
+  }
 
   // Mobile: show either run list OR run detail with back button
   if (isMobile) {
-    if (selectedRun) {
+    if (displayRun) {
       return (
         <div className="space-y-3 min-w-0 overflow-x-hidden">
           <Link
@@ -2438,7 +2541,7 @@ function RunsTab({
             <ArrowLeft className="h-3.5 w-3.5" />
             {agentDetailUi.backToRuns}
           </Link>
-          <HeartbeatRunDetailPanel key={selectedRun.id} run={selectedRun} agentRouteId={agentRouteId} adapterType={adapterType} adapterConfig={adapterConfig} />
+          {runDetailPanel}
         </div>
       );
     }
@@ -2457,32 +2560,35 @@ function RunsTab({
     );
   }
 
+  // Desktop: full-width detail when list is empty but run loaded by id (e.g. deep link)
+  if (sorted.length === 0 && displayRun) {
+    return <div className="min-w-0">{runDetailPanel}</div>;
+  }
+
   // Desktop: side-by-side layout
   return (
     <div className="flex gap-0">
-      {/* Left: run list — border stretches full height, content sticks */}
-      <div className={cn(
-        "shrink-0 border border-border rounded-lg",
-        selectedRun ? "w-72" : "w-full",
-      )}>
+      <div
+        className={cn(
+          "shrink-0 border border-border rounded-lg",
+          displayRun ? "w-72" : "w-full",
+        )}
+      >
         <div className="sticky top-4 overflow-y-auto" style={{ maxHeight: "calc(100vh - 2rem)" }}>
-        {sorted.map((run) => (
-          <HeartbeatRunListItem
-            key={run.id}
-            run={run}
-            isSelected={run.id === effectiveRunId}
-            variant="link"
-            agentRouteId={agentRouteId}
-          />
-        ))}
+          {sorted.map((run) => (
+            <HeartbeatRunListItem
+              key={run.id}
+              run={run}
+              isSelected={run.id === effectiveRunId}
+              variant="link"
+              agentRouteId={agentRouteId}
+            />
+          ))}
         </div>
       </div>
 
-      {/* Right: run detail — natural height, page scrolls */}
-      {selectedRun && (
-        <div className="flex-1 min-w-0 pl-4">
-          <HeartbeatRunDetailPanel key={selectedRun.id} run={selectedRun} agentRouteId={agentRouteId} adapterType={adapterType} adapterConfig={adapterConfig} />
-        </div>
+      {displayRun && (
+        <div className="flex-1 min-w-0 pl-4">{runDetailPanel}</div>
       )}
     </div>
   );

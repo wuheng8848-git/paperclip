@@ -17,7 +17,7 @@ import { cn, formatTokens, relativeTime } from "../lib/utils";
 import { describeRunRetryState } from "../lib/runRetryState";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronRight, RotateCcw } from "lucide-react";
+import { ChevronRight, CircleX, RotateCcw } from "lucide-react";
 import { RunTranscriptView, type TranscriptMode } from "./transcript/RunTranscriptView";
 import {
   type HeartbeatRun,
@@ -28,6 +28,16 @@ import {
 import { redactCommandText as redactCommandSecretText, redactHomePathUserSegments, redactHomePathUserSegmentsInValue } from "@paperclipai/adapter-utils";
 
 type RunLogChunk = { ts: string; stream: "stdout" | "stderr" | "system"; chunk: string };
+
+/** 在「列表/父组件传入的 run」与「runDetail 查询缓存」之间取较新的一份，避免已完成仍显示进行中（见全局 queries staleTime）。 */
+function mergeHeartbeatRunSnapshot(propRun: HeartbeatRun, cached: HeartbeatRun | undefined): HeartbeatRun {
+  if (!cached) return propRun;
+  const tProp = new Date(propRun.updatedAt).getTime();
+  const tCached = new Date(cached.updatedAt).getTime();
+  if (tProp > tCached) return propRun;
+  if (tCached > tProp) return cached;
+  return propRun;
+}
 
 const RUN_LOG_PAGE_BYTES = 256_000;
 
@@ -485,7 +495,7 @@ export function HeartbeatRunDetailPanel({ run: initialRun, agentRouteId, adapter
     queryFn: () => heartbeatsApi.get(initialRun.id),
     enabled: Boolean(initialRun.id),
   });
-  const run = hydratedRun ?? initialRun;
+  const run = mergeHeartbeatRunSnapshot(initialRun, hydratedRun);
   const metrics = runMetrics(run);
   const [sessionOpen, setSessionOpen] = useState(false);
   const [claudeLoginResult, setClaudeLoginResult] = useState<ClaudeLoginResult | null>(null);
@@ -634,41 +644,49 @@ export function HeartbeatRunDetailPanel({ run: initialRun, agentRouteId, adapter
         <div className="flex flex-col sm:flex-row">
           {/* Left column: status + timing */}
           <div className="flex-1 p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <StatusBadge status={run.status} />
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+              <div className="flex flex-wrap items-center gap-2 min-w-0">
+                <StatusBadge status={run.status} />
+                {canResumeLostRun && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-6 px-2"
+                    onClick={() => resumeRun.mutate()}
+                    disabled={resumeRun.isPending}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                    {resumeRun.isPending ? agentDetailUi.resumingEllipsis : agentDetailUi.resumeRunButton}
+                  </Button>
+                )}
+                {canRetryRun && !canResumeLostRun && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-6 px-2"
+                    onClick={() => retryRun.mutate()}
+                    disabled={retryRun.isPending}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                    {retryRun.isPending ? agentDetailUi.retryingEllipsis : agentDetailUi.retryRunButton}
+                  </Button>
+                )}
+              </div>
               {(run.status === "running" || run.status === "queued") && (
                 <Button
-                  variant="ghost"
+                  type="button"
+                  variant="outline"
                   size="sm"
-                  className="text-destructive hover:text-destructive text-xs h-6 px-2"
+                  className={cn(
+                    "h-8 shrink-0 gap-1.5 px-3 border-destructive/45 text-destructive",
+                    "hover:bg-destructive/10 hover:text-destructive",
+                    "focus-visible:ring-destructive/30",
+                  )}
                   onClick={() => cancelRun.mutate()}
                   disabled={cancelRun.isPending}
                 >
+                  <CircleX className="h-3.5 w-3.5 shrink-0" aria-hidden />
                   {cancelRun.isPending ? agentDetailUi.cancellingEllipsis : agentDetailUi.cancelRunButton}
-                </Button>
-              )}
-              {canResumeLostRun && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs h-6 px-2"
-                  onClick={() => resumeRun.mutate()}
-                  disabled={resumeRun.isPending}
-                >
-                  <RotateCcw className="h-3.5 w-3.5 mr-1" />
-                  {resumeRun.isPending ? agentDetailUi.resumingEllipsis : agentDetailUi.resumeRunButton}
-                </Button>
-              )}
-              {canRetryRun && !canResumeLostRun && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs h-6 px-2"
-                  onClick={() => retryRun.mutate()}
-                  disabled={retryRun.isPending}
-                >
-                  <RotateCcw className="h-3.5 w-3.5 mr-1" />
-                  {retryRun.isPending ? agentDetailUi.retryingEllipsis : agentDetailUi.retryRunButton}
                 </Button>
               )}
             </div>
@@ -1498,14 +1516,14 @@ function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType: strin
               return (
                 <div key={evt.id} className="flex gap-2">
                   <span className="text-neutral-400 dark:text-neutral-600 shrink-0 select-none w-16">
-                    {new Date(evt.createdAt).toLocaleTimeString("en-US", { hour12: false })}
+                    {new Date(evt.createdAt).toLocaleTimeString("zh-CN", { hour12: false })}
                   </span>
-                  <span className={cn("shrink-0 w-14", evt.stream ? (streamColors[evt.stream] ?? "text-neutral-500") : "text-neutral-500")}>
-                    {evt.stream ? `[${evt.stream}]` : ""}
+                  <span className={cn("shrink-0 min-w-[6rem]", evt.stream ? (streamColors[evt.stream] ?? "text-neutral-500") : "text-neutral-500")}>
+                    {evt.stream ? agentDetailUi.logEventStreamBracket(evt.stream) : ""}
                   </span>
                   <span className={cn("break-all", color)}>
                     {evt.message
-                      ? redactPathText(evt.message, censorUsernameInLogs)
+                      ? redactPathText(agentDetailUi.runLifecycleMessageDisplay(evt.message), censorUsernameInLogs)
                       : evt.payload
                         ? JSON.stringify(redactPathValue(evt.payload, censorUsernameInLogs))
                         : ""}

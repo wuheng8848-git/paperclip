@@ -468,7 +468,7 @@ describeEmbeddedPostgres("heartbeat stale queued-run invalidation", () => {
     expect(run?.errorCode).toBe("issue_not_in_progress");
     expect(run?.resultJson).toMatchObject({ stopReason: "issue_not_in_progress" });
     expect(wakeup?.status).toBe("skipped");
-    expect(wakeup?.error).toContain("no longer in_progress");
+    expect(wakeup?.error).toContain("blocked");
     expect(countExecuteCallsForRun(runId)).toBe(0);
   });
 
