@@ -6,12 +6,12 @@ import { cn } from "@/lib/utils";
 import { EmptyState } from "../components/EmptyState";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useCompany } from "../context/CompanyContext";
+import { nav } from "../lib/i18n";
 import {
-  nav,
   orchestrationGatesPage,
   orchestrationGatesRows,
   type OrchestrationGatesTableRow,
-} from "../lib/i18n";
+} from "../lib/orchestration-gates-copy";
 
 /** 约两行高度（`text-sm` + `leading-relaxed`），需与折叠态 `max-h-[2.875rem]` 一致 */
 const SCHED_RULES_COLLAPSED_MAX_PX = 2.875 * 16;
