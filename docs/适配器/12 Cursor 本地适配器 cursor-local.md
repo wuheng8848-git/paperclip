@@ -18,7 +18,7 @@ summary: Cursor Agent CLI 本地适配器的搭建与配置
 | `instructionsFilePath` | string | 否 | Markdown 指令文件绝对路径；运行前读入并前置拼入提示词 |
 | `promptTemplate` | string | 否 | 各次运行主提示词模板 |
 | `bootstrapPromptTemplate` | string | 否 | **仅新会话**首段模板；续会话时为空白则跳过 |
-| `model` | string | 否 | 模型 ID，默认 `auto`（如 `gpt-5.3-codex` 等） |
+| `model` | string | 否 | 模型 ID，默认 `composer-2.5-fast`（Routic 与 Cursor 2.5 代对齐）；下拉列表与 CLI `agent models` 同步（离线快照见 `model-catalog.ts`） |
 | `mode` | string | 否 | 传入 `--mode`：`plan` 或 `ask`；不设则为常规自主运行 |
 | `command` | string | 否 | 可执行名，默认 `agent` |
 | `extraArgs` | string[] | 否 | 附加 CLI 参数；若已含 `--trust` / `--yolo` / `-f` 之一则适配器不再自动加 `--yolo` |

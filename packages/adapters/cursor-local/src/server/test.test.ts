@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -69,6 +70,42 @@ function createSandboxRunner(options: { homeDir: string; installCommandPath: str
     },
   };
 }
+
+describe.skipIf(process.platform !== "win32")("cursor testEnvironment local PATH augment (Windows)", () => {
+  it("passes version probe when cursor-agent is not on PATH but installed under LOCALAPPDATA", async () => {
+    const localApp = process.env.LOCALAPPDATA?.trim();
+    if (!localApp) return;
+    const agentCmd = path.join(localApp, "cursor-agent", "agent.cmd");
+    if (!existsSync(agentCmd)) return;
+
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-win-probe-"));
+    try {
+      const result = await testEnvironment({
+        companyId: "company-1",
+        adapterType: "cursor",
+        config: {
+          command: "agent",
+          cwd,
+          env: {
+            CURSOR_API_KEY: "test-key",
+            PATH: "C:\\Windows\\System32;C:\\Windows",
+          },
+        },
+      });
+
+      expect(result.checks).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "cursor_version_probe_passed",
+            level: "info",
+          }),
+        ]),
+      );
+    } finally {
+      await fs.rm(cwd, { recursive: true, force: true });
+    }
+  });
+});
 
 describe.skipIf(win32ShebangSpawnUnsupported)("cursor testEnvironment", () => {
   it("re-resolves the installed agent under ~/.cursor/bin and verifies --version before the hello probe", async () => {

@@ -99,6 +99,18 @@ export function parseCursorModelsOutput(stdout: string, stderr: string): Adapter
   for (const lineRaw of combined.split(/\r?\n/)) {
     const line = lineRaw.trim();
     if (!line) continue;
+    const dash = line.match(/^([a-z0-9][a-z0-9._-]*)\s+-\s+(.+)$/i);
+    if (dash) {
+      const id = sanitizeModelId(dash[1] ?? "");
+      const label = (dash[2] ?? "")
+        .trim()
+        .replace(/\s+\((default|current)\)\s*$/i, "")
+        .trim();
+      if (isLikelyModelId(id)) {
+        models.push({ id, label: label || id });
+      }
+      continue;
+    }
     const bullet = line.replace(/^[-*]\s+/, "").trim();
     if (!bullet || bullet.includes(" ")) continue;
     pushModelId(models, bullet);
@@ -107,8 +119,10 @@ export function parseCursorModelsOutput(stdout: string, stderr: string): Adapter
   return dedupeModels(models);
 }
 
-function mergedWithFallback(models: AdapterModel[]): AdapterModel[] {
-  return dedupeModels([...models, ...cursorFallbackModels]);
+/** When CLI listing works, use it as-is so UI matches Cursor; fallback only if CLI fails. */
+function resolveModelsForAdapter(models: AdapterModel[]): AdapterModel[] {
+  if (models.length > 0) return dedupeModels(models);
+  return dedupeModels(cursorFallbackModels);
 }
 
 function defaultCursorModelsRunner(): CursorModelsCommandResult {
@@ -150,12 +164,12 @@ export async function listCursorModels(): Promise<AdapterModel[]> {
 
   const discovered = fetchCursorModelsFromCli();
   if (discovered.length > 0) {
-    const merged = mergedWithFallback(discovered);
+    const resolved = resolveModelsForAdapter(discovered);
     cached = {
       expiresAt: now + CURSOR_MODELS_CACHE_TTL_MS,
-      models: merged,
+      models: resolved,
     };
-    return merged;
+    return resolved;
   }
 
   if (cached && cached.models.length > 0) {

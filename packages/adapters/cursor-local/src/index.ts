@@ -1,7 +1,7 @@
 import type { AdapterModelProfileDefinition } from "@paperclipai/adapter-utils";
 
 export { DEFAULT_CURSOR_LOCAL_MODEL, SANDBOX_INSTALL_COMMAND } from "./adapter-constants.js";
-export { models } from "./model-catalog.js";
+export { CURSOR_CLI_DEFAULT_MODEL_ID, models } from "./model-catalog.js";
 
 export const type = "cursor";
 export const label = "Cursor CLI (local)";

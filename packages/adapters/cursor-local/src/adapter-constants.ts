@@ -1,7 +1,10 @@
 // Leaf module — imported by server code and re-exported from package root.
 // Keeps `index.ts` able to import `./server` without circular initialization.
 
-export const DEFAULT_CURSOR_LOCAL_MODEL = "auto";
+import { CURSOR_CLI_DEFAULT_MODEL_ID } from "./model-catalog.js";
+
+/** 未配置 model 时使用的默认 id（与 Routic Cursor 2.5 代一致）。 */
+export const DEFAULT_CURSOR_LOCAL_MODEL = CURSOR_CLI_DEFAULT_MODEL_ID;
 
 // Cursor CLI is not distributed as an npm package — the official install
 // path is the upstream installer script at cursor.com/install. Other adapters

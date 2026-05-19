@@ -49,6 +49,7 @@ import {
   capPaperclipInjectedAgentInstructions,
   renderMinimizedPaperclipSkillNoteMarkdown,
 } from "@paperclipai/adapter-utils/server-utils";
+import { misconfiguredIdeCursorLauncherHint, normalizeConfiguredCommand } from "../command-normalize.js";
 import { DEFAULT_CURSOR_LOCAL_MODEL, SANDBOX_INSTALL_COMMAND } from "../index.js";
 import { parseCursorJsonl, isCursorUnknownSessionError } from "./parse.js";
 import { augmentEnvPathForLocalCursorAgent, prepareCursorSandboxCommand } from "./remote-command.js";
@@ -210,7 +211,23 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     config.promptTemplate,
     DEFAULT_PAPERCLIP_AGENT_PROMPT_TEMPLATE,
   );
-  let command = asString(config.command, "agent");
+  let command = normalizeConfiguredCommand(asString(config.command, "agent"));
+  const ideLauncherHint = misconfiguredIdeCursorLauncherHint(command);
+  if (ideLauncherHint) {
+    return {
+      exitCode: 1,
+      signal: null,
+      timedOut: false,
+      stdout: "",
+      stderr: ideLauncherHint,
+      resultJson: {
+        stderr: ideLauncherHint,
+        stdout: "",
+        stopReason: "adapter_failed",
+      },
+      errorMessage: ideLauncherHint,
+    };
+  }
   const model = asString(config.model, DEFAULT_CURSOR_LOCAL_MODEL).trim();
   const mode = normalizeMode(asString(config.mode, ""));
   const maxTurnsPerRun = asNumber(config.maxTurnsPerRun, 0);

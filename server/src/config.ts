@@ -116,6 +116,16 @@ export interface Config {
   companyDeletionEnabled: boolean;
   /** When false, heartbeat does not create `stranded_issue_recovery` child issues (滞留回收子单). */
   strandedIssueRecoveryEnabled: boolean;
+  /** When false, startup and periodic orphan run reaping is disabled. */
+  orphanRunReapEnabled: boolean;
+  /** When false, issue-graph liveness reconciliation is disabled. */
+  issueGraphLivenessEnabled: boolean;
+  /** When false, active-run output silence watchdog is disabled. */
+  silentActiveRunWatchdogEnabled: boolean;
+  /** When false, productivity review reconciliation is disabled. */
+  productivityReviewsEnabled: boolean;
+  /** When false, heartbeat does not auto-promote scheduled retries to current. */
+  scheduledRetryPromotionEnabled: boolean;
   telemetryEnabled: boolean;
 }
 
@@ -363,6 +373,11 @@ export function loadConfig(): Config {
     heartbeatSchedulerIntervalMs: Math.max(10000, Number(process.env.HEARTBEAT_SCHEDULER_INTERVAL_MS) || 30000),
     companyDeletionEnabled,
     strandedIssueRecoveryEnabled: process.env.PAPERCLIP_STRANDED_ISSUE_RECOVERY_ENABLED !== "false",
+    orphanRunReapEnabled: process.env.PAPERCLIP_ORPHAN_RUN_REAP_ENABLED !== "false",
+    issueGraphLivenessEnabled: process.env.PAPERCLIP_ISSUE_GRAPH_LIVENESS_ENABLED !== "false",
+    silentActiveRunWatchdogEnabled: process.env.PAPERCLIP_SILENT_ACTIVE_RUN_WATCHDOG_ENABLED !== "false",
+    productivityReviewsEnabled: process.env.PAPERCLIP_PRODUCTIVITY_REVIEWS_ENABLED !== "false",
+    scheduledRetryPromotionEnabled: process.env.PAPERCLIP_SCHEDULED_RETRY_PROMOTION_ENABLED !== "false",
     telemetryEnabled: fileConfig?.telemetry?.enabled ?? true,
   };
 }

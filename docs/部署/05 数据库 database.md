@@ -28,6 +28,8 @@ Docker 快速入门默认也使用嵌入式 PostgreSQL。
 
 对于完整的本地 PostgreSQL 服务器：
 
+### 默认方式
+
 ```sh
 docker compose up -d
 ```
@@ -39,10 +41,27 @@ cp .env.example .env
 # DATABASE_URL=postgres://paperclip:paperclip@localhost:5432/paperclip
 ```
 
+### Routic 实例方式（本仓库实际配置）
+
+使用独立容器 + 自定义端口和凭据，避免与默认实例冲突：
+
+```sh
+docker compose -f docker/docker-compose.yml up -d
+```
+
+| 配置项 | 值 |
+|--------|-----|
+| 容器名 | `paperclip-routic-db` |
+| 端口 | `5433` |
+| 用户 | `routic` |
+| 密码 | `routic` |
+| 数据库 | `routic` |
+| 连接字符串 | `postgres://routic:routic@127.0.0.1:5433/routic` |
+
 推送模式：
 
 ```sh
-DATABASE_URL=postgres://paperclip:paperclip@localhost:5432/paperclip \
+DATABASE_URL=postgres://routic:routic@127.0.0.1:5433/routic \
   npx drizzle-kit push
 ```
 
@@ -72,6 +91,7 @@ export function createDb(url: string) {
 |----------------|------|
 | 未设置 | 嵌入式 PostgreSQL |
 | `postgres://...localhost...` | 本地 Docker PostgreSQL |
+| `postgres://routic:routic@127.0.0.1:5433/routic` | Routic 实例（本仓库） |
 | `postgres://...supabase.com...` | 托管 Supabase |
 
 无论模式如何，Drizzle 模式（`packages/db/src/schema/`）都是相同的。

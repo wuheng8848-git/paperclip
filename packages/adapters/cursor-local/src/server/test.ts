@@ -8,6 +8,9 @@ import {
   asStringArray,
   parseObject,
   ensurePathInEnv,
+  mergeAllowlistedHostEnvWith,
+  resolveCommandForLogs,
+  type RunProcessResult,
 } from "@paperclipai/adapter-utils/server-utils";
 import {
   ensureAdapterExecutionTargetCommandResolvable,
@@ -21,8 +24,13 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { DEFAULT_CURSOR_LOCAL_MODEL, SANDBOX_INSTALL_COMMAND } from "../adapter-constants.js";
+import { misconfiguredIdeCursorLauncherHint, normalizeConfiguredCommand } from "../command-normalize.js";
 import { parseCursorJsonl } from "./parse.js";
-import { isDefaultCursorCommand, prepareCursorSandboxCommand } from "./remote-command.js";
+import {
+  augmentEnvPathForLocalCursorAgent,
+  isDefaultCursorCommand,
+  prepareCursorSandboxCommand,
+} from "./remote-command.js";
 import { hasCursorTrustBypassArg } from "../shared/trust.js";
 
 function summarizeStatus(checks: AdapterEnvironmentCheck[]): AdapterEnvironmentTestResult["status"] {
@@ -50,6 +58,16 @@ function summarizeProbeDetail(stdout: string, stderr: string, parsedError: strin
   const clean = raw.replace(/\s+/g, " ").trim();
   const max = 240;
   return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean;
+}
+
+function formatProbeFailureDetail(probe: RunProcessResult, summary: string | null): string | null {
+  const exitSuffix =
+    typeof probe.exitCode === "number" && probe.exitCode !== 0 ? `exit ${probe.exitCode}` : null;
+  const parts = [summary, exitSuffix].filter((part): part is string => Boolean(part));
+  if (parts.length === 0) return null;
+  const combined = parts.join(" — ");
+  const max = 240;
+  return combined.length > max ? `${combined.slice(0, max - 1)}…` : combined;
 }
 
 export interface CursorAuthInfo {
@@ -95,7 +113,16 @@ export async function testEnvironment(
 ): Promise<AdapterEnvironmentTestResult> {
   const checks: AdapterEnvironmentCheck[] = [];
   const config = parseObject(ctx.config);
-  let command = asString(config.command, "agent");
+  let command = normalizeConfiguredCommand(asString(config.command, "agent"));
+  const ideLauncherHint = misconfiguredIdeCursorLauncherHint(command);
+  if (ideLauncherHint) {
+    checks.push({
+      code: "cursor_command_ide_launcher",
+      level: "error",
+      message: ideLauncherHint,
+      detail: command,
+    });
+  }
   const target = ctx.executionTarget ?? null;
   const targetIsRemote = target?.kind === "remote";
   const cwd = resolveAdapterExecutionTargetCwd(target, asString(config.cwd, ""), process.cwd());
@@ -169,6 +196,9 @@ export async function testEnvironment(
   });
   command = finalSandboxCommand.command;
   env = finalSandboxCommand.env;
+  if (!targetIsRemote) {
+    env = augmentEnvPathForLocalCursorAgent(command, env);
+  }
   const runtimeEnv = ensurePathInEnv({ ...process.env, ...env });
   try {
     await ensureAdapterExecutionTargetCommandResolvable(command, target, cwd, runtimeEnv);
@@ -230,10 +260,12 @@ export async function testEnvironment(
         hint: "Use `agent` or `cursor-agent` to run the automatic installation and auth probe.",
       });
     } else {
+      const probeEnv = ensurePathInEnv(mergeAllowlistedHostEnvWith(env));
+      const probeCommand = await resolveCommandForLogs(command, cwd, probeEnv);
       const versionProbe = await runAdapterExecutionTargetProcess(
         runId,
         target,
-        command,
+        probeCommand,
         ["--version"],
         {
           cwd,
@@ -243,7 +275,7 @@ export async function testEnvironment(
           onLog: async () => {},
         },
       );
-      const versionDetail = summarizeProbeDetail(versionProbe.stdout, versionProbe.stderr, null);
+      const versionDetail = formatProbeFailureDetail(versionProbe, summarizeProbeDetail(versionProbe.stdout, versionProbe.stderr, null));
       if (versionProbe.timedOut) {
         checks.push({
           code: "cursor_version_probe_timed_out",
@@ -298,7 +330,7 @@ export async function testEnvironment(
       const probe = await runAdapterExecutionTargetProcess(
         runId,
         target,
-        command,
+        probeCommand,
         args,
         {
           cwd,
@@ -309,7 +341,10 @@ export async function testEnvironment(
         },
       );
       const parsed = parseCursorJsonl(probe.stdout);
-      const detail = summarizeProbeDetail(probe.stdout, probe.stderr, parsed.errorMessage);
+      const detail = formatProbeFailureDetail(
+        probe,
+        summarizeProbeDetail(probe.stdout, probe.stderr, parsed.errorMessage),
+      );
       const authEvidence = `${parsed.errorMessage ?? ""}\n${probe.stdout}\n${probe.stderr}`.trim();
 
       if (probe.timedOut) {

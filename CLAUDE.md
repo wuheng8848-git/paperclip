@@ -10,7 +10,7 @@ Import the shared agent brief from `AGENTS.md`.
 - Working order & entry points: `docs/项目计划/README.md`
 - Requirements (incl. open questions & residual risks): `docs/项目计划/01.项目需求说明.md`
 - Task queue, acceptance criteria, rules: `docs/项目计划/00.项目任务清单.md` (per-task verification evidence lives in `docs/项目计划/执行/*.md`)
-- External tooling / forensics playbook: `docs/项目计划/最佳实践/012-实践-回形针外部开发工具与排障流水线.md`
+- External tooling / forensics playbook (single entry): `docs/项目计划/最佳实践/020-实践-排障指南.md`
 - AI DB scaffolding (orchestration tables + column snapshot): `docs/项目计划/最佳实践/013-实践-编排平面AI查数据脚手架.md`, `docs/项目计划/执行/orchestration-schema-snapshot.json`
 
 ## How To Work

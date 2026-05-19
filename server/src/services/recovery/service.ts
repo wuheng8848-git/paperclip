@@ -720,6 +720,33 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
     return row ?? null;
   }
 
+  /**
+   * Earliest evaluation row for this run (same company + originKind + originId).
+   * Used to reopen a closed evaluation instead of creating duplicates after watchdog re-arm.
+   */
+  async function findCanonicalStaleRunEvaluationIssue(companyId: string, runId: string) {
+    const [row] = await db
+      .select({
+        id: issues.id,
+        identifier: issues.identifier,
+        status: issues.status,
+        priority: issues.priority,
+        assigneeAgentId: issues.assigneeAgentId,
+      })
+      .from(issues)
+      .where(
+        and(
+          eq(issues.companyId, companyId),
+          eq(issues.originKind, STALE_ACTIVE_RUN_EVALUATION_ORIGIN_KIND),
+          eq(issues.originId, runId),
+          isNull(issues.hiddenAt),
+        ),
+      )
+      .orderBy(asc(issues.createdAt))
+      .limit(1);
+    return row ?? null;
+  }
+
   async function buildRunOutputSilence(
     run: Pick<
       typeof heartbeatRuns.$inferSelect,
@@ -1067,6 +1094,76 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
     }
 
     const ownerAgentId = await resolveStaleRunOwnerAgentId({ run: input.run, runningAgent, sourceIssue });
+    const canonical = await findCanonicalStaleRunEvaluationIssue(input.run.companyId, input.run.id);
+    if (canonical && ["done", "cancelled"].includes(canonical.status)) {
+      const nextPriority = level === "critical" ? "high" : "medium";
+      await issuesSvc.update(canonical.id, {
+        status: "todo",
+        priority: nextPriority,
+        ...(ownerAgentId ? { assigneeAgentId: ownerAgentId } : {}),
+      });
+      await issuesSvc.addComment(
+        canonical.id,
+        [
+          "Paperclip reopened this stale-run evaluation for the same heartbeat run (one evaluation ticket per run).",
+          "",
+          `- Run: \`${input.run.id}\``,
+          `- Level: ${level}`,
+          `- Silent for: ${formatDuration(evidence.silenceAgeMs)}`,
+          `- Last output at: ${input.run.lastOutputAt?.toISOString() ?? "none recorded"}`,
+        ].join("\n"),
+        { runId: input.run.id },
+      );
+      await logActivity(db, {
+        companyId: input.run.companyId,
+        actorType: "system",
+        actorId: "system",
+        agentId: ownerAgentId ?? undefined,
+        runId: input.run.id,
+        action: "heartbeat.output_stale_detected",
+        entityType: "issue",
+        entityId: canonical.id,
+        details: {
+          source: "recovery.scan_silent_active_runs",
+          level,
+          reopened: true,
+          sourceIssueId: sourceIssue?.id ?? null,
+          silenceAgeMs: evidence.silenceAgeMs,
+          lastOutputAt: input.run.lastOutputAt?.toISOString() ?? null,
+        },
+      });
+      if (level === "critical") {
+        await ensureSourceIssueBlockedByStaleEvaluation({
+          sourceIssue,
+          evaluationIssue: canonical,
+          run: input.run,
+        });
+      }
+      if (ownerAgentId) {
+        await deps.enqueueWakeup(ownerAgentId, {
+          source: "assignment",
+          triggerDetail: "system",
+          reason: "issue_assigned",
+          payload: withRecoveryModelProfileHint({
+            issueId: canonical.id,
+            staleRunId: input.run.id,
+            sourceIssueId: sourceIssue?.id ?? null,
+          }),
+          requestedByActorType: "system",
+          requestedByActorId: null,
+          contextSnapshot: withRecoveryModelProfileHint({
+            issueId: canonical.id,
+            taskId: canonical.id,
+            wakeReason: "issue_assigned",
+            source: STALE_ACTIVE_RUN_EVALUATION_ORIGIN_KIND,
+            staleRunId: input.run.id,
+            sourceIssueId: sourceIssue?.id ?? null,
+          }),
+        });
+      }
+      return { kind: "reopened" as const, evaluationIssueId: canonical.id };
+    }
+
     const description = buildStaleRunEvaluationDescription({
       run: input.run,
       runningAgent,
@@ -1171,6 +1268,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       created: 0,
       existing: 0,
       escalated: 0,
+      reopened: 0,
       snoozed: 0,
       skipped: 0,
       evaluationIssueIds: [] as string[],
@@ -1185,6 +1283,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       if (outcome.kind === "created") result.created += 1;
       else if (outcome.kind === "existing") result.existing += 1;
       else if (outcome.kind === "escalated") result.escalated += 1;
+      else if (outcome.kind === "reopened") result.reopened += 1;
       else result.skipped += 1;
       if ("evaluationIssueId" in outcome && outcome.evaluationIssueId) {
         result.evaluationIssueIds.push(outcome.evaluationIssueId);

@@ -1,6 +1,6 @@
 # 026 — 探查：工单「为何出现」— API / 数据库 / UI / 文档对照情报
 
-**范围：** §1–§7 为仓库静态对照；§8 起可挂 **实例取证附录**（与本节方法论交叉验证）。
+**范围：** §1–§7 为仓库静态对照；§8 起可挂 **实例取证附录**。工单五步与排障总目录见 **[020](../最佳实践/020-实践-排障指南.md)**。
 
 ---
 
@@ -24,8 +24,8 @@
 | --- | --- | --- |
 | ① | `GET /api/issues/{identifier \| uuid}` | JSON 含 **`companyId`、`originKind`、`originId`、`parentId`、`identifier`** 等；与脚本 **`pnpm issue:forensics`** 对齐前先确认 **`companyId`** |
 | ② | `GET /api/issues/{ref}/activity` | 创建后与闸门相关的 **`action`**（见 §4） |
-| ③ | `GET /api/issues/{ref}/runs` + `GET /api/heartbeat-runs/{runId}` | 唤醒链、`wakeReason`；见 **[002](../最佳实践/002-实践-工单运行记录API取证路径.md)** |
-| ④ | `GET /api/companies/{companyId}/activity` | 公司宽表；**`pnpm activity:company`**，见 **[012](../最佳实践/012-实践-回形针外部开发工具与排障流水线.md)** |
+| ③ | `GET /api/issues/{ref}/runs` + `GET /api/heartbeat-runs/{runId}` | **[020](../最佳实践/020-实践-排障指南.md)** §A → [002](../最佳实践/002-实践-工单运行记录API取证路径.md) |
+| ④ | `GET /api/companies/{companyId}/activity` | **`pnpm activity:company`**；**[020](../最佳实践/020-实践-排障指南.md)** §D |
 | ⑤ | `GET /api/issues?originKind=…` | 列表筛选（Board 列表同源）；`originKindPrefix` 供插件 operation |
 
 **编排节拍入口（对照闸门）：** `server/src/index.ts` 在 **`heartbeatSchedulerEnabled`** 下：`reconcileStrandedAssignedIssues` → `reconcileIssueGraphLiveness` → `scanSilentActiveRuns` → `reconcileProductivityReviews`；例行并行 **`routineService.tickScheduledTriggers`**。
@@ -80,12 +80,9 @@
 
 | 类型 | 路径 |
 | --- | --- |
-| 取证流水线 / 脚本 | **[012](../最佳实践/012-实践-回形针外部开发工具与排障流水线.md)**、**[002](../最佳实践/002-实践-工单运行记录API取证路径.md)** |
-| 心跳 / 活动顺序 | **[004](../最佳实践/004-实践-工单心跳与僵尸run排障.md)** |
-| 闸门 vs 单次 run | **[018](../最佳实践/018-实践-排障-run与token多轮.md)** §4 |
-| 库表列清单 | **[013](../最佳实践/013-实践-编排平面AI查数据脚手架.md)**、`docs/项目计划/执行/orchestration-schema-snapshot.json` |
+| **排障 / 取证（单一入口）** | **[020](../最佳实践/020-实践-排障指南.md)** |
 | 运行时索引 | **[../系统逻辑/README.md](../系统逻辑/README.md)** |
-| 滞留回收个案范式 | **[020](020-探查-ROU-44滞留回收单与ROU-41收口链.md)** |
+| 滞留回收个案范式 | **[020-探查-ROU-44滞留回收单与ROU-41收口链.md](020-探查-ROU-44滞留回收单与ROU-41收口链.md)** |
 
 ---
 
@@ -120,7 +117,7 @@
 
 **活动面备注：** `GET /api/issues/ROU-105/activity` 当次仅 **4** 条（含指派变更、`cancelled`、`read_marked` 等），**未见** `issue.created`；归因以 issue 详情 **`originKind` / `originFingerprint` / 正文** 为主。
 
-**runs 面备注（待查）：** `issue:forensics` 曾列出一条 **`running` + `heartbeat_timer`** 与 **`cancelled`** 工单并存；若再现需对该 **`runId`** 调 **`GET /api/heartbeat-runs/{id}`** 与 **[004](../最佳实践/004-实践-工单心跳与僵尸run排障.md)** 对账。
+**runs 面备注（待查）：** `issue:forensics` 曾列出一条 **`running` + `heartbeat_timer`** 与 **`cancelled`** 工单并存；若再现需对该 **`runId`** 调 **`GET /api/heartbeat-runs/{id}`**，并按 **[020](../最佳实践/020-实践-排障指南.md)** §A → **[004](../最佳实践/004-实践-工单心跳与僵尸run排障.md)** 对账。
 
 ---
 

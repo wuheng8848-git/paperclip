@@ -1,46 +1,21 @@
-# 默认只启动 Postgres，供宿主机受管 `pnpm dev`（dev-runner）通过 DATABASE_URL 连接。
-# 需要「容器内跑完整回形针」时：`docker compose -f docker/docker-compose.yml --profile container-server up --build -d`
+# Paperclip Routic 专用 Postgres
 services:
   db:
     image: postgres:17-alpine
+    container_name: paperclip-routic-db
     environment:
-      POSTGRES_USER: paperclip
-      POSTGRES_PASSWORD: paperclip
-      POSTGRES_DB: paperclip
+      POSTGRES_USER: routic
+      POSTGRES_PASSWORD: routic
+      POSTGRES_DB: routic
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U paperclip -d paperclip"]
+      test: ["CMD-SHELL", "pg_isready -U routic -d routic"]
       interval: 2s
       timeout: 5s
       retries: 30
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-
-  server:
-    profiles:
-      - container-server
-    build:
-      context: ..
-      dockerfile: Dockerfile
-    ports:
-      - "3100:3100"
-    environment:
-      DATABASE_URL: postgres://paperclip:paperclip@db:5432/paperclip
-      PORT: "3100"
-      HOST: "0.0.0.0"
-      SERVE_UI: "true"
-      # Local-trusted board (no invite / Better Auth bootstrap). Do not expose publicly.
-      PAPERCLIP_DEPLOYMENT_MODE: "local_trusted"
-      PAPERCLIP_DEPLOYMENT_EXPOSURE: "private"
-      PAPERCLIP_ALLOW_LOCAL_TRUSTED_LAN_BIND: "true"
-      PAPERCLIP_PUBLIC_URL: "${PAPERCLIP_PUBLIC_URL:-http://localhost:3100}"
-    volumes:
-      - paperclip-data:/paperclip
-    depends_on:
-      db:
-        condition: service_healthy
+      - routic_pgdata:/var/lib/postgresql/data
 
 volumes:
-  pgdata:
-  paperclip-data:
+  routic_pgdata:

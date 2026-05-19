@@ -9,11 +9,11 @@ Paperclip 用于服务器配置的所有环境变量。
 
 | 变量 | 默认值 | 描述 |
 |----------|---------|-------------|
-| `PORT` | `3100` | 服务器端口 |
+| `PORT` | `3100`（本实例 `4100`） | 服务器端口 |
 | `PAPERCLIP_BIND` | `loopback` | 可访问性预设：`loopback`、`lan`、`tailnet` 或 `custom` |
 | `PAPERCLIP_BIND_HOST` |（未设置） | 当 `PAPERCLIP_BIND=custom` 时必需 |
 | `HOST` | `127.0.0.1` | 传统主机覆盖；对于新设置，优先使用 `PAPERCLIP_BIND` |
-| `DATABASE_URL` |（嵌入式） | PostgreSQL 连接字符串 |
+| `DATABASE_URL` |（嵌入式） | PostgreSQL 连接字符串。本实例：`postgres://routic:routic@127.0.0.1:5433/routic` |
 | `PAPERCLIP_HOME` | `~/.paperclip` | 所有 Paperclip 数据的基本目录 |
 | `PAPERCLIP_INSTANCE_ID` | `default` | 实例标识符（用于多个本地实例） |
 | `PAPERCLIP_DEPLOYMENT_MODE` | `local_trusted` | 运行时模式覆盖 |

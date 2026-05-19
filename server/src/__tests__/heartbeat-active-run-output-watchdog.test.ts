@@ -396,13 +396,15 @@ describeEmbeddedPostgres("active-run output watchdog", () => {
       now: new Date(rearmAt.getTime() + 60_000),
       companyId,
     });
-    expect(afterRearm.created).toBe(1);
-    expect(afterRearm.evaluationIssueIds[0]).not.toBe(evaluationIssueId);
+    expect(afterRearm.created).toBe(0);
+    expect(afterRearm.reopened).toBe(1);
+    expect(afterRearm.evaluationIssueIds[0]).toBe(evaluationIssueId);
 
     const evaluations = await db
       .select()
       .from(issues)
       .where(and(eq(issues.companyId, companyId), eq(issues.originKind, "stale_active_run_evaluation")));
+    expect(evaluations).toHaveLength(1);
     expect(evaluations.filter((issue) => !["done", "cancelled"].includes(issue.status))).toHaveLength(1);
   });
 

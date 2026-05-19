@@ -1,6 +1,7 @@
 import type { AdapterRuntimeCommandSpec, ServerAdapterModule } from "@paperclipai/adapter-utils";
 import { agentConfigurationDoc, modelProfiles, type } from "./index.js";
 import { models } from "./model-catalog.js";
+import { normalizeConfiguredCommand } from "./command-normalize.js";
 import {
   execute,
   listCursorSkills,
@@ -17,7 +18,7 @@ import {
  * defaults without pulling Node-only code into Vite).
  */
 function readConfiguredCommand(config: Record<string, unknown>, fallback: string): string {
-  const value = typeof config.command === "string" ? config.command.trim() : "";
+  const value = normalizeConfiguredCommand(typeof config.command === "string" ? config.command : "", fallback);
   return value.length > 0 ? value : fallback;
 }
 

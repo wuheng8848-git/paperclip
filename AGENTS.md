@@ -18,7 +18,7 @@ Paperclip 是面向 AI Agent 公司的控制平面。
 5. `doc/06 数据库 DATABASE.md`（数据库与密钥相关）
 6. [`doc/23 本地开发部署模式检查清单.md`](doc/23%20本地开发部署模式检查清单.md)（本地模式 A/B/C、3100 追查、容器数据自查；AI 拼 URL 前先问人类选哪种模式）
 7. **[`docs/项目计划/最佳实践/001-运维-回形针本地.md`](docs/项目计划/最佳实践/001-运维-回形针本地.md)**（本地启动、收尾、`dev:nuke`、环境与 `DATABASE_URL`）
-8. **可选（重复排障 / 取证）：[`docs/项目计划/最佳实践/012-实践-回形针外部开发工具与排障流水线.md`](docs/项目计划/最佳实践/012-实践-回形针外部开发工具与排障流水线.md)**（`pnpm issue:forensics`、`pnpm activity:company`、`scripts/` 登记与五步流水线）
+8. **可选（排障 / 取证 / 流水线 · 单一入口）：[`docs/项目计划/最佳实践/020-实践-排障指南.md`](docs/项目计划/最佳实践/020-实践-排障指南.md)**（专题目录：`pnpm issue:forensics`、`activity:company`、002/004/012/018 …；工单五步；**[`026`](docs/项目计划/探查/026-探查-工单出现路径-originKind与取证锚点.md)** `originKind` 锚；`.env` 核验指引）
 9. **可选（编排平面 · AI 查库脚手架）：[`docs/项目计划/最佳实践/013-实践-编排平面AI查数据脚手架.md`](docs/项目计划/最佳实践/013-实践-编排平面AI查数据脚手架.md)**（必读顺序、`pnpm schema:snapshot:orchestration`、`docs/项目计划/执行/orchestration-schema-snapshot.json`）
 
 `doc/03 规范 SPEC.md`：长周期产品上下文。
@@ -36,7 +36,7 @@ Paperclip 是面向 AI Agent 公司的控制平面。
 - `doc/`：运维和产品文档
 - `skills/`：随仓库分发的智能体技能（每技能一个目录 + `SKILL.md`）；**集中说明与中文对照见 [`skills/README.md`](skills/README.md)**（此前易缺索引，以自我维护的该文件为准）
 - **`vendor/`**：第三方源码快照（含 **`postgres-mcp`**）；说明见 **`vendor/README.md`**。**Cursor MCP 编排接入：** [`docs/项目计划/最佳实践/013-实践-编排平面AI查数据脚手架.md`](docs/项目计划/最佳实践/013-实践-编排平面AI查数据脚手架.md)。
-- **`scripts/`**：运维入口（如 **`start-paperclip-dev-external.ps1`**）、取证脚本（如 **`pnpm issue:forensics`**、**`pnpm activity:company`**）。**外部开发工具与排障流水线（机制）**：[`docs/项目计划/最佳实践/012-实践-回形针外部开发工具与排障流水线.md`](docs/项目计划/最佳实践/012-实践-回形针外部开发工具与排障流水线.md)。
+- **`scripts/`**：运维入口（如 **`start-paperclip-dev-external.ps1`**）、取证脚本（如 **`pnpm issue:forensics`**、**`pnpm activity:company`**）。**排障 / 取证 / 流水线入口：** **[`docs/项目计划/最佳实践/020-实践-排障指南.md`](docs/项目计划/最佳实践/020-实践-排障指南.md)**（内含 **`012`** 专题链接）。
 
 ## 4. 开发环境
 
