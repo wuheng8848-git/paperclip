@@ -7,7 +7,7 @@ import { heartbeatsApi } from "../api/heartbeats";
 import { instanceSettingsApi } from "../api/instanceSettings";
 import { ApiError } from "../api/client";
 import { queryKeys } from "../lib/queryKeys";
-import { agentDetailUi } from "../lib/i18n";
+import { agentDetailUi, formatWorkspaceOperationStatus } from "../lib/i18n";
 import { getUIAdapter, buildTranscript, onAdapterChange } from "../adapters";
 import { StatusBadge } from "./StatusBadge";
 import { CopyText } from "./CopyText";
@@ -312,11 +312,11 @@ function WorkspaceOperationStatusBadge({ status }: { status: WorkspaceOperation[
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize",
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
         workspaceOperationStatusTone(status),
       )}
     >
-      {status.replace("_", " ")}
+      {formatWorkspaceOperationStatus(status)}
     </span>
   );
 }

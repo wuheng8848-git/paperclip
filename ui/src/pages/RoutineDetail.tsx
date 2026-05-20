@@ -31,7 +31,14 @@ import { useCompany } from "../context/CompanyContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useToastActions } from "../context/ToastContext";
 import { queryKeys } from "../lib/queryKeys";
-import { routineDetailPage, routinesShared } from "../lib/i18n";
+import {
+  formatRoutineActivityActionZh,
+  formatRoutineActivityDetailKeyZh,
+  formatRoutineRunSourceZh,
+  formatRunStatus,
+  routineDetailPage,
+  routinesShared,
+} from "../lib/i18n";
 import { buildRoutineTriggerPatch } from "../lib/routine-trigger-patch";
 import { buildMarkdownMentionOptions } from "../lib/company-members";
 import { timeAgo } from "../lib/timeAgo";
@@ -819,14 +826,14 @@ export function RoutineDetail() {
                   <Input value={entry.webhookUrl} readOnly className="flex-1" />
                   <Button variant="outline" size="sm" onClick={() => copySecretValue(routineDetailPage.webhookUrl, entry.webhookUrl)}>
                     <Copy className="h-3.5 w-3.5 mr-1" />
-                    URL
+                    {routineDetailPage.copyUrl}
                   </Button>
                 </div>
                 <div className="flex items-center gap-2">
                   <Input value={entry.webhookSecret} readOnly className="flex-1" />
                   <Button variant="outline" size="sm" onClick={() => copySecretValue(routineDetailPage.webhookSecret, entry.webhookSecret)}>
                     <Copy className="h-3.5 w-3.5 mr-1" />
-                    Secret
+                    {routineDetailPage.copySecret}
                   </Button>
                 </div>
               </div>
@@ -1163,9 +1170,9 @@ export function RoutineDetail() {
               {(routineRuns ?? []).map((run) => (
                 <div key={run.id} className="flex items-center justify-between px-3 py-2 text-sm">
                   <div className="flex items-center gap-2 min-w-0">
-                    <Badge variant="outline" className="shrink-0">{run.source}</Badge>
+                    <Badge variant="outline" className="shrink-0">{formatRoutineRunSourceZh(run.source)}</Badge>
                     <Badge variant={run.status === "failed" ? "destructive" : "secondary"} className="shrink-0">
-                      {run.status.replaceAll("_", " ")}
+                      {formatRunStatus(run.status)}
                     </Badge>
                     {run.trigger && (
                       <span className="text-muted-foreground truncate">{run.trigger.label ?? run.trigger.kind}</span>
@@ -1191,13 +1198,13 @@ export function RoutineDetail() {
               {(activity ?? []).map((event) => (
                 <div key={event.id} className="flex items-center justify-between px-3 py-2 text-xs gap-4">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-medium text-foreground/90 shrink-0">{event.action.replaceAll(".", " ")}</span>
+                    <span className="font-medium text-foreground/90 shrink-0">{formatRoutineActivityActionZh(event.action)}</span>
                     {event.details && Object.keys(event.details).length > 0 && (
                       <span className="text-muted-foreground truncate">
                         {Object.entries(event.details).slice(0, 3).map(([key, value], i) => (
                           <span key={key}>
                             {i > 0 && <span className="mx-1 text-border">·</span>}
-                            <span className="text-muted-foreground/70">{key.replaceAll("_", " ")}:</span>{" "}
+                            <span className="text-muted-foreground/70">{formatRoutineActivityDetailKeyZh(key)}:</span>{" "}
                             {formatActivityDetailValue(value)}
                           </span>
                         ))}

@@ -1,0 +1,80 @@
+# 实践：排障指南（单一入口）
+
+**读者须知：** **`AGENTS.md` §2** 中与「排障 / 取证 / 流水线」相关的可选阅读、**`routic-project.mdc`** 中「排障与取证」段落、**`paperclip-environment.mdc`** 里「事务排障中的配置核验」叙事 — **只指向本文**，不在多处并列挂链。**`.env` 加载顺序的真值**仍以 **[`.cursor/rules/paperclip-environment.mdc`](../../../.cursor/rules/paperclip-environment.mdc)** 正文为准。
+
+**不替代** **`doc/`** 产品 SPEC。
+
+**验 run / 闭环判读（改完怎么算通过）** → **[024-实践-运行验收与闭环判读.md](024-实践-运行验收与闭环判读.md)**（本文 **§A 以下** 偏 **出事后排障 / 取证**）。
+
+---
+
+## A）专题目录（`docs/项目计划/最佳实践/` · 排障 / 取证 / 运维入口）
+
+| 专文 | 用途 |
+| --- | --- |
+| [001-运维-回形针本地.md](001-运维-回形针本地.md) | 启停、端口、`DATABASE_URL`、`dev:nuke`、本地运维总入口 |
+| **[编排手册](../编排/README.md)** | 控件、开关、派单、执行、回写、改进（**非排障**） |
+| [002-实践-…](002-实践-事务运行记录API取证路径.md) · [004-实践-…](004-实践-事务心跳与僵尸run排障.md) · [010-实践-…](010-实践-从Postgres核查公司与智能体.md) | **数据面查证** → [部署/13](../../部署/13%20数据面查证%20data-forensics.md) |
+| [006-运维-回形针-并发与CodeBuddy兜底.md](006-运维-回形针-并发与CodeBuddy兜底.md) | 进程监控、回收阶梯、`dev:nuke` → [部署/12](../../部署/12%20进程监控与回收%20process-monitor-recovery.md) |
+| [012-实践-回形针外部开发工具与排障流水线.md](012-实践-回形针外部开发工具与排障流水线.md) | 五步流水线、`pnpm`/`scripts` 登记、助手默认行为 |
+| [015-实践-CLI累计计量与成本控制面台账口径.md](015-实践-CLI累计计量与成本控制面台账口径.md) | 上游 CLI 累计 vs 控制面账本疑难 |
+| [018-实践-排障-run与token多轮.md](018-实践-排障-run与token多轮.md) | 单次 run 多 turn、`usageJson`、与编排闸门 / 运行清单分工 |
+| [023-实践-Board界面中文口径与文档对照表.md](023-实践-Board界面中文口径与文档对照表.md) | Board 菜单中文真值；勿写「编排注入」 |
+| [024-实践-运行验收与闭环判读.md](024-实践-运行验收与闭环判读.md) | **改完验 run**：`succeeded` / issue 对账、Board + API SOP（**非**事后探案） |
+| [编排/提示词与上下文 prompt-and-context.md](编排/提示词与上下文 prompt-and-context.md) | stub → [编排/提示词与上下文](../../编排/提示词与上下文%20prompt-and-context.md) |
+| [013-实践-编排平面AI查数据脚手架.md](013-实践-编排平面AI查数据脚手架.md) | 编排平面库表列、`schema:snapshot:orchestration`（偏 AI 查库，常与排障同框） |
+
+其它最佳实践（适配器、汉化、董事会等）**不**收入上表；需要时见 **[README.md](README.md)** 全文索引。
+
+---
+
+## B）邻近索引（非「最佳实践」正文）
+
+| 位置 | 用途 |
+| --- | --- |
+| [`../探查/README.md`](../探查/README.md) | 个案探查、长表、实例取证结论 |
+| [`../探查/026-探查-事务出现路径-originKind与取证锚点.md`](../探查/026-探查-事务出现路径-originKind与取证锚点.md) | **`originKind` / API·DB·UI·闸门** 静态对照与附录范式 |
+| [`../系统逻辑/README.md`](../系统逻辑/README.md) | 运行时语义索引（链到探查 / 执行） |
+| [`docs/部署/07 环境变量 environment-variables.md`](../../部署/07%20环境变量%20environment-variables.md) | 实例环境变量长表 |
+
+---
+
+## C）事务现象五步（固定顺序）
+
+| 步 | 做什么 | 产出 |
+| --- | --- | --- |
+| **① 归因快照** | `GET /api/issues/{identifier}` | `companyId`、`originKind`、`parentId`、`originFingerprint`、`status` |
+| **② 活动与 runs** | `pnpm issue:forensics -- --company <uuid> --issue <ref> [--issue-activity]`（必要时 `--run`） | **§A → [002](002-实践-事务运行记录API取证路径.md)** §1.5 三类来源 |
+| **③ 闸门 ↔ 代码** | Board「编排闸门」仅叙事；实现查 **`server/`** | **§B → [026](../探查/026-探查-事务出现路径-originKind与取证锚点.md)** §3 |
+| **④ 配置争议** | **先于**长篇代码推演：**实例目录 `.env`** → **单调体根 `.env`**（顺序见 **`paperclip-environment.mdc`**）；再在 **`server/`** cwd 跑 **`loadConfig()`**；改 env **重启 API** | 进程实际读到的开关 |
+| **⑤ 落盘** | 新结论：**`../探查/NNN-探查-…md`**；登记 **`../探查/README.md`**、**`../index.md`** | 可追溯 |
+
+---
+
+## D）脚本与 `pnpm`（摘要）
+
+完整机制见 **§A → [012](012-实践-回形针外部开发工具与排障流水线.md)** §4。常用：
+
+| 命令 | 用途 |
+| --- | --- |
+| **`pnpm issue:forensics`** | `scripts/issue-run-forensics.mjs`，聚合事务 runs / activity |
+| **`pnpm activity:company`** | 同上脚本，`GET /companies/:id/activity` |
+| **`pnpm schema:snapshot:orchestration`** | 导出编排平面列清单（见 **§A → [013](013-实践-编排平面AI查数据脚手架.md)**） |
+
+---
+
+## E）易忘点
+
+- **`PAPERCLIP_STRANDED_ISSUE_RECOVERY_ENABLED`**：仅字符串 **`false`** 关闭滞留回收 — **完整关断表见 [编排/实例开关与阶段零](../../编排/实例开关与阶段零%20instance-switches.md)**。
+- **执行盯梢 recovery** 与 **滞留回收** 可能同源 **`originKind`**，靠 **`originFingerprint`** / 标题 / 活动区分 — **§B → [026](../探查/026-探查-事务出现路径-originKind与取证锚点.md)**。
+- **Windows / PowerShell**：`git commit` **勿用** bash `<<'EOF'` heredoc；用 **`git commit -m "…" -m "…"`** 或 **`git commit -F path`**。
+
+---
+
+## F）修改记录
+
+| 日期 | 摘要 |
+| --- | --- |
+| 2026-05-18 | 单一入口版：合并原「事务五步」与全仓排障类最佳实践目录；规则与 AGENTS 只链本文。 |
+
+上级：[最佳实践 README](README.md) · [项目计划 index.md](../index.md)

@@ -1,0 +1,286 @@
+# 本地运维
+
+更完整的命令表与进阶选项以 **[`doc/05 开发指南 DEVELOPING.md`](../../doc/05%20开发指南%20DEVELOPING.md)** 为准；本文只收「日常怎么正确拉起」和常见卡点。
+
+**技能目录 `skills/` 整包快照与后悔恢复**：见 [14 技能默认包快照与恢复](14%20技能默认包快照与恢复%20skills-default-pack-snapshot.md)。
+
+---
+
+## 环境前提
+
+- **Node.js 20+**
+- **pnpm 9+**（与仓库 `packageManager` 一致）
+- **Docker**（本仓库约定：`docker/docker-compose.yml` 起 **Postgres**，见下文「Docker Compose」）
+- 在 **仓库根目录** 操作（含 `pnpm-workspace.yaml`、`server/`、`ui/` 的那一层）
+
+---
+
+## 环境与 `.env`（含 DATABASE_URL）
+
+实现与加载顺序以 **`server/src/config.ts`** 为准（`dotenv`、`override: false`）。
+
+### 服务器启动时读取顺序
+
+1. **`config.json` 同目录**下的 `.env`（默认多为 `%USERPROFILE%\.paperclip\instances\default\.env`；亦受 `PAPERCLIP_CONFIG` 等影响）
+2. **`process.cwd()`** 下的 `.env`（与上一步为同一真实文件则跳过）
+3. **仓库根**：自 `cwd` 向上找到含有 **`pnpm-workspace.yaml`** 的目录，若存在 **`.env`** 且与上两步不是同一文件，再加载
+
+因此即使用 **`pnpm --filter @paperclipai/server dev`（`cwd` 常为 `server/`）**，只要仓库根有 **`.env`**，其中的 **`DATABASE_URL`** 仍会被加载。
+
+### DATABASE_URL：内嵌 vs 外链
+
+| `DATABASE_URL` | 行为 |
+| --- | --- |
+| 未设置 | **内嵌** PostgreSQL，数据在实例目录下 **`db/`**；监听端口来自 **`database.embeddedPostgresPort`**（**不是**「第几步」的顺序号）。未改过配置时仓库默认常为数 **54329**，**以实例 `config.json` 与启动日志为准**。 |
+| 已设置 | **外链** Postgres；连接串必须指向**当前可达**的监听地址（如本机 **5432**） |
+
+**本仓库约定**：协作上**默认走已设置的 `DATABASE_URL`**，并指向 **Docker Compose 的 Postgres 容器**（见下文「Docker Compose」）；**不**把内嵌、**不**把「本机全局安装的 Postgres」当作日常默认（锁与残留进程在 Windows 上难处理）。内嵌仅作代码回退或临时对照。
+
+已在外链库中积累数据时，**不要**指望删掉仓库根 `DATABASE_URL` 就「自动带着数据回到内嵌」——那是另一套空库。
+
+### PowerShell 与“到底有没有带上变量”
+
+未在系统或会话里 `set` / `setx` 时，**`echo $env:DATABASE_URL` 为空是正常的**：变量可以由上述 **`.env` 文件**在 Node 进程内注入。**以启动日志与数据库实际行为为准**，不要用 Shell 空不空来判断。
+
+### 初始模板
+
+从仓库根 **`.env.example`** 复制为 **`.env`** 再改（**勿提交**含真实密钥的 `.env`）。更全的变量表见 **`docs/03 部署/07 环境变量 environment-variables.md`**。
+
+**Routic 实例（阶段 0）：** 编排关断清单见 [编排/实例开关与阶段零](../编排/实例开关与阶段零%20instance-switches.md) — 与 `DATABASE_URL` 同属 `.env`，改后须 **重启 server**。
+
+---
+
+## 推荐方式：本机开发（Windows，一条龙）
+
+**日常默认**：在仓库根执行 **`scripts/start-paperclip-dev-external.ps1`**（外置 PowerShell 窗口，日志可见）。脚本顺序：**监听口预检** → **`scripts/paperclip-dev-compose-preflight.ps1`**（读根 **`.env`** 校验 **`DATABASE_URL`** 是否指向当前 Compose `db` 的宿主机映射；若 `db` 已在跑且健康则**跳过** `docker compose up`，否则执行 **`up -d --wait`**；compose 失败则**中止**）→ **`pnpm dev`**（受管 dev-runner：`tsx` 单次跑 `server`、无文件 system-watch；代码变更后需**手动重启**，或由 runner 在**空闲**且健康检查允许时自动拉起——见实现，勿当「热替换 UI bundle」指望）。改过 Compose 凭据或端口时可加 **`-SkipDatabaseUrlCheck`**。
+
+**手写等价顺序**（不用外置脚本时）：`pnpm dev:prereqs` → `docker compose … up -d --wait` → 确保根 **`.env`** 含 **`DATABASE_URL`** → **`pnpm dev`**。
+
+- **`PAPERCLIP_STRICT_PORTS`**：受管 **`pnpm dev`** 从 **`scripts/dev-runner.ts`** 默认注入 **`true`**；监听口被占则失败，应先 `pnpm dev:stop` / 释放端口，或环境里设 **`PAPERCLIP_STRICT_PORTS=false`**。
+
+```powershell
+# 推荐（外置窗口一条龙）
+pwsh -NoProfile -File .\scripts\start-paperclip-dev-external.ps1
+```
+
+起服后本机验收：
+
+```powershell
+curl.exe http://127.0.0.1:4100/api/health
+```
+
+（端口以 `~/.paperclip/instances/default/config.json` 的 `server.port` 或启动横幅为准；本实例 **4100**，上游默认 3100。）
+
+**幂等**：同一仓库已有一条受管 **`pnpm dev`** 在跑时，再执行会提示已有进程而不会重复起一份。
+
+### Windows 外置窗（脚本写法对照 · 勿混「Token」项目名）
+
+**先对齐用语：** 五仓里口语 **「Token」** = **`token-bridge-v2`**（**`C:\Users\wuhen\token-bridge-v2`**），见 **`06` / `07`**。**不是** 下面用来做技术对照的 **`token-bridge-crawler`**（情报爬虫；除非人类明说 crawler/爬虫，别拿来顶替 Token）。
+
+**对照对象（仅说明「新窗别塞多行 `-Command`」）：** 旁系 **`token-bridge-crawler`** 的 **`start.bat`**：`cd /d "%~dp0"` → 无 **`.env`** 即退出 → **`start "…" …exe`**。**`pwsh -Command` 灌长脚本**在 Windows 上易断句、外置窗只闪光标；回形针一条龙已改为 **`pwsh -NoExit -File scripts/run-paperclip-dev-session.ps1`**；要同一窗看日志用 **`-SameWindow`**。**`token-bridge-crawler/scripts/test-crawler.ps1`** 先 **`psql` 再跑活**，与 **`paperclip-dev-compose-preflight.ps1`** 同类：**先确认依赖再起主进程**。
+
+### 起服与验收（实现约定）
+
+| 要点 | 本仓库做法 |
+| --- | --- |
+| 先预检再起重活 | 一条龙内含预检；亦可单跑 **`pnpm dev:prereqs`**；台账 **`pnpm dev:list`** / **`pnpm dev:stop`** |
+| 依赖就绪再启 Node | 一条龙会先对齐 **`DATABASE_URL`** 与 Compose；`db` 已健康则不再 `up`；否则 **`up -d --wait`** |
+| 长驻 dev 用外置终端 | **`scripts/start-paperclip-dev-external.ps1`**（见 **`AGENTS.md`** §4 与本目录 Cursor 规则） |
+| 端口通 ≠ 业务就绪 | 对横幅端口探 **`/api/health`** |
+| 短门禁 / CI ≠ 本地长驻栈 | 受管 dev 是控制面 API+UI；E2E 等另走各自入口 |
+
+---
+
+## 另一种正确方式：一键运行（偏「像用户装机」）
+
+仍在仓库根目录时可用：
+
+```powershell
+pnpm paperclipai run
+```
+
+会按 CLI 流程做 onboard / doctor 等后再拉服务。适合「少碰脚本、让工具自检」的场景。细节见 [`doc/05 开发指南 DEVELOPING.md`](../../doc/05%20开发指南%20DEVELOPING.md) 中 *One-Command Local Run* 小节。
+
+---
+
+## Docker Compose：只起 Postgres，本机跑 `pnpm dev`
+
+[`doc/08 容器部署 DOCKER.md`](../../doc/08%20容器部署%20DOCKER.md) 保留通用/上游式说明。**本仓库**若对 `docker/docker-compose.yml` 做过约定（例如默认只起 `db`、`server` 需 profile），**以下面的命令与仓库内 Compose 为准**，不必强凑 `08` 里的某一条示例。
+
+本小节描述推荐开发顺序：
+
+1. **只启动数据库**（默认不带 `server`）  
+   在仓库根目录：
+   ```powershell
+   docker compose -f docker/docker-compose.yml up -d
+   ```
+
+2. **仓库根 `.env` 指向该库**（与 Compose 里 `POSTGRES_*` 一致，端口以本机映射为准）  
+   ```text
+   DATABASE_URL=postgres://paperclip:paperclip@127.0.0.1:5432/paperclip
+   ```
+
+3. **照常开发**  
+   首选 **`scripts/start-paperclip-dev-external.ps1`**；或仓库根 **`pnpm dev`**。
+
+**注意：** `pnpm db:migrate` 只看**进程环境**里的 `DATABASE_URL`（以及实例 `config` 旁 `.env` 等），**不会**像 `server` 那样自动向上合并仓库根 `.env`。在 PowerShell 可显式传入后再迁：
+
+```powershell
+$env:DATABASE_URL = "postgres://paperclip:paperclip@127.0.0.1:5432/paperclip"
+pnpm db:migrate
+```
+
+仓库根 `.env` 里写明 `DATABASE_URL` 仍建议保留，便于其它脚本或你手工 `Get-Content .env` 复制。
+
+**要在容器里跑完整 Paperclip 服务**（与库一起）时：
+
+```powershell
+docker compose -f docker/docker-compose.yml --profile container-server up --build -d
+```
+
+当前 `docker-compose.yml` 里 `server` 服务使用 `local_trusted` + `PAPERCLIP_ALLOW_LOCAL_TRUSTED_LAN_BIND`（供容器内监听 `0.0.0.0` 的本地开发栈；**勿对公网暴露**）。需要 `authenticated` 与董事会引导时，请按 **`doc/08`** 自行改环境变量（如 `BETTER_AUTH_SECRET`），或以该文「认证 Compose 部署」为线索。
+
+---
+
+## 停止与查看状态（推荐顺序）
+
+按下面做，能区分「注册表里的 dev」和「没登记的孤儿 API」，避免以为关了其实 **4100 仍被占用**。
+
+1. **若服务还在当初启动它的那个前台终端里**  
+   在该窗口按 **`Ctrl+C`** 一次，等 Node 正常退出。
+
+2. **任意终端，仓库根目录**（收尾、或找不到原窗口时）  
+   ```powershell
+   pnpm dev:list
+   pnpm dev:stop
+   ```  
+   - `dev:list`：看本仓库是否还有 **`paperclip-dev-once`** 等及 pid、URL。  
+   - `dev:stop`：结束 **已登记** 的 dev 进程并清注册表（推荐「正常关软件」路径）。
+
+   **仍怀疑子进程泄漏**（未登记的 `node`、内嵌 `postgres.exe`、占 4100/5173 等）：仓库根 **`pnpm dev:nuke`**，详见本节下文 **「pnpm dev:nuke」**。根目录 **`AGENTS.md`** 里有一行摘要。
+
+   **与 Board「暂停 / 终止智能体」的关系**：看板上的暂停、终止会走 API **取消当前 heartbeat run** 并尽量结束**已登记**的根子进程；若适配器在磁盘上又派生了更深或未登记的 CLI/浏览器子树，**仍可能**需要按上一段用 **`dev:nuke`** 或下文 **4100 孤儿** 同款方式核对 PID 后收尾——这不是「再注册一套脚本」，而是本文已有的 **受管 dev + nuke** 路径。
+
+### `pnpm dev:nuke`（子进程一键清理）
+
+**用法（仓库根目录）**
+
+- **一键清进程**：`pnpm dev:nuke`  
+  在 **Windows** 上：`scripts/kill-dev.ps1` 会先跑 **`pnpm dev:stop`**，再按 **监听端口** 与 **命令行特征** 结束常见泄漏：`node`（路径里带 `paperclip…`）、内嵌 **`postgres.exe`**、**Codebuddy** 相关 node、本仓库里卡住的 **vitest `bash`**，以及占着 **4100～4110** / **5173～5174** 的监听进程。  
+  **非 Windows**：`scripts/run-kill-dev.mjs` 会调用 **`scripts/kill-dev.sh`**，具体启发式以该脚本为准（与 Windows 不一定逐项一致）。
+
+- **只预览不杀**：`pnpm dev:nuke -- -DryRun`
+
+- **保留 Codebuddy**：`pnpm dev:nuke -- -KeepCodebuddy`
+
+**相关文件**
+
+| 路径 | 作用 |
+| --- | --- |
+| `scripts/kill-dev.ps1` | Windows 主逻辑 |
+| `scripts/run-kill-dev.mjs` | 入口；Windows 调 `.ps1`，否则调 `kill-dev.sh` |
+| `package.json` → `dev:nuke` | 封装为 `pnpm dev:nuke` |
+| 根目录 `AGENTS.md` | 开发收尾时的简短说明 |
+
+**建议排障习惯**：觉得「又转不动了」先 **`pnpm dev:nuke -- -DryRun`** 看一眼候选 PID，再正式 **`pnpm dev:nuke`**。
+
+3. **确认没有「孤儿」API（重要）**  
+   `dev:stop` **管不到**未登记的进程。若 **`pnpm dev:list` 已是空的**，但浏览器仍能打开 Board、或再起服务报 **4100 被占用**，说明还有别的 **`node`/`tsx`** 在跑本仓库的 **`server/src/index.ts`**。  
+   在 PowerShell 查占用 **4100** 的 pid，核对命令行后再结束对应进程，例如：
+
+   ```powershell
+   Get-NetTCPConnection -LocalPort 4100 -ErrorAction SilentlyContinue | Select-Object OwningProcess
+   (Get-CimInstance Win32_Process -Filter 'ProcessId=<把上面输出的 PID 填这里>').CommandLine
+   ```
+
+   确认路径是本仓库下的 `tsx ... server\src\index.ts`（或等价）后，用任务管理器结束该 **`node.exe`**，或 `Stop-Process -Id <PID>`。
+
+4. **嵌入式 PostgreSQL**  
+   停止 dev **不保证**立刻结束嵌入式 **`postgres.exe`**；若下次启动报 **`postmaster.pid` / 内嵌监听端口占用**（端口以 `config`/日志为准；未改过时常为 **54329**），见下文「数据库锁与残留进程」。
+
+---
+
+## 拉起后自检
+
+```powershell
+curl.exe http://127.0.0.1:4100/api/health
+```
+
+返回 JSON 里 `"status":"ok"` 且 HTTP 200 即服务可用。
+
+浏览器打开：`http://127.0.0.1:4100/`。
+
+---
+
+## 实例与数据目录（默认）
+
+本地默认实例根目录一般为：
+
+`%USERPROFILE%\.paperclip\instances\default\`
+
+其中包括 `config.json`、嵌入式库 `db/`、`workspaces/` 等。可用环境变量 **`PAPERCLIP_HOME`** / **`PAPERCLIP_INSTANCE_ID`** 改写，见 [`doc/05 开发指南 DEVELOPING.md`](../../doc/05%20开发指南%20DEVELOPING.md) 中 *Local Instance Layout* 小节。
+
+---
+
+## 局域网 / Tailscale 访问
+
+默认 dev 绑定 **loopback（127.0.0.1）**，只本机可访。需要私网绑定见官方说明：
+
+```powershell
+pnpm dev --bind lan
+pnpm dev --bind tailnet
+```
+
+详见 [`doc/05 开发指南 DEVELOPING.md`](../../doc/05%20开发指南%20DEVELOPING.md) 对应小节。
+
+---
+
+## 常见问题
+
+### 1）`postmaster.pid` / 嵌入式 PostgreSQL 启动失败
+
+**现象**：日志里提示 lock file、或**内嵌 Postgres 监听端口**仍被占用（端口号以实例配置与启动日志为准）。
+
+**原因**：上次异常退出后 **`postgres.exe` 仍存活**，或锁文件未清。
+
+**处理（Windows，按顺序、谨慎）**：
+
+1. `pnpm dev:stop`  
+2. 用 **任务管理器** 或 `netstat -ano | findstr <内嵌端口>`（从 `config.json` 的 `database.embeddedPostgresPort` 或启动日志读取；未改过时常为 **54329**）找到监听进程，结束 **来自本仓库 `embedded-postgres` / `node_modules` 的 `postgres.exe`**（勿误杀本机独立安装的 PostgreSQL 服务，若你有）。  
+3. 在确认没有 Postgres 在用时，可删除实例目录下 `db\postmaster.pid`（仅当确认无对应进程时）。
+
+### 2）浏览器能开但页面白屏
+
+多为前端把 **Node 专有模块** 打进浏览器；应用侧修好依赖后 **强刷或重启受管 dev**。
+
+### 3）适配器 / Agent 报错
+
+与「服务是否起来」无关；按适配器日志单独排（如 `CURSOR_API_KEY` 无效需更正或 `agent login`）。
+
+---
+
+## 维护习惯建议
+
+1. **日常开发**：一条龙 **`scripts/start-paperclip-dev-external.ps1`**，或仓库根 **`pnpm dev`**；收工按上文 **「停止与查看状态」** 整段流程（含 **`dev:list` / `dev:stop` / 4100 孤儿**）。  
+2. **大版本/换分支**后：`pnpm install`，若有 schema 变动跟 [`doc/05 开发指南 DEVELOPING.md`](../../doc/05%20开发指南%20DEVELOPING.md) 里的 `db:generate` / `db:migrate`。  
+3. **异常起不来**：先看终端完整日志，再 `pnpm paperclipai doctor --repair`（见 [`doc/05 开发指南 DEVELOPING.md`](../../doc/05%20开发指南%20DEVELOPING.md)）。  
+4. **不要**把密钥、本机绝对路径草稿提交进公开仓库。
+
+---
+
+## 进程监控与适配器配置（延伸阅读）
+
+- **监控与回收阶梯（勿默认一棍子杀光 node）**：[12 进程监控与回收](12%20进程监控与回收%20process-monitor-recovery.md)
+- **项目级 `.codebuddy/settings`、用户级、适配器参数谁覆盖谁**：[008-CodeBuddy-配置分层与仓库项目设置.md](008-CodeBuddy-配置分层与仓库项目设置.md)
+- **火山引擎端点 + 为何默认 429**：[007-CodeBuddy-火山引擎端点与配额.md](007-CodeBuddy-火山引擎端点与配额.md)
+- 进程假设与 CLI 摘录：[探查-回形针进程泄露根因.md](../探查/009-探查-回形针进程泄露根因.md)、[摘录-CodeBuddy本机调研回写.md](../探查/011-摘录-CodeBuddy本机调研回写.md)
+
+---
+
+## 参考链接
+
+- 开发与 CLI：**[`doc/05 开发指南 DEVELOPING.md`](../../doc/05%20开发指南%20DEVELOPING.md)**  
+- 部署模式：**[`doc/07 部署模式 DEPLOYMENT-MODES.md`](../../doc/07%20部署模式%20DEPLOYMENT-MODES.md)**  
+- Docker：**[`doc/08 容器部署 DOCKER.md`](../../doc/08%20容器部署%20DOCKER.md)**  
+- 环境变量（中文资料）：**[`docs/03 部署/07 环境变量 environment-variables.md`](07%20环境变量%20environment-variables.md)**  
+- 贡献者总览与 Cursor 环境规则：**[`AGENTS.md`](../../../AGENTS.md)**（§2、§4 链回本页与 **`.cursor/rules/paperclip-environment.mdc`**）

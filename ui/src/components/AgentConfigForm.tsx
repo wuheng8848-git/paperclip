@@ -21,6 +21,8 @@ import {
 import { DEFAULT_CURSOR_LOCAL_MODEL } from "@paperclipai/adapter-cursor-local";
 import { DEFAULT_GEMINI_LOCAL_MODEL } from "@paperclipai/adapter-gemini-local";
 import { DEFAULT_OPENCODE_LOCAL_MODEL } from "@paperclipai/adapter-opencode-local";
+import { DEFAULT_QWEN_LOCAL_MODEL } from "../adapters/qwen-local";
+import { DEFAULT_CODEBUDDY_LOCAL_MODEL } from "../adapters/codebuddy-local";
 import {
   Popover,
   PopoverContent,
@@ -850,6 +852,10 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                       nextValues.model = DEFAULT_CURSOR_LOCAL_MODEL;
                     } else if (t === "opencode_local") {
                       nextValues.model = DEFAULT_OPENCODE_LOCAL_MODEL;
+                    } else if (t === "qwen_local") {
+                      nextValues.model = DEFAULT_QWEN_LOCAL_MODEL;
+                    } else if (t === "codebuddy_local") {
+                      nextValues.model = DEFAULT_CODEBUDDY_LOCAL_MODEL;
                     }
                     set!(nextValues);
                   } else {
@@ -869,6 +875,10 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                               ? DEFAULT_OPENCODE_LOCAL_MODEL
                             : t === "cursor"
                               ? DEFAULT_CURSOR_LOCAL_MODEL
+                              : t === "qwen_local"
+                                ? DEFAULT_QWEN_LOCAL_MODEL
+                                : t === "codebuddy_local"
+                                  ? DEFAULT_CODEBUDDY_LOCAL_MODEL
                               : "",
                         effort: "",
                         modelReasoningEffort: "",

@@ -22,7 +22,7 @@ import { assigneeValueFromSelection, suggestedCommentAssigneeValue } from "../li
 import { buildCompanyUserInlineOptions, buildCompanyUserLabelMap, buildCompanyUserProfileMap, buildMarkdownMentionOptions } from "../lib/company-members";
 import { extractIssueTimelineEvents } from "../lib/issue-timeline-events";
 import { queryKeys } from "../lib/queryKeys";
-import { issueBreadcrumb, issueDetailActors, issueDetailUi, issueTreeControl, displayProductivityReviewIssueDescription, displayProductivityReviewIssueTitle } from "../lib/i18n";
+import { issueBreadcrumb, issueDetailActors, issueDetailUi, issueChatThreadUi, issueTreeControl, displayProductivityReviewIssueDescription, displayProductivityReviewIssueTitle } from "../lib/i18n";
 import { keepPreviousDataForSameQueryTail } from "../lib/query-placeholder-data";
 import { collectLiveIssueIds } from "../lib/liveIssueIds";
 import {

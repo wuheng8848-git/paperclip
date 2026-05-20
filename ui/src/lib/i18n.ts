@@ -134,6 +134,53 @@ export function formatRunStatus(status: string): string {
   return RUN_STATUS[status] ?? formatBadgeStatus(status);
 }
 
+/** Routine run `source` → display zh */
+const ROUTINE_RUN_SOURCE_ZH: Record<string, string> = {
+  schedule: "调度",
+  manual: "手动",
+  api: "API",
+  webhook: "Webhook",
+};
+
+export function formatRoutineRunSourceZh(source: string): string {
+  return ROUTINE_RUN_SOURCE_ZH[source] ?? source;
+}
+
+/** Routine activity `action` (e.g. routine.trigger_created) → display zh */
+const ROUTINE_ACTIVITY_ACTION_ZH: Record<string, string> = {
+  "routine.created": "已创建",
+  "routine.updated": "已更新",
+  "routine.revision_created": "已创建修订",
+  "routine.revision_restored": "已恢复修订",
+  "routine.trigger_created": "已添加触发器",
+  "routine.trigger_updated": "已更新触发器",
+  "routine.trigger_deleted": "已删除触发器",
+  "routine.trigger_secret_rotated": "已轮换密钥",
+  "routine.run_triggered": "已触发运行",
+};
+
+export function formatRoutineActivityActionZh(action: string): string {
+  return ROUTINE_ACTIVITY_ACTION_ZH[action] ?? action.replaceAll(".", " ");
+}
+
+/** Routine activity detail keys → display zh */
+const ROUTINE_ACTIVITY_DETAIL_KEY_ZH: Record<string, string> = {
+  revisionId: "修订 ID",
+  revisionNumber: "修订号",
+  changeSummary: "变更摘要",
+  title: "标题",
+  assigneeAgentId: "默认智能体",
+  restoredFromRevisionId: "恢复来源修订",
+  routineId: "例行任务",
+  kind: "类型",
+  source: "来源",
+  status: "状态",
+};
+
+export function formatRoutineActivityDetailKeyZh(key: string): string {
+  return ROUTINE_ACTIVITY_DETAIL_KEY_ZH[key] ?? key.replaceAll("_", " ");
+}
+
 const AGENT_ROLE_ZH: Record<string, string> = {
   ceo: "CEO",
   cto: "CTO",
@@ -503,6 +550,8 @@ export const routineDetailPage = {
   dirtyFieldVariables: "变量",
   webhookRestoredSingle: "Webhook 触发器已恢复",
   webhookRestoredMany: (n: number) => `已恢复 ${n} 个 Webhook 触发器`,
+  copyUrl: "复制 URL",
+  copySecret: "复制密钥",
 } as const;
 
 export const routineListRow = {
@@ -521,6 +570,8 @@ export const routineListRow = {
   off: "关",
   archivedStatus: "已归档",
   draftStatus: "草稿",
+  enableAria: (title: string) => `启用 ${title}`,
+  disableAria: (title: string) => `停用 ${title}`,
 } as const;
 
 /** @see ./orchestration-gates-copy.ts */
@@ -937,6 +988,17 @@ export function formatWorkspaceRuntimeServiceStatusZh(status: string): string {
   return WORKSPACE_RUNTIME_SERVICE_STATUS_ZH[status] ?? status;
 }
 
+const WORKSPACE_OPERATION_STATUS_ZH: Record<string, string> = {
+  succeeded: "成功",
+  failed: "失败",
+  running: "运行中",
+  skipped: "已跳过",
+};
+
+export function formatWorkspaceOperationStatus(status: string): string {
+  return WORKSPACE_OPERATION_STATUS_ZH[status] ?? status.replace(/_/g, " ");
+}
+
 const WORKSPACE_RUNTIME_LIFECYCLE_ZH: Record<string, string> = {
   shared: "共享",
   ephemeral: "临时",
@@ -1247,6 +1309,49 @@ export const newAgentAdvancedPage = {
   creatingEllipsis: "创建中…",
 } as const;
 
+/** 新建项目弹层（全局 Dialog） */
+export const newProjectDialog = {
+  header: "新建项目",
+  namePlaceholder: "项目名称",
+  descriptionPlaceholder: "添加描述…",
+  optional: "可选",
+  repoUrlLabel: "仓库",
+  repoUrlTooltip:
+    "关联 GitHub 仓库，供智能体克隆、读取与推送本项目代码。",
+  localFolderLabel: "本地目录",
+  localFolderTooltip:
+    "填写本机绝对路径，供本地智能体读写本项目文件。",
+  goalChip: "目标",
+  addGoalChip: "+ 目标",
+  noGoal: "无目标",
+  allGoalsSelected: "已全部关联目标。",
+  targetDatePlaceholder: "目标日期",
+  createProject: "创建项目",
+  creatingEllipsis: "创建中…",
+  createFailed: "创建项目失败。",
+  noCompanySelected: "请先选择团队。",
+  workspaceNameLocalFallback: "本地目录",
+  workspaceNameRepoFallback: "GitHub 仓库",
+  removeGoalAria: (title: string) => `移除目标 ${title}`,
+} as const;
+
+/** 新建项目弹层 — 状态 value 仍为 API 英文 */
+export const PROJECT_CREATE_STATUS_VALUES = [
+  "backlog",
+  "planned",
+  "in_progress",
+  "completed",
+  "cancelled",
+] as const;
+
+/** 项目列表页（`/projects`） */
+export const projectsPage = {
+  breadcrumb: "项目",
+  selectCompanyMessage: "请先选择团队以查看项目。",
+  addProject: "新建项目",
+  emptyMessage: "尚无项目。",
+} as const;
+
 export const sidebarCompany = {
   selectWorkspace: "选择工作区",
   openSwitcher: "打开工作区切换",
@@ -1327,6 +1432,42 @@ export const issueDetailActors = {
   board: "董事会",
   agent: "智能体",
   unknown: "未知",
+} as const;
+
+/** 评论线程（CommentThread） */
+export const commentThreadUi = {
+  unassigned: "未分配",
+  copy: "复制",
+  copied: "已复制",
+  copyFailed: "复制失败",
+  authorYou: "你",
+  queuedBadge: "排队中",
+  followUpBadge: "跟进",
+  queueing: "排队中…",
+  sending: "发送中…",
+  attachImage: "附加图片",
+  posting: "发送中…",
+  comment: "评论",
+  interrupt: "中断",
+  interrupting: "正在中断…",
+  assigneePlaceholder: "经办人",
+  noAssignee: "无经办人",
+  searchAssignees: "搜索经办人…",
+  noAssigneesFound: "未找到经办人。",
+  copyCommentMarkdownAria: "复制评论为 Markdown",
+  requestedFollowUp: "请求了跟进",
+  updatedThisTask: "更新了此事务",
+  // Timeline event cards
+  timelineStatusLabel: "状态",
+  timelineAssigneeLabel: "经办人",
+  timelineWorkspaceLabel: "工作空间",
+  timelineRunLabel: "运行",
+  timelineEnvironmentLabel: "环境",
+  timelineProviderLabel: "提供商",
+  timelineLeaseLabel: "租约",
+  timelineEmpty: "暂无时间线条目。",
+  // Run status (formatRunStatusLabel)
+  runStatusTimedOut: "超时",
 } as const;
 
 /** 事务详情 · 文档区块（IssueDocumentsSection） */
@@ -5229,4 +5370,126 @@ export const issueThreadInteractionCardUi = {
   declineReasonRequired: "拒绝时必须填写原因。",
   cancelDecline: "取消拒绝",
   tryAgainHint: "请重试",
+} as const;
+
+// ——— Company Export page ———
+
+/** 公司导出页完整 i18n（063 P1-B） */
+export const companyExportPage = {
+  // Toast
+  toastExportFailedTitle: "导出失败",
+  toastExportFailedBody: "无法加载导出数据。",
+  toastExportDownloadedTitle: "导出已下载",
+  toastExportDownloadedBody: (n: number) => `已导出 ${n} 个文件`,
+  toastBuildPackageFailedBody: "无法构建导出包。",
+  // Button
+  buttonBuildingExport: "正在构建导出…",
+  buttonExportFiles: (n: number) => `导出 ${n} 个文件`,
+  // Breadcrumb
+  breadcrumbOrg: "组织",
+  breadcrumbExport: "导出",
+  // Title bar
+  exportTitle: (name: string) => `${name} 导出`,
+  fileSelected: (selected: number, total: number) =>
+    `${selected} / ${total} 个文件已选中`,
+  warning: (n: number) => `${n} 条警告`,
+  // Sidebar
+  packageFiles: "包文件",
+  searchFilesPlaceholder: "搜索文件…",
+  showMoreIssues: (visible: number, total: number) =>
+    `显示更多事务（${visible} / ${total}）`,
+  // Empty states
+  emptySelectCompany: "请选择团队以进行导出。",
+  emptyLoadingExport: "正在加载导出数据…",
+  // Preview
+  previewPlaceholder: "选择文件以预览内容。",
+  previewBinaryUnavailable: "此文件类型的二进制资源预览不可用。",
+} as const;
+
+// ——— Company Import page ———
+
+/** 公司导入页完整 i18n（063 P1-B） */
+export const companyImportPage = {
+  // Toast
+  toastPreviewFailedTitle: "预览失败",
+  toastPreviewFailedBody: "无法预览导入。",
+  toastReadPackageFailedTitle: "读取包失败",
+  toastImportCompleteTitle: "导入完成",
+  toastImportCompleteBody: (n: number) => `已处理 ${n} 个智能体`,
+  toastImportFailedTitle: "导入失败",
+  toastApplyImportFailedBody: "无法应用导入。",
+  // Button
+  buttonImporting: "正在导入…",
+  buttonImportFiles: (n: number) => `导入 ${n} 个文件`,
+  // Breadcrumb
+  breadcrumbOrg: "组织",
+  breadcrumbImport: "导入",
+  // Source section
+  importSourceTitle: "导入来源",
+  importSourceHint: "选择 GitHub 仓库或上传本地 Paperclip zip 包。",
+  githubRepoLabel: "GitHub 仓库",
+  localZipLabel: "本地 zip",
+  chooseZipButton: "选择 zip",
+  localZipHelp:
+    "上传直接从 Paperclip 导出的 .zip。由 Finder、Explorer 或其他 zip 工具重新压缩的存档可能无法正确导入。",
+  githubUrlLabel: "GitHub URL",
+  githubUrlHint:
+    "仓库树路径或指向 COMPANY.md 的 blob URL（例如 github.com/owner/repo/tree/main/company）。",
+  // Target
+  targetLabel: "目标",
+  targetHint: "导入到此团队或创建新团队。",
+  newCompanyOption: "创建新团队",
+  existingCompanyOption: (name: string) => `现有团队：${name}`,
+  newCompanyNameLabel: "新团队名称",
+  newCompanyNameHint: "可选覆盖。留空以使用包名称。",
+  // Collision strategy
+  collisionStrategyLabel: "冲突策略",
+  collisionStrategyHint: "看板导入可以重命名、跳过或替换匹配的团队内容。",
+  renameOnConflict: "冲突时重命名",
+  skipOnConflict: "冲突时跳过",
+  replaceExisting: "替换现有内容",
+  // Preview button
+  previewImportButton: "预览导入",
+  previewingButton: "正在预览…",
+  // Preview results
+  importPreviewTitle: "导入预览",
+  fileSelected: (selected: number, total: number) =>
+    `${selected} / ${total} 个文件已选中`,
+  conflictTitle: "重命名",
+  conflictCount: (n: number) => `${n} 个冲突`,
+  errorCount: (n: number) => `${n} 个错误`,
+  // Adapter
+  adapterTitle: "适配器",
+  adapterCount: (n: number) => `${n} 个智能体`,
+  configureAdapter: "配置适配器",
+  // Empty states
+  emptySelectCompany: "请选择团队以进行导入。",
+  // Package sidebar
+  packageFiles: "包文件",
+  // Warnings / Errors in preview
+  warningsTitle: "警告",
+  errorsTitle: "错误",
+  // Source mode placeholders
+  importUrlPlaceholder: "https://github.com/owner/repo/tree/main/company",
+  newCompanyPlaceholder: "Imported Company",
+  // Package info
+  packageFileCount: (name: string, count: number) =>
+    `${name} 含 ${count} 个文件`,
+  // Action badges
+  actionCreate: "创建",
+  actionUpdate: "更新",
+  actionOverwrite: "覆盖",
+  actionReplace: "替换",
+  actionSkip: "跳过",
+  actionUnknown: "跳过",
+  // Conflict resolution
+  skipButton: "跳过",
+  skippedButton: "已跳过",
+  confirmRenameButton: "确认重命名",
+  confirmedButton: "已确认",
+  // Preview pane
+  previewPlaceholder: "选择文件以预览内容。",
+  previewBinaryUnavailable: "此文件类型的二进制资源预览不可用。",
+  // Import action bar
+  importButton: "导入",
 } as const;

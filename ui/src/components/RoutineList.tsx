@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
-import { routineListRow, routinesShared } from "../lib/i18n";
+import { formatRunStatus, routineListRow, routinesShared } from "../lib/i18n";
 
 export type RoutineListProjectSummary = {
   name: string;
@@ -42,7 +42,7 @@ export function formatLastRunTimestamp(value: Date | string | null | undefined) 
 
 export function formatRoutineRunStatus(value: string | null | undefined) {
   if (!value) return null;
-  return value.replaceAll("_", " ");
+  return formatRunStatus(value);
 }
 
 export function nextRoutineStatus(currentStatus: string, enabled: boolean) {
@@ -151,7 +151,7 @@ export function RoutineListRow<TRoutine extends RoutineListRowItem>({
             checked={enabled}
             onCheckedChange={() => onToggleEnabled(routine, enabled)}
             disabled={isStatusPending || isArchived || disableToggle}
-            aria-label={enabled ? `Disable ${routine.title}` : `Enable ${routine.title}`}
+            aria-label={enabled ? routineListRow.disableAria(routine.title) : routineListRow.enableAria(routine.title)}
           />
           <span className="w-12 text-xs text-muted-foreground">
             {isArchived ? routineListRow.archivedStatus : isDraft ? routineListRow.draftStatus : enabled ? routineListRow.on : routineListRow.off}
