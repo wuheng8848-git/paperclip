@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, ArrowLeft, Braces, Check, Copy, FileText, ListTree, Terminal, Workflow } from "lucide-react";
+import { Activity, Braces, Check, Copy, FileText, ListTree, Terminal, Workflow } from "lucide-react";
 import type { Agent, HeartbeatRun, HeartbeatRunEvent } from "@paperclipai/shared";
 import { ApiError } from "../api/client";
 import type { PromptCacheCorrelation } from "@paperclipai/adapter-utils";
@@ -196,12 +196,16 @@ export function OrchestrationInjectionRunDetail() {
   const wakePayloadCardCopiedTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
+    const detailLabel =
+      runId && runId.length >= 8
+        ? orchestrationInjectionPage.runDetailBreadcrumb(`${runId.slice(0, 8)}…`)
+        : orchestrationInjectionPage.runDetailTitle;
     setBreadcrumbs([
       { label: nav.work },
       { label: nav.orchestrationInjection, href: RUN_LIST_PATH },
-      { label: orchestrationInjectionPage.runDetailTitle },
+      { label: detailLabel },
     ]);
-  }, [setBreadcrumbs]);
+  }, [setBreadcrumbs, runId]);
 
   const agentsQuery = useQuery({
     queryKey: queryKeys.agents.list(selectedCompanyId!),
@@ -406,26 +410,13 @@ export function OrchestrationInjectionRunDetail() {
     }
   }, [wakePayloadCopyText, pushToast]);
 
-  const backLink = (
-    <Link
-      to={RUN_LIST_PATH}
-      className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-    >
-      <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
-      {orchestrationInjectionPage.backToList}
-    </Link>
-  );
-
   if (!selectedCompanyId) {
     return <EmptyState icon={Workflow} message={orchestrationInjectionPage.selectCompany} />;
   }
 
   if (!runId) {
     return (
-      <div className="space-y-4">
-        {backLink}
-        <div className="text-sm text-destructive">{orchestrationInjectionPage.failedToLoad}</div>
-      </div>
+      <div className="text-sm text-destructive">{orchestrationInjectionPage.failedToLoad}</div>
     );
   }
 
@@ -436,11 +427,8 @@ export function OrchestrationInjectionRunDetail() {
   if (agentsQuery.error) {
     const error = agentsQuery.error;
     return (
-      <div className="space-y-4">
-        {backLink}
-        <div className="text-sm text-destructive">
-          {error instanceof Error ? error.message : orchestrationInjectionPage.failedToLoad}
-        </div>
+      <div className="text-sm text-destructive">
+        {error instanceof Error ? error.message : orchestrationInjectionPage.failedToLoad}
       </div>
     );
   }
@@ -449,10 +437,7 @@ export function OrchestrationInjectionRunDetail() {
     const err = runDetailQuery.error;
     const is404 = err instanceof ApiError && err.status === 404;
     return (
-      <div className="space-y-4">
-        {backLink}
-        <EmptyState icon={FileText} message={is404 ? orchestrationInjectionPage.runNotFound : err instanceof Error ? err.message : orchestrationInjectionPage.failedToLoad} />
-      </div>
+      <EmptyState icon={FileText} message={is404 ? orchestrationInjectionPage.runNotFound : err instanceof Error ? err.message : orchestrationInjectionPage.failedToLoad} />
     );
   }
 
@@ -462,13 +447,6 @@ export function OrchestrationInjectionRunDetail() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-3">
-          {backLink}
-          <h1 className="text-lg font-semibold">{orchestrationInjectionPage.runDetailTitle}</h1>
-        </div>
-      </div>
-
       <Tabs
         value={activeTab}
         onValueChange={(v) => {

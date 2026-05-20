@@ -302,6 +302,7 @@ export {
 export const orchestrationInjectionPage = {
   title: "运行清单",
   runDetailTitle: "运行详情",
+  runDetailBreadcrumb: (shortRunId: string) => `运行详情 · ${shortRunId}`,
   detailTabEnqueue: "唤起入队",
   detailTabInput: "输入编排",
   detailTabFinalPrompt: "最终提示词",
