@@ -114,7 +114,7 @@ export interface Config {
   heartbeatSchedulerEnabled: boolean;
   heartbeatSchedulerIntervalMs: number;
   companyDeletionEnabled: boolean;
-  /** When false, heartbeat does not create `stranded_issue_recovery` child issues (滞留回收子单). */
+  /** When false, heartbeat does not auto-create recovery children, successful-run handoff wakes, or issue-monitor recovery orchestration. */
   strandedIssueRecoveryEnabled: boolean;
   /** When false, startup and periodic orphan run reaping is disabled. */
   orphanRunReapEnabled: boolean;

@@ -51,6 +51,7 @@ import {
   projectWorkspaces,
   workspaceOperations,
 } from "@paperclipai/db";
+import { loadConfig } from "../config.js";
 import { conflict, HttpError, notFound } from "../errors.js";
 import { logger } from "../middleware/logger.js";
 import { publishLiveEvent } from "./live-events.js";
@@ -2767,6 +2768,10 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
     runId: string | null;
     activitySource: "manual" | "scheduled";
   }) {
+    if (!loadConfig().strandedIssueRecoveryEnabled) {
+      return;
+    }
+
     const details = monitorRecoveryDetails({
       claimed: input.claimed,
       scheduledAtIso: input.scheduledAtIso,
@@ -4128,6 +4133,7 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
   }
 
   async function handleSuccessfulRunHandoff(run: typeof heartbeatRuns.$inferSelect, agent: typeof agents.$inferSelect) {
+    if (!loadConfig().strandedIssueRecoveryEnabled) return;
     if (run.status !== "succeeded") return;
     const context = parseObject(run.contextSnapshot);
     const issueId = readNonEmptyString(context.issueId) ?? readNonEmptyString(context.taskId);
