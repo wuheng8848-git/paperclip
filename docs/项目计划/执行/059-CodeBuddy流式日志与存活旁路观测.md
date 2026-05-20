@@ -135,6 +135,7 @@ status: 已完成
 | --- | --- |
 | 2026-05-19 | 初稿：存活旁路（最后输出 Δt）、流式原始日志、致命错误快停；明确非目标与可行性（复用 lastOutputAt） |
 | 2026-05-19 | 落地并关闭：`95c82b6f`；实例重启后人工验收通过（见 §9） |
+| 2026-05-20 | **059 复验**（补 060 未勾项）：ROU-7 / run `26f74dcf-…`；API 轮询见 `lastOutputAt` 批次刷新与 `outputSilence.silenceAgeMs` 回落；UI 原始日志 `HH:mm:ss.mmm`；单测 4/4 仍绿 |
 
 ---
 
@@ -162,9 +163,9 @@ status: 已完成
 
 | # | 项 | 结果 |
 | --- | --- | --- |
-| 1 | 长/短任务：日志边跑边增；旁路「距上次输出」在吐字时回落、停吐后递增 | **通过**（实例 `http://127.0.0.1:4100` 停机重启后，`codebuddy_local` + `volcengine/custom-local:glm-5.1` 测试 run 成功，约 3 分 22 秒） |
-| 2 | 认证失败 / max-turns 等：分钟内快停、无长期僵尸进程 | **未在本轮人工复测**；逻辑与单测已覆盖，留作回归项 |
-| 3 | `stream-liveness.test.ts` | **通过**（`pnpm exec vitest run packages/adapters/codebuddy-local/src/server/stream-liveness.test.ts`） |
+| 1 | 长/短任务：日志边跑边增；旁路「距上次输出」在吐字时回落、停吐后递增 | **通过**（2026-05-19：`95c82b6f` 后约 3 分 22 秒；**2026-05-20 复验**：ROU-7 · run `26f74dcf-0759-4cc8-9c56-35091843f2fe`，2 分 45 秒 · `succeeded`；运行中 `lastOutputSeq` 1→17→28→38，`silenceAgeMs` 在吐字后回落至 348ms；UI **运行记录 → 原始** 见 `10:45:04.468` 等毫秒时间戳） |
+| 2 | 认证失败 / max-turns 等：分钟内快停、无长期僵尸进程 | **未人工复测**（2026-05-20 仍依赖 `stream-liveness.test.ts` 与 stderr/`result`+`is_error` 逻辑；留作回归项） |
+| 3 | `stream-liveness.test.ts` | **通过**（2026-05-20：`pnpm exec vitest run packages/adapters/codebuddy-local/src/server/stream-liveness.test.ts` → 4/4） |
 | 4 | 055 exit0 解析跳过、048 Windows 启动链 | **未专项回归**；改动未改 055 成功路径语义 |
 
 ### 9.4 已知残留（不阻塞关闭）
