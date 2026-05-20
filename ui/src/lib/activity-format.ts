@@ -1,6 +1,12 @@
 import type { Agent } from "@paperclipai/shared";
 import type { CompanyUserProfile } from "./company-members";
-import { activityVerbs, activityLabels, activityChangeLabels } from "./i18n";
+import {
+  activityVerbs,
+  activityLabels,
+  activityChangeLabels,
+  formatIssueStatus,
+  formatPriorityLabel,
+} from "./i18n";
 
 type ActivityDetails = Record<string, unknown> | null | undefined;
 
@@ -31,8 +37,12 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-function humanizeValue(value: unknown): string {
-  if (typeof value !== "string") return String(value ?? "none");
+function humanizeActivityField(field: "status" | "priority" | "generic", value: unknown): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return field === "generic" ? "无" : String(value ?? "无");
+  }
+  if (field === "status") return formatIssueStatus(value);
+  if (field === "priority") return formatPriorityLabel(value);
   return value.replace(/_/g, " ");
 }
 
@@ -95,7 +105,7 @@ function formatChangedEntityLabel(
   labels: string[],
 ): string {
   if (labels.length <= 0) return plural;
-  if (labels.length === 1) return `${activityChangeLabels.added} ${labels[0]}`;
+  if (labels.length === 1) return `${singular} ${labels[0]}`;
   return `${labels.length} ${plural}`;
 }
 
@@ -105,7 +115,7 @@ function formatChangedEntityLabelRemove(
   labels: string[],
 ): string {
   if (labels.length <= 0) return plural;
-  if (labels.length === 1) return `${activityChangeLabels.removed} ${labels[0]}`;
+  if (labels.length === 1) return `${singular} ${labels[0]}`;
   return `${labels.length} ${plural}`;
 }
 
@@ -115,14 +125,20 @@ function formatIssueUpdatedVerb(details: ActivityDetails): string | null {
   if (details.status !== undefined) {
     const from = previous.status;
     return from
-      ? activityChangeLabels.changedStatusFrom(humanizeValue(from), humanizeValue(details.status))
-      : activityChangeLabels.changedStatusTo(humanizeValue(details.status));
+      ? activityChangeLabels.changedStatusFrom(
+          humanizeActivityField("status", from),
+          humanizeActivityField("status", details.status),
+        )
+      : activityChangeLabels.changedStatusTo(humanizeActivityField("status", details.status));
   }
   if (details.priority !== undefined) {
     const from = previous.priority;
     return from
-      ? activityChangeLabels.changedPriorityFrom(humanizeValue(from), humanizeValue(details.priority))
-      : activityChangeLabels.changedPriorityTo(humanizeValue(details.priority));
+      ? activityChangeLabels.changedPriorityFrom(
+          humanizeActivityField("priority", from),
+          humanizeActivityField("priority", details.priority),
+        )
+      : activityChangeLabels.changedPriorityTo(humanizeActivityField("priority", details.priority));
   }
   return null;
 }
@@ -149,16 +165,22 @@ function formatIssueUpdatedAction(details: ActivityDetails, options: ActivityFor
     const from = previous.status;
     parts.push(
       from
-        ? activityChangeLabels.changedTheStatusFrom(humanizeValue(from), humanizeValue(details.status))
-        : activityChangeLabels.changedTheStatusTo(humanizeValue(details.status)),
+        ? activityChangeLabels.changedTheStatusFrom(
+            humanizeActivityField("status", from),
+            humanizeActivityField("status", details.status),
+          )
+        : activityChangeLabels.changedTheStatusTo(humanizeActivityField("status", details.status)),
     );
   }
   if (details.priority !== undefined) {
     const from = previous.priority;
     parts.push(
       from
-        ? activityChangeLabels.changedThePriorityFrom(humanizeValue(from), humanizeValue(details.priority))
-        : activityChangeLabels.changedThePriorityTo(humanizeValue(details.priority)),
+        ? activityChangeLabels.changedThePriorityFrom(
+            humanizeActivityField("priority", from),
+            humanizeActivityField("priority", details.priority),
+          )
+        : activityChangeLabels.changedThePriorityTo(humanizeActivityField("priority", details.priority)),
     );
   }
   if (details.assigneeAgentId !== undefined || details.assigneeUserId !== undefined) {

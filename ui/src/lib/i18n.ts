@@ -4060,7 +4060,7 @@ export const activityPage = {
 export const activityRowLabels = {
   system: "系统",
   unknown: "未知",
-  board: "面板",
+  board: "董事会",
 } as const;
 
 /** 运行状态标签 — 用于聊天卡片和活动页 */
@@ -4102,6 +4102,10 @@ export const activityVerbs: Record<string, string> = {
   "issue.monitor_escalated_to_board": "将…的监控升级到面板",
   "issue.commented": "评论了",
   "issue.deleted": "删除了",
+  "issue.read_marked": "标记事务为已读",
+  "issue.read_unmarked": "取消事务已读标记",
+  "issue.inbox_archived": "归档了收件箱中的",
+  "issue.inbox_unarchived": "取消归档了收件箱中的",
   "issue.successful_run_handoff_required": "标记缺少下一步于",
   "issue.successful_run_handoff_resolved": "记录了已选择的下一步于",
   "issue.successful_run_handoff_escalated": "升级了缺少的下一步于",
@@ -4164,6 +4168,10 @@ export const activityLabels: Record<string, string> = {
   "issue.monitor_recovery_issue_created": "创建了一个监控恢复事务",
   "issue.monitor_escalated_to_board": "将一个监控升级到面板",
   "issue.deleted": "删除了事务",
+  "issue.read_marked": "标记事务为已读",
+  "issue.read_unmarked": "取消事务已读标记",
+  "issue.inbox_archived": "从收件箱归档了事务",
+  "issue.inbox_unarchived": "取消收件箱归档",
   "issue.successful_run_handoff_required": "运行完成但未明确下一步",
   "issue.successful_run_handoff_resolved": "已选择下一步",
   "issue.successful_run_handoff_escalated": "运行完成但未明确下一步 — 已恢复负责人处理",
@@ -4203,7 +4211,7 @@ export const activityChangeLabels = {
   updatedTitle: "更新了标题",
   updatedDescription: "更新了描述",
   agent: "智能体",
-  board: "面板",
+  board: "董事会",
   you: "你",
   issue: "事务",
 } as const;
