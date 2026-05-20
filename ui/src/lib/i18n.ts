@@ -250,6 +250,19 @@ export const devRestartBanner = {
   manualRestartBeforeCmd: "确认当前工作可安全打断后，请重启",
 } as const;
 
+/** Local dev: banner when multiple Paperclip processes share the same instance data */
+export const multiInstanceBanner = {
+  title: "检测到多个 Paperclip 实例",
+  currentPort: (port: number) => `当前页面端口 ${port}`,
+  requestedPortFallback: (listenPort: number, requestedPort: number) =>
+    `本实例监听 ${listenPort}（配置期望 ${requestedPort}，因端口占用已漂移）`,
+  peersLine: (ports: string) =>
+    `另有实例在运行：${ports}。共库时 heartbeat / recovery 可能互相抢跑，agent 可能打到错误 API。`,
+  peerDetail: (port: number, version: string | null) =>
+    version ? `:${port}（v${version}）` : `:${port}`,
+  action: "请只保留一个实例；停掉多余的 `paperclipai run` 或 dev 进程后再继续。",
+} as const;
+
 // ——— Navigation & common pages ———
 
 export const nav = {
@@ -304,6 +317,210 @@ export const heartbeatTasksPage = {
   running: (count: number) => `运行中 ${count}`,
   concurrencySemanticsFootnote:
     "并行上限常为 1。若评论/指派类等唤醒尚在排队或运行中，调度器触发的定时心跳会避让：不新增 timer run，写入 `agent_wakeup_requests` 一条 `skipped`（reason 含 heartbeat.timer_yield），并顺延界面上的「上次心跳」；与 **042** 的 `effectiveTrigger` 同看时间线更清楚。（事务 **043**）",
+} as const;
+
+/** 例行任务页共享文案（列表 + 详情 + 列表行） */
+export const routinesShared = {
+  noProject: "无项目",
+  unknownProject: "未知项目",
+  unassigned: "未指派",
+  unknownAgent: "未知智能体",
+  noAssignee: "无经办人",
+  noDefaultAgent: "无默认智能体",
+  assignee: "经办人",
+  project: "项目",
+  forLabel: "指派给",
+  inLabel: "所属项目",
+  searchAssignees: "搜索经办人…",
+  searchProjects: "搜索项目…",
+  noAssigneesFound: "未找到经办人。",
+  noProjectsFound: "未找到项目。",
+  selectCompany: "请选择团队查看例行任务。",
+  never: "从未",
+  concurrency: "并发",
+  catchUp: "补跑",
+  advancedDeliverySettings: "高级投递设置",
+  advancedDeliveryHint: "策略控件从属于例行任务本身的定义。",
+  addInstructionsPlaceholder: "添加说明…",
+  routineTitlePlaceholder: "例行任务标题",
+  cancel: "取消",
+  concurrencyPolicyDescriptions: {
+    coalesce_if_active: "若已有运行在进行，仅保留一条后续排队运行。",
+    always_enqueue: "每次触发都入队，即使例行任务已在运行。",
+    skip_if_active: "运行尚未结束时丢弃新的触发。",
+  } as const,
+  catchUpPolicyDescriptions: {
+    skip_missed: "调度器或例行任务暂停期间错过的窗口将被忽略。",
+    enqueue_missed_with_cap: "恢复后按上限分批补跑错过的调度窗口。",
+  } as const,
+  concurrencyPolicySelectLabel: (value: string) =>
+    ({
+      coalesce_if_active: "活跃时合并",
+      always_enqueue: "始终入队",
+      skip_if_active: "活跃时跳过",
+    })[value] ?? value.replaceAll("_", " "),
+  catchUpPolicySelectLabel: (value: string) =>
+    ({
+      skip_missed: "跳过错过",
+      enqueue_missed_with_cap: "带上限补跑",
+    })[value] ?? value.replaceAll("_", " "),
+  signingModeDescriptions: {
+    bearer: "要求在 Authorization 头中携带共享 Bearer 令牌。",
+  hmac_sha256: "使用共享密钥对请求做 HMAC SHA-256 签名校验。",
+  github_hmac: "接受 GitHub 风格 X-Hub-Signature-256 头（对原始 body 做 HMAC，无时间戳）。",
+  none: "不校验签名——Webhook URL 本身即共享密钥。",
+  } as const,
+  copyLabelCopied: (label: string) => `${label}已复制`,
+  copyLabelFailed: (label: string) => `无法复制${label}`,
+  clipboardDenied: "无法访问剪贴板。",
+} as const;
+
+export const routinesPage = {
+  title: "例行任务",
+  subtitle: "可重复执行的工作定义，会物化为可审计的执行事务。",
+  breadcrumb: "例行任务",
+  createRoutine: "新建例行任务",
+  tabRoutines: "例行任务",
+  tabRecentRuns: "最近运行",
+  routineCount: (count: number) => `${count} 个例行任务`,
+  sortTitle: "排序",
+  sort: "排序",
+  sortUpdated: "更新时间",
+  sortCreated: "创建时间",
+  sortLastRun: "上次运行",
+  sortTitleField: "标题",
+  sortAsc: "升序",
+  sortDesc: "降序",
+  groupTitle: "分组",
+  group: "分组",
+  groupProject: "项目",
+  groupAgent: "智能体",
+  groupNone: "不分组",
+  emptySelectCompany: routinesShared.selectCompany,
+  emptyNoRoutines: "尚无例行任务。点击「新建例行任务」创建第一个重复工作流。",
+  loadFailed: "无法加载例行任务。",
+  newRoutineHeading: "新建例行任务",
+  newRoutineHint: "先定义重复执行的工作；草稿可不选默认项目与智能体。",
+  afterCreationHint:
+    "创建后将直接进入触发器配置。草稿在未指定默认智能体前保持暂停。",
+  creating: "创建中…",
+  createFailed: "无法创建例行任务",
+  routineCreatedTitle: "例行任务已创建",
+  routineCreatedWithAgent: "添加第一个触发器以启用自动化。",
+  routineCreatedDraft: "草稿已保存。启用自动化前请先指定默认智能体。",
+  updateFailedTitle: "无法更新例行任务",
+  updateFailedBody: "Paperclip 无法更新该例行任务。",
+  runFailedTitle: "例行运行失败",
+  runFailedBody: "Paperclip 无法启动该例行运行。",
+  defaultAgentRequiredTitle: "需要默认智能体",
+  defaultAgentRequiredBody: "启用例行自动化前请先指定默认智能体。",
+} as const;
+
+export const routineDetailPage = {
+  breadcrumb: routinesPage.breadcrumb,
+  emptySelectCompany: routinesShared.selectCompany,
+  notFound: "未找到该例行任务",
+  routineTitlePlaceholder: routinesShared.routineTitlePlaceholder,
+  managedBy: (name: string) => `由 ${name} 托管`,
+  pauseTriggersAria: "暂停自动触发",
+  enableTriggersAria: "启用自动触发",
+  statusArchived: "已归档",
+  statusDraft: "草稿",
+  statusActive: "启用",
+  statusPaused: "已暂停",
+  on: "开",
+  off: "关",
+  secretSaveNow: "请立即保存。Paperclip 不会再次显示密钥。",
+  webhookTriggerOf: (index: number, total: number) => `Webhook 触发器 ${index} / ${total}`,
+  webhookUrl: "Webhook URL",
+  webhookSecret: "Webhook 密钥",
+  outOfDateTitle: "内容已过期",
+  outOfDateBody: "编辑期间该例行任务已被他人更新。请先重新加载最新版本再保存。",
+  reloadLatest: "加载最新",
+  draftAgentBanner:
+    "需要默认智能体。可保持草稿并手动运行，但在指定默认智能体前自动化保持暂停。",
+  unsavedChanges: "有未保存的更改",
+  saveRoutine: "保存例行任务",
+  tabTriggers: "触发器",
+  tabRuns: "运行",
+  tabActivity: "活动",
+  tabHistory: "历史",
+  addTrigger: "添加触发器",
+  kind: "类型",
+  schedule: "调度",
+  label: "标签",
+  signingMode: "签名模式",
+  replayWindowSeconds: "重放窗口（秒）",
+  lastPrefix: "上次：",
+  webhook: "Webhook",
+  api: "API",
+  nextRunPrefix: "下次运行 ",
+  saveTrigger: "保存",
+  rotateSecret: "轮换密钥",
+  deleteTrigger: "删除",
+  addingTrigger: "添加中…",
+  addTriggerButton: "添加触发器",
+  noTriggers: "尚未配置触发器。",
+  noRuns: "尚无运行记录。",
+  noActivity: "尚无活动。",
+  webhookComingSoon: " — 即将推出",
+  routineChangedTitle: "例行任务已变更",
+  routineChangedBody: "他人已更新该例行任务。请重新加载以查看最新修订。",
+  saveFailedTitle: "无法保存例行任务",
+  saveFailedBody: "Paperclip 无法保存该例行任务。",
+  runStartedTitle: "例行运行已开始",
+  runFailedTitle: routinesPage.runFailedTitle,
+  runFailedBody: routinesPage.runFailedBody,
+  routineSavedTitle: "例行任务已保存",
+  automationPaused: "自动化已暂停。",
+  automationEnabled: "自动化已启用。",
+  updateFailedTitle: routinesPage.updateFailedTitle,
+  updateFailedBody: routinesPage.updateFailedBody,
+  triggerAddedTitle: "触发器已添加",
+  triggerAddedBody: "例行任务调度已保存。",
+  addTriggerFailedTitle: "无法添加触发器",
+  addTriggerFailedBody: "Paperclip 无法创建该触发器。",
+  triggerSavedTitle: "触发器已保存",
+  triggerSavedBody: "例行任务节奏更新已保存。",
+  updateTriggerFailedTitle: "无法更新触发器",
+  updateTriggerFailedBody: "Paperclip 无法更新该触发器。",
+  triggerDeletedTitle: "触发器已删除",
+  deleteTriggerFailedTitle: "无法删除触发器",
+  deleteTriggerFailedBody: "Paperclip 无法删除该触发器。",
+  webhookCreatedTitle: "Webhook 触发器已创建",
+  secretRotatedTitle: "Webhook 密钥已轮换",
+  rotateFailedTitle: "无法轮换 Webhook 密钥",
+  rotateFailedBody: "Paperclip 无法轮换 Webhook 密钥。",
+  defaultAgentRequiredTitle: routinesPage.defaultAgentRequiredTitle,
+  defaultAgentRequiredBody: routinesPage.defaultAgentRequiredBody,
+  dirtyFieldTitle: "标题",
+  dirtyFieldDescription: "说明",
+  dirtyFieldProject: "项目",
+  dirtyFieldAssignee: "默认智能体",
+  dirtyFieldPriority: "优先级",
+  dirtyFieldConcurrency: "并发策略",
+  dirtyFieldCatchUp: "补跑策略",
+  dirtyFieldVariables: "变量",
+  webhookRestoredSingle: "Webhook 触发器已恢复",
+  webhookRestoredMany: (n: number) => `已恢复 ${n} 个 Webhook 触发器`,
+} as const;
+
+export const routineListRow = {
+  archived: "已归档",
+  draft: "草稿",
+  paused: "已暂停",
+  runNow: "立即运行",
+  running: "运行中…",
+  configure: "编辑",
+  moreActionsAria: (title: string) => `${title} 的更多操作`,
+  pause: "暂停",
+  enable: "启用",
+  restore: "恢复",
+  archive: "归档",
+  on: "开",
+  off: "关",
+  archivedStatus: "已归档",
+  draftStatus: "草稿",
 } as const;
 
 /** @see ./orchestration-gates-copy.ts */
@@ -1190,6 +1407,162 @@ export const issueDocumentsUi = {
   diffRevisionOption: (n: number, when: string, actor: string) =>
     `修订 ${n} — ${when} · ${actor}`,
 } as const;
+
+/** 生产力复盘：徽章、触发条件标签，及存量英文副本的展示层翻译 */
+export const productivityReviewUi = {
+  badgeLabel: "待复盘",
+  badgeAria: (reviewIdentifier: string, triggerLabel: string) =>
+    `待效率复盘 · ${reviewIdentifier}（${triggerLabel}）`,
+  tooltipOpen: "效率复盘已开启",
+  tooltipTrigger: "触发条件",
+  tooltipNoCommentStreak: "无评论连续运行",
+  tooltipNoCommentStreakRuns: (n: number) => `${n} 次运行`,
+  tooltipReview: "复盘事务",
+  triggerNoCommentStreak: "无评论连续",
+  triggerHighChurn: "高 churn",
+  triggerLongActive: "长时间活跃",
+  triggerFallback: "效率复盘",
+  reviewStatusTodo: "待办",
+  reviewStatusInProgress: "进行中",
+  reviewStatusInReview: "待审",
+  reviewStatusBlocked: "受阻",
+  reviewStatusBacklog: "待办",
+} as const;
+
+export function productivityReviewTriggerLabel(
+  trigger: "no_comment_streak" | "long_active_duration" | "high_churn" | string | null | undefined,
+): string {
+  if (!trigger) return productivityReviewUi.triggerFallback;
+  if (trigger === "no_comment_streak") return productivityReviewUi.triggerNoCommentStreak;
+  if (trigger === "high_churn") return productivityReviewUi.triggerHighChurn;
+  if (trigger === "long_active_duration") return productivityReviewUi.triggerLongActive;
+  return productivityReviewUi.triggerFallback;
+}
+
+export function productivityReviewStatusLabel(status: string): string {
+  if (status === "todo" || status === "backlog") return productivityReviewUi.reviewStatusTodo;
+  if (status === "in_progress") return productivityReviewUi.reviewStatusInProgress;
+  if (status === "in_review") return productivityReviewUi.reviewStatusInReview;
+  if (status === "blocked") return productivityReviewUi.reviewStatusBlocked;
+  return status.replace(/_/g, " ");
+}
+
+export function translateProductivityReviewTitle(title: string): string {
+  const trimmed = title.trim();
+  if (trimmed.startsWith("复盘效率：")) return trimmed;
+  const match = /^Review productivity for (.+)$/i.exec(trimmed);
+  if (match) return `复盘效率：${match[1]}`;
+  return trimmed;
+}
+
+export function translateProductivityReviewMarkdown(body: string): string {
+  if (!body.trim()) return body;
+  if (body.includes("回形针检测到已分配事务上出现异常的生产力/推进模式。")) return body;
+
+  let text = body;
+  const replacements: Array<[string | RegExp, string]> = [
+    [/^Productivity review evidence refreshed\./m, "生产力复盘证据已刷新。"],
+    [
+      /^Paperclip detected an unusual productivity\/progression pattern on an assigned issue\./m,
+      "回形针检测到已分配事务上出现异常的生产力/推进模式。",
+    ],
+    ["## Source", "## 来源"],
+    ["## Evidence", "## 证据"],
+    ["## Thresholds", "## 阈值"],
+    ["## Latest Runs", "## 最近运行"],
+    ["## Latest Assignee Run Comments", "## 最近负责人运行评论"],
+    ["## Usage Samples", "## Usage 抽样"],
+    ["## Manager Decision", "## 负责人决策"],
+    ["- Source issue:", "- 源事务："],
+    ["- Assigned agent:", "- 负责智能体："],
+    ["- Primary trigger:", "- 主要触发条件："],
+    ["- Trigger reasons:", "- 触发原因："],
+    ["- Generated at:", "- 生成时间："],
+    ["- Total sampled issue-linked runs:", "- 抽样关联运行总数："],
+    ["- Terminal sampled runs:", "- 抽样已终结运行："],
+    ["- Active queued/running/scheduled runs:", "- 活跃排队/运行/计划重试运行："],
+    ["- No-comment completed-run streak:", "- 连续无评论的已完成运行："],
+    ["- Current active elapsed time:", "- 当前活跃已耗时："],
+    ["- Runs in rolling windows:", "- 滚动窗口内运行次数："],
+    ["- Assignee run-linked comments total/window:", "- 负责人运行关联评论（合计/窗口）："],
+    ["- Cost events total:", "- 成本事件合计："],
+    ["- Current next action:", "- 当前后续动作："],
+    [/^- No-comment streak: (\d+)$/m, "- 无评论连续：$1"],
+    ["- No-comment streak:", "- 无评论连续次数："],
+    ["- Long active duration:", "- 长时活跃："],
+    ["- High churn:", "- 高 churn："],
+    ["- Resolved-review snooze:", "- 已关闭复盘静默期："],
+    ["- Trigger:", "- 触发条件："],
+    ["- Reasons:", "- 原因："],
+    ["- Runs/assignee comments:", "- 运行/负责人评论："],
+    ["- Next action:", "- 后续动作："],
+    ["(No-comment streak)", "（无评论连续）"],
+    ["(High churn)", "（高 churn）"],
+    ["(Long active duration)", "（长时间活跃）"],
+    ["- none", "- 无"],
+    ["- no usage payloads on sampled runs", "- 抽样运行无 usage 载荷"],
+    ["none recorded", "未记录"],
+    [" cents", " 美分"],
+    [" total,", " 合计，"],
+    ["/1h,", "/1 小时，"],
+    ["/6h", "/6 小时"],
+    [" in 1h,", "，1 小时内 "],
+    [" in 6h", "，6 小时内 "],
+    [" completed runs", " 次已完成运行"],
+    [" runs/assignee-run comments", "（运行/负责人运行评论）"],
+    [
+      "- Close as productive if this pattern is expected.",
+      "- 若模式符合预期，标记为有效并关闭。",
+    ],
+    [
+      "- Continue with a snooze window if the current work should keep running without repeat review spam.",
+      "- 若当前工作应继续且无重复复盘打扰，继续执行并设置静默期。",
+    ],
+    [
+      "- Request decomposition, reroute, block with an unblock owner, or stop/cancel the source work if the work is inefficient.",
+      "- 若效率不足，要求拆分、改派、阻塞并指定解除阻塞负责人，或停止/取消源工作。",
+    ],
+    [/ liveness `/g, " 存活 "],
+    [/ created /g, " 创建于 "],
+    [/ next action: /g, "，后续动作："],
+    [/ run `/g, " 运行 `"],
+    [
+      /(\d+) consecutive completed issue-linked runs had no run-created issue comment/g,
+      "连续 $1 次已完成的关联运行未产生运行创建的事务评论",
+    ],
+    [/current active episode has lasted /g, "当前活跃阶段已持续 "],
+    [
+      /(\d+) runs\/(\d+) assignee-run comments in 1h; (\d+) runs\/(\d+) assignee-run comments in 6h/g,
+      "1 小时内 $1 次运行 / $2 条负责人运行评论；6 小时内 $3 次运行 / $4 条负责人运行评论",
+    ],
+    [
+      /(\d+)\/(\d+) in 1h, (\d+)\/(\d+) in 6h/g,
+      "1 小时内 $1/$2，6 小时内 $3/$4",
+    ],
+  ];
+
+  for (const [from, to] of replacements) {
+    text = text.replace(from, to);
+  }
+  return text;
+}
+
+export function displayProductivityReviewIssueTitle(issue: {
+  title: string;
+  originKind?: string | null;
+}): string {
+  if (issue.originKind !== "issue_productivity_review") return issue.title;
+  return translateProductivityReviewTitle(issue.title);
+}
+
+export function displayProductivityReviewIssueDescription(issue: {
+  description?: string | null;
+  originKind?: string | null;
+}): string | undefined {
+  if (issue.originKind !== "issue_productivity_review") return issue.description ?? undefined;
+  const raw = issue.description ?? "";
+  return raw ? translateProductivityReviewMarkdown(raw) : undefined;
+}
 
 /** Issue detail page: chrome, banners, cost summary, tree controls, common toasts */
 export const issueDetailUi = {

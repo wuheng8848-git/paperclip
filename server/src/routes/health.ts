@@ -5,6 +5,7 @@ import { and, count, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { heartbeatRuns, instanceUserRoles, invites } from "@paperclipai/db";
 import type { DeploymentExposure, DeploymentMode } from "@paperclipai/shared";
 import { readPersistedDevServerStatus, toDevServerHealthStatus } from "../dev-server-status.js";
+import { scanLocalRuntimePeers } from "../local-runtime-peer-scan.js";
 import { logger } from "../middleware/logger.js";
 import { instanceSettingsService } from "../services/instance-settings.js";
 import { serverVersion } from "../version.js";
@@ -35,6 +36,9 @@ export function healthRoutes(
     deploymentExposure: DeploymentExposure;
     authReady: boolean;
     companyDeletionEnabled: boolean;
+    serverPort?: number;
+    requestedServerPort?: number;
+    bindHost?: string;
   } = {
     deploymentMode: "local_trusted",
     deploymentExposure: "private",
@@ -119,6 +123,26 @@ export function healthRoutes(
       });
     }
 
+    let runtimePeers:
+      | Awaited<ReturnType<typeof scanLocalRuntimePeers>>
+      | undefined;
+    if (
+      opts.deploymentMode === "local_trusted" &&
+      exposeFullDetails &&
+      typeof opts.serverPort === "number" &&
+      opts.serverPort > 0
+    ) {
+      try {
+        runtimePeers = await scanLocalRuntimePeers({
+          bindHost: opts.bindHost ?? "127.0.0.1",
+          listenPort: opts.serverPort,
+          requestedPort: opts.requestedServerPort ?? opts.serverPort,
+        });
+      } catch (error) {
+        logger.warn({ err: error }, "local runtime peer scan failed");
+      }
+    }
+
     if (!exposeFullDetails) {
       res.json({
         status: "ok",
@@ -142,6 +166,7 @@ export function healthRoutes(
         companyDeletionEnabled: opts.companyDeletionEnabled,
       },
       ...(devServer ? { devServer } : {}),
+      ...(runtimePeers ? { runtimePeers } : {}),
     });
   });
 

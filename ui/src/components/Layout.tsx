@@ -16,6 +16,7 @@ import { ToastViewport } from "./ToastViewport";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { WorktreeBanner } from "./WorktreeBanner";
 import { DevRestartBanner } from "./DevRestartBanner";
+import { MultiInstanceBanner } from "./MultiInstanceBanner";
 import { ResizableSidebarPane } from "./ResizableSidebarPane";
 import { SidebarAccountMenu } from "./SidebarAccountMenu";
 import { useDialogActions } from "../context/DialogContext";
@@ -130,8 +131,11 @@ export function Layout() {
     queryFn: () => healthApi.get(),
     retry: false,
     refetchInterval: (query) => {
-      const data = query.state.data as { devServer?: { enabled?: boolean } } | undefined;
-      return data?.devServer?.enabled ? 2000 : false;
+      const data = query.state.data as { devServer?: { enabled?: boolean }; deploymentMode?: string; runtimePeers?: { peers?: unknown[] } } | undefined;
+      if (data?.devServer?.enabled) return 2000;
+      if (data?.runtimePeers?.peers?.length) return 15000;
+      if (data?.deploymentMode === "local_trusted") return 30000;
+      return false;
     },
     refetchIntervalInBackground: true,
   });
@@ -358,6 +362,7 @@ export function Layout() {
         Skip to Main Content
       </a>
       <WorktreeBanner />
+      <MultiInstanceBanner runtimePeers={health?.runtimePeers} />
       <DevRestartBanner devServer={health?.devServer} />
       <div className={cn("min-h-0 flex-1", isMobile ? "w-full" : "flex overflow-hidden")}>
         {isMobile && sidebarOpen && (

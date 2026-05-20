@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Issue, RoutineListItem } from "@paperclipai/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Routines, buildRoutineGroups, sortRoutines } from "./Routines";
+import { routineListRow } from "../lib/i18n";
 
 let currentSearch = "";
 
@@ -437,14 +438,14 @@ describe("Routines page", () => {
       await flush();
     });
 
-    let sortButton = container.querySelector<HTMLButtonElement>('button[title="Sort"]');
-    let groupButton = container.querySelector<HTMLButtonElement>('button[title="Group"]');
+    let sortButton = container.querySelector<HTMLButtonElement>('button[title="排序"]');
+    let groupButton = container.querySelector<HTMLButtonElement>('button[title="分组"]');
     for (let attempts = 0; attempts < 5 && (!sortButton || !groupButton); attempts += 1) {
       await act(async () => {
         await flush();
       });
-      sortButton = container.querySelector<HTMLButtonElement>('button[title="Sort"]');
-      groupButton = container.querySelector<HTMLButtonElement>('button[title="Group"]');
+      sortButton = container.querySelector<HTMLButtonElement>('button[title="排序"]');
+      groupButton = container.querySelector<HTMLButtonElement>('button[title="分组"]');
     }
 
     expect(sortButton).not.toBeNull();
@@ -477,14 +478,14 @@ describe("Routines page", () => {
     });
 
     let runNowButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Run now"),
+      button.textContent?.includes(routineListRow.runNow),
     );
-    for (let attempts = 0; attempts < 5 && !runNowButton; attempts += 1) {
+    for (let attempts = 0; attempts < 10 && !runNowButton; attempts += 1) {
       await act(async () => {
         await flush();
       });
       runNowButton = Array.from(container.querySelectorAll("button")).find((button) =>
-        button.textContent?.includes("Run now"),
+        button.textContent?.includes(routineListRow.runNow),
       );
     }
 
@@ -516,14 +517,14 @@ describe("Routines page", () => {
     });
 
     let createButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Create routine"),
+      button.textContent?.includes("新建例行任务"),
     );
     for (let attempts = 0; attempts < 5 && !createButton; attempts += 1) {
       await act(async () => {
         await flush();
       });
       createButton = Array.from(container.querySelectorAll("button")).find((button) =>
-        button.textContent?.includes("Create routine"),
+        button.textContent?.includes("新建例行任务"),
       );
     }
 

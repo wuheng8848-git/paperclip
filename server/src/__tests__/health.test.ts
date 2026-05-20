@@ -7,10 +7,15 @@ import * as devServerStatus from "../dev-server-status.js";
 import { serverVersion } from "../version.js";
 
 const mockReadPersistedDevServerStatus = vi.hoisted(() => vi.fn());
+const mockScanLocalRuntimePeers = vi.hoisted(() => vi.fn());
 
 vi.mock("../dev-server-status.js", () => ({
   readPersistedDevServerStatus: mockReadPersistedDevServerStatus,
   toDevServerHealthStatus: vi.fn(),
+}));
+
+vi.mock("../local-runtime-peer-scan.js", () => ({
+  scanLocalRuntimePeers: mockScanLocalRuntimePeers,
 }));
 
 function createApp(db?: Db) {
@@ -23,6 +28,12 @@ describe("GET /health", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockReadPersistedDevServerStatus.mockReturnValue(undefined);
+    mockScanLocalRuntimePeers.mockResolvedValue({
+      listenPort: 4100,
+      requestedPort: 4100,
+      portFallbackActive: false,
+      peers: [],
+    });
   });
 
   afterEach(() => {
@@ -177,6 +188,41 @@ describe("GET /health", () => {
       features: {
         companyDeletionEnabled: false,
       },
+    });
+  });
+
+  it("includes runtime peer scan metadata in local trusted mode", async () => {
+    mockScanLocalRuntimePeers.mockResolvedValue({
+      listenPort: 4100,
+      requestedPort: 4100,
+      portFallbackActive: false,
+      peers: [{ port: 4101, version: "2026.517.0", apiUrl: "http://127.0.0.1:4101/api" }],
+    });
+    const db = {
+      execute: vi.fn().mockResolvedValue([{ "?column?": 1 }]),
+    } as unknown as Db;
+    const app = express();
+    app.use(
+      "/health",
+      healthRoutes(db, {
+        deploymentMode: "local_trusted",
+        deploymentExposure: "private",
+        authReady: true,
+        companyDeletionEnabled: true,
+        serverPort: 4100,
+        requestedServerPort: 4100,
+        bindHost: "127.0.0.1",
+      }),
+    );
+
+    const res = await request(app).get("/health");
+
+    expect(res.status).toBe(200);
+    expect(res.body.runtimePeers).toEqual({
+      listenPort: 4100,
+      requestedPort: 4100,
+      portFallbackActive: false,
+      peers: [{ port: 4101, version: "2026.517.0", apiUrl: "http://127.0.0.1:4101/api" }],
     });
   });
 });

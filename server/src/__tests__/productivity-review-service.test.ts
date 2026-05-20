@@ -204,8 +204,8 @@ describeEmbeddedPostgres("productivity review service", () => {
     expect(reviews[0]?.assigneeAdapterOverrides).toEqual({ modelProfile: "cheap" });
     expect(reviews[0]?.originId).toBe(seeded.issueId);
     expect(reviews[0]?.originFingerprint).toBe(`productivity-review:${seeded.issueId}`);
-    expect(reviews[0]?.description).toContain("Primary trigger: `no_comment_streak`");
-    expect(reviews[0]?.description).toContain("No-comment completed-run streak: 10");
+    expect(reviews[0]?.description).toContain("主要触发条件：`no_comment_streak`");
+    expect(reviews[0]?.description).toContain("连续无评论的已完成运行：10");
 
     expect(await listRefreshComments(reviews[0]!.id)).toHaveLength(0);
   });
@@ -355,7 +355,7 @@ describeEmbeddedPostgres("productivity review service", () => {
 
     expect(result.created).toBe(1);
     const [review] = await listProductivityReviews(seeded.companyId);
-    expect(review?.description).toContain("Primary trigger: `long_active_duration`");
+    expect(review?.description).toContain("主要触发条件：`long_active_duration`");
     expect(review?.priority).toBe("medium");
     expect(hold.held).toBe(false);
   });
@@ -379,8 +379,8 @@ describeEmbeddedPostgres("productivity review service", () => {
 
     expect(result.created).toBe(1);
     const [review] = await listProductivityReviews(seeded.companyId);
-    expect(review?.description).toContain("Primary trigger: `high_churn`");
-    expect(review?.description).toContain("Runs in rolling windows: 10/1h");
+    expect(review?.description).toContain("主要触发条件：`high_churn`");
+    expect(review?.description).toContain("滚动窗口内运行次数：10/1 小时");
   });
 
   it("ignores non-assignee comments when evaluating high-churn productivity reviews", async () => {

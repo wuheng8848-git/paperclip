@@ -8,6 +8,8 @@ import { FoldCurtain } from "./FoldCurtain";
 interface InlineEditorProps {
   value: string;
   onSave: (value: string) => void | Promise<unknown>;
+  /** When set, shown in read-only preview while `value` remains the persisted source. */
+  displayValue?: string;
   as?: "h1" | "h2" | "p" | "span";
   className?: string;
   placeholder?: string;
@@ -45,6 +47,7 @@ export function queueContainedBlurCommit(container: HTMLDivElement, onCommit: ()
 
 export function InlineEditor({
   value,
+  displayValue,
   onSave,
   as: Tag = "span",
   className,
@@ -254,7 +257,11 @@ export function InlineEditor({
   }, [autosaveState, commit, draft, markDirty, multiline, multilineFocused, nullable, reset, runSave, value]);
 
   if (multiline) {
-    const previewValue = autosaveState === "saved" || autosaveState === "idle" ? draft : value;
+    const previewSource = autosaveState === "saved" || autosaveState === "idle" ? draft : value;
+    const previewValue =
+      displayValue && previewSource === value && autosaveState === "idle"
+        ? displayValue
+        : previewSource;
     const hasValue = Boolean(previewValue.trim());
     const showEditor = multilineEditing || multilineFocused || !hasValue;
 
@@ -390,17 +397,19 @@ export function InlineEditor({
   // (e.g. <p> cannot contain the <div>/<p> elements that markdown produces)
   const DisplayTag = value && multiline ? "div" : Tag;
 
+  const shownValue = displayValue && !editing ? displayValue : value;
+
   return (
     <DisplayTag
       className={cn(
         "cursor-pointer rounded hover:bg-accent/50 transition-colors overflow-hidden",
         pad,
-        !value && "text-muted-foreground italic",
+        !shownValue && "text-muted-foreground italic",
         className,
       )}
       onClick={() => setEditing(true)}
     >
-      {value || placeholder}
+      {shownValue || placeholder}
     </DisplayTag>
   );
 }

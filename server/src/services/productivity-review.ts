@@ -36,7 +36,7 @@ const ACTIVE_RUN_STATUSES = ["queued", "running", "scheduled_retry"] as const;
 const MAX_CANDIDATE_ISSUES = 250;
 const MAX_RUNS_FOR_STREAK = 100;
 const MAX_PARENT_WALK_DEPTH = 25;
-export const PRODUCTIVITY_REVIEW_REFRESH_COMMENT_PREFIX = "Productivity review evidence refreshed.";
+export const PRODUCTIVITY_REVIEW_REFRESH_COMMENT_PREFIX = "生产力复盘证据已刷新。";
 
 type IssueRow = typeof issues.$inferSelect;
 type AgentRow = typeof agents.$inferSelect;
@@ -105,13 +105,13 @@ function issueRunScopeSql(issueId: string) {
 }
 
 function msToHuman(ms: number | null) {
-  if (ms === null) return "unknown";
+  if (ms === null) return "未知";
   const minutes = Math.floor(ms / 60_000);
-  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 60) return `${minutes} 分钟`;
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
-  if (days > 0) return `${days}d ${hours % 24}h`;
-  return `${hours}h ${minutes % 60}m`;
+  if (days > 0) return `${days} 天 ${hours % 24} 小时`;
+  return `${hours} 小时 ${minutes % 60} 分钟`;
 }
 
 function issueUiLink(issue: { identifier: string | null; id: string }, prefix: string) {
@@ -195,9 +195,9 @@ function isSoftStopTrigger(trigger: ProductivityReviewTrigger) {
 }
 
 function formatTrigger(trigger: ProductivityReviewTrigger) {
-  if (trigger === "no_comment_streak") return "No-comment streak";
-  if (trigger === "high_churn") return "High churn";
-  return "Long active duration";
+  if (trigger === "no_comment_streak") return "无评论连续";
+  if (trigger === "high_churn") return "高 churn";
+  return "长时间活跃";
 }
 
 export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: EnqueueWakeup }) {
@@ -486,11 +486,13 @@ export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: Enque
     if (!trigger) return null;
 
     const triggerReasons: string[] = [];
-    if (noComment) triggerReasons.push(`${noCommentStreak} consecutive completed issue-linked runs had no run-created issue comment`);
-    if (longActive) triggerReasons.push(`current active episode has lasted ${msToHuman(elapsedMs)}`);
+    if (noComment) {
+      triggerReasons.push(`连续 ${noCommentStreak} 次已完成的关联运行未产生运行创建的事务评论`);
+    }
+    if (longActive) triggerReasons.push(`当前活跃阶段已持续 ${msToHuman(elapsedMs)}`);
     if (highChurn) {
       triggerReasons.push(
-        `${runCountLastHour} runs/${assigneeRunCommentCountLastHour} assignee-run comments in 1h; ${runCountLastSixHours} runs/${assigneeRunCommentCountLastSixHours} assignee-run comments in 6h`,
+        `1 小时内 ${runCountLastHour} 次运行 / ${assigneeRunCommentCountLastHour} 条负责人运行评论；6 小时内 ${runCountLastSixHours} 次运行 / ${assigneeRunCommentCountLastSixHours} 条负责人运行评论`,
       );
     }
 
@@ -559,77 +561,77 @@ export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: Enque
   function buildReviewMarkdown(evidence: ProductivityReviewEvidence, prefix: string) {
     const latestRuns = evidence.latestRuns.length > 0
       ? evidence.latestRuns.map((run) =>
-        `- ${runUiLink(run, prefix)} \`${run.status}\` liveness \`${run.livenessState ?? "unknown"}\`, created ${run.createdAt.toISOString()}${run.nextAction ? `, next action: ${truncateInline(run.nextAction, 160)}` : ""}`,
+        `- ${runUiLink(run, prefix)} \`${run.status}\` 存活 \`${run.livenessState ?? "unknown"}\`，创建于 ${run.createdAt.toISOString()}${run.nextAction ? `，后续动作：${truncateInline(run.nextAction, 160)}` : ""}`,
       ).join("\n")
-      : "- none";
+      : "- 无";
     const latestComments = evidence.latestComments.length > 0
       ? evidence.latestComments.map((comment) =>
-        `- ${comment.createdAt.toISOString()}${comment.createdByRunId ? ` run \`${comment.createdByRunId}\`` : ""}: ${truncateInline(comment.body)}`,
+        `- ${comment.createdAt.toISOString()}${comment.createdByRunId ? ` 运行 \`${comment.createdByRunId}\`` : ""}：${truncateInline(comment.body)}`,
       ).join("\n")
-      : "- none";
+      : "- 无";
     const usage = evidence.usageSamples.length > 0
-      ? evidence.usageSamples.map((sample) => `- \`${sample.runId}\`: \`${JSON.stringify(sample.usageJson).slice(0, 500)}\``).join("\n")
-      : "- no usage payloads on sampled runs";
+      ? evidence.usageSamples.map((sample) => `- \`${sample.runId}\`：\`${JSON.stringify(sample.usageJson).slice(0, 500)}\``).join("\n")
+      : "- 抽样运行无 usage 载荷";
     return [
-      "Paperclip detected an unusual productivity/progression pattern on an assigned issue.",
+      "回形针检测到已分配事务上出现异常的生产力/推进模式。",
       "",
-      "## Source",
+      "## 来源",
       "",
-      `- Source issue: ${issueUiLink(evidence.sourceIssue, prefix)}`,
-      `- Assigned agent: ${evidence.sourceAgent.name} (${evidence.sourceAgent.role})`,
-      `- Primary trigger: \`${evidence.trigger}\` (${formatTrigger(evidence.trigger)})`,
-      `- Trigger reasons: ${evidence.triggerReasons.join("; ")}`,
-      `- Generated at: ${evidence.generatedAt.toISOString()}`,
+      `- 源事务：${issueUiLink(evidence.sourceIssue, prefix)}`,
+      `- 负责智能体：${evidence.sourceAgent.name}（${evidence.sourceAgent.role}）`,
+      `- 主要触发条件：\`${evidence.trigger}\`（${formatTrigger(evidence.trigger)}）`,
+      `- 触发原因：${evidence.triggerReasons.join("；")}`,
+      `- 生成时间：${evidence.generatedAt.toISOString()}`,
       "",
-      "## Evidence",
+      "## 证据",
       "",
-      `- Total sampled issue-linked runs: ${evidence.totalRunCount}`,
-      `- Terminal sampled runs: ${evidence.terminalRunCount}`,
-      `- Active queued/running/scheduled runs: ${evidence.activeRunCount}`,
-      `- No-comment completed-run streak: ${evidence.noCommentStreak}`,
-      `- Current active elapsed time: ${msToHuman(evidence.elapsedMs)}`,
-      `- Runs in rolling windows: ${evidence.runCountLastHour}/1h, ${evidence.runCountLastSixHours}/6h`,
-      `- Assignee run-linked comments total/window: ${evidence.commentCount} total, ${evidence.commentCountLastHour}/1h, ${evidence.commentCountLastSixHours}/6h`,
-      `- Cost events total: ${evidence.costCents} cents`,
-      `- Current next action: ${evidence.nextAction ? truncateInline(evidence.nextAction, 500) : "none recorded"}`,
+      `- 抽样关联运行总数：${evidence.totalRunCount}`,
+      `- 抽样已终结运行：${evidence.terminalRunCount}`,
+      `- 活跃排队/运行/计划重试运行：${evidence.activeRunCount}`,
+      `- 连续无评论的已完成运行：${evidence.noCommentStreak}`,
+      `- 当前活跃已耗时：${msToHuman(evidence.elapsedMs)}`,
+      `- 滚动窗口内运行次数：${evidence.runCountLastHour}/1 小时，${evidence.runCountLastSixHours}/6 小时`,
+      `- 负责人运行关联评论（合计/窗口）：${evidence.commentCount} 合计，${evidence.commentCountLastHour}/1 小时，${evidence.commentCountLastSixHours}/6 小时`,
+      `- 成本事件合计：${evidence.costCents} 美分`,
+      `- 当前后续动作：${evidence.nextAction ? truncateInline(evidence.nextAction, 500) : "未记录"}`,
       "",
-      "## Thresholds",
+      "## 阈值",
       "",
-      `- No-comment streak: ${evidence.thresholds.noCommentStreakRuns} completed runs`,
-      `- Long active duration: ${msToHuman(evidence.thresholds.longActiveMs)}`,
-      `- High churn: ${evidence.thresholds.highChurnHourly}/1h or ${evidence.thresholds.highChurnSixHours}/6h runs/assignee-run comments`,
-      `- Resolved-review snooze: ${msToHuman(evidence.thresholds.resolvedSnoozeMs)}`,
+      `- 无评论连续次数：${evidence.thresholds.noCommentStreakRuns} 次已完成运行`,
+      `- 长时活跃：${msToHuman(evidence.thresholds.longActiveMs)}`,
+      `- 高 churn：${evidence.thresholds.highChurnHourly}/1 小时或 ${evidence.thresholds.highChurnSixHours}/6 小时（运行/负责人运行评论）`,
+      `- 已关闭复盘静默期：${msToHuman(evidence.thresholds.resolvedSnoozeMs)}`,
       "",
-      "## Latest Runs",
+      "## 最近运行",
       "",
       latestRuns,
       "",
-      "## Latest Assignee Run Comments",
+      "## 最近负责人运行评论",
       "",
       latestComments,
       "",
-      "## Usage Samples",
+      "## Usage 抽样",
       "",
       usage,
       "",
-      "## Manager Decision",
+      "## 负责人决策",
       "",
-      "- Close as productive if this pattern is expected.",
-      "- Continue with a snooze window if the current work should keep running without repeat review spam.",
-      "- Request decomposition, reroute, block with an unblock owner, or stop/cancel the source work if the work is inefficient.",
+      "- 若模式符合预期，标记为有效并关闭。",
+      "- 若当前工作应继续且无重复复盘打扰，继续执行并设置静默期。",
+      "- 若效率不足，要求拆分、改派、阻塞并指定解除阻塞负责人，或停止/取消源工作。",
     ].join("\n");
   }
 
   function buildRefreshComment(evidence: ProductivityReviewEvidence, prefix: string) {
     return [
-      "Productivity review evidence refreshed.",
+      PRODUCTIVITY_REVIEW_REFRESH_COMMENT_PREFIX,
       "",
-      `- Source issue: ${issueUiLink(evidence.sourceIssue, prefix)}`,
-      `- Trigger: \`${evidence.trigger}\` (${formatTrigger(evidence.trigger)})`,
-      `- Reasons: ${evidence.triggerReasons.join("; ")}`,
-      `- No-comment streak: ${evidence.noCommentStreak}`,
-      `- Runs/assignee comments: ${evidence.runCountLastHour}/${evidence.commentCountLastHour} in 1h, ${evidence.runCountLastSixHours}/${evidence.commentCountLastSixHours} in 6h`,
-      `- Next action: ${evidence.nextAction ? truncateInline(evidence.nextAction, 300) : "none recorded"}`,
+      `- 源事务：${issueUiLink(evidence.sourceIssue, prefix)}`,
+      `- 触发条件：\`${evidence.trigger}\`（${formatTrigger(evidence.trigger)}）`,
+      `- 原因：${evidence.triggerReasons.join("；")}`,
+      `- 无评论连续：${evidence.noCommentStreak}`,
+      `- 运行/负责人评论：1 小时内 ${evidence.runCountLastHour}/${evidence.commentCountLastHour}，6 小时内 ${evidence.runCountLastSixHours}/${evidence.commentCountLastSixHours}`,
+      `- 后续动作：${evidence.nextAction ? truncateInline(evidence.nextAction, 300) : "未记录"}`,
     ].join("\n");
   }
 
@@ -682,7 +684,7 @@ export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: Enque
     let review: Awaited<ReturnType<typeof issuesSvc.create>>;
     try {
       review = await issuesSvc.create(evidence.sourceIssue.companyId, {
-        title: `Review productivity for ${evidence.sourceIssue.identifier ?? evidence.sourceIssue.title}`,
+        title: `复盘效率：${evidence.sourceIssue.identifier ?? evidence.sourceIssue.title}`,
         description: buildReviewMarkdown(evidence, opts.prefix),
         status: "todo",
         priority: evidence.trigger === "long_active_duration" ? "medium" : "high",

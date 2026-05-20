@@ -12,6 +12,19 @@ export type DevServerHealthStatus = {
   lastRestartAt: string | null;
 };
 
+export type LocalRuntimePeerHealthStatus = {
+  port: number;
+  version: string | null;
+  apiUrl: string;
+};
+
+export type LocalRuntimePeersHealthStatus = {
+  listenPort: number;
+  requestedPort: number;
+  portFallbackActive: boolean;
+  peers: LocalRuntimePeerHealthStatus[];
+};
+
 export type HealthStatus = {
   status: "ok";
   version?: string;
@@ -24,6 +37,7 @@ export type HealthStatus = {
     companyDeletionEnabled?: boolean;
   };
   devServer?: DevServerHealthStatus;
+  runtimePeers?: LocalRuntimePeersHealthStatus;
 };
 
 export const healthApi = {

@@ -110,6 +110,7 @@ export async function createApp(
   opts: {
     uiMode: UiMode;
     serverPort: number;
+    requestedServerPort?: number;
     storageService: StorageService;
     feedbackExportService?: {
       flushPendingFeedbackTraces(input?: {
@@ -185,6 +186,9 @@ export async function createApp(
       deploymentExposure: opts.deploymentExposure,
       authReady: opts.authReady,
       companyDeletionEnabled: opts.companyDeletionEnabled,
+      serverPort: opts.serverPort,
+      requestedServerPort: opts.requestedServerPort ?? opts.serverPort,
+      bindHost: opts.bindHost,
     }),
   );
   api.use("/companies", companyRoutes(db, opts.storageService));

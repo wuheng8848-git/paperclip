@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
+import { routineListRow, routinesShared } from "../lib/i18n";
 
 export type RoutineListProjectSummary = {
   name: string;
@@ -35,7 +36,7 @@ export type RoutineListRowItem = {
 };
 
 export function formatLastRunTimestamp(value: Date | string | null | undefined) {
-  if (!value) return "Never";
+  if (!value) return routinesShared.never;
   return new Date(value).toLocaleString();
 }
 
@@ -56,7 +57,7 @@ export function RoutineListRow<TRoutine extends RoutineListRowItem>({
   runningRoutineId,
   statusMutationRoutineId,
   href,
-  configureLabel = "Edit",
+  configureLabel = routineListRow.configure,
   managedByLabel,
   secondaryDetails,
   runNowButton = false,
@@ -102,7 +103,7 @@ export function RoutineListRow<TRoutine extends RoutineListRowItem>({
           <span className="truncate text-sm font-medium">{routine.title}</span>
           {(isArchived || routine.status === "paused" || isDraft) ? (
             <span className="text-xs text-muted-foreground">
-              {isArchived ? "archived" : isDraft ? "draft" : "paused"}
+              {isArchived ? routineListRow.archived : isDraft ? routineListRow.draft : routineListRow.paused}
             </span>
           ) : null}
           {managedByLabel ? (
@@ -115,11 +116,11 @@ export function RoutineListRow<TRoutine extends RoutineListRowItem>({
               className="h-2.5 w-2.5 shrink-0 rounded-sm"
               style={{ backgroundColor: project?.color ?? "#64748b" }}
             />
-            <span>{routine.projectId ? (project?.name ?? "Unknown project") : "No project"}</span>
+            <span>{routine.projectId ? (project?.name ?? routinesShared.unknownProject) : routinesShared.noProject}</span>
           </span>
           <span className="flex items-center gap-2">
             {agent?.icon ? <AgentIcon icon={agent.icon} className="h-3.5 w-3.5 shrink-0" /> : null}
-            <span>{routine.assigneeAgentId ? (agent?.name ?? "Unknown agent") : "No default agent"}</span>
+            <span>{routine.assigneeAgentId ? (agent?.name ?? routinesShared.unknownAgent) : routinesShared.noDefaultAgent}</span>
           </span>
           <span>
             {formatLastRunTimestamp(routine.lastRun?.triggeredAt)}
@@ -140,7 +141,7 @@ export function RoutineListRow<TRoutine extends RoutineListRowItem>({
             onClick={() => onRunNow(routine)}
           >
             <Play className="h-3.5 w-3.5" />
-            {runningRoutineId === routine.id ? "Running..." : "Run now"}
+            {runningRoutineId === routine.id ? routineListRow.running : routineListRow.runNow}
           </Button>
         ) : null}
 
@@ -153,13 +154,13 @@ export function RoutineListRow<TRoutine extends RoutineListRowItem>({
             aria-label={enabled ? `Disable ${routine.title}` : `Enable ${routine.title}`}
           />
           <span className="w-12 text-xs text-muted-foreground">
-            {isArchived ? "Archived" : isDraft ? "Draft" : enabled ? "On" : "Off"}
+            {isArchived ? routineListRow.archivedStatus : isDraft ? routineListRow.draftStatus : enabled ? routineListRow.on : routineListRow.off}
           </span>
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label={`More actions for ${routine.title}`}>
+            <Button variant="ghost" size="icon-sm" aria-label={routineListRow.moreActionsAria(routine.title)}>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -171,21 +172,21 @@ export function RoutineListRow<TRoutine extends RoutineListRowItem>({
               disabled={runDisabled}
               onClick={() => onRunNow(routine)}
             >
-              {runningRoutineId === routine.id ? "Running..." : "Run now"}
+              {runningRoutineId === routine.id ? routineListRow.running : routineListRow.runNow}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => onToggleEnabled(routine, enabled)}
               disabled={isStatusPending || isArchived || disableToggle}
             >
-              {enabled ? "Pause" : "Enable"}
+              {enabled ? routineListRow.pause : routineListRow.enable}
             </DropdownMenuItem>
             {!hideArchiveAction && onToggleArchived ? (
               <DropdownMenuItem
                 onClick={() => onToggleArchived(routine)}
                 disabled={isStatusPending}
               >
-                {routine.status === "archived" ? "Restore" : "Archive"}
+                {routine.status === "archived" ? routineListRow.restore : routineListRow.archive}
               </DropdownMenuItem>
             ) : null}
           </DropdownMenuContent>

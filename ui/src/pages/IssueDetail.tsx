@@ -22,7 +22,7 @@ import { assigneeValueFromSelection, suggestedCommentAssigneeValue } from "../li
 import { buildCompanyUserInlineOptions, buildCompanyUserLabelMap, buildCompanyUserProfileMap, buildMarkdownMentionOptions } from "../lib/company-members";
 import { extractIssueTimelineEvents } from "../lib/issue-timeline-events";
 import { queryKeys } from "../lib/queryKeys";
-import { issueBreadcrumb, issueDetailActors, issueDetailUi, issueTreeControl } from "../lib/i18n";
+import { issueBreadcrumb, issueDetailActors, issueDetailUi, issueTreeControl, displayProductivityReviewIssueDescription, displayProductivityReviewIssueTitle } from "../lib/i18n";
 import { keepPreviousDataForSameQueryTail } from "../lib/query-placeholder-data";
 import { collectLiveIssueIds } from "../lib/liveIssueIds";
 import {
@@ -1586,7 +1586,13 @@ export function IssueDetail() {
     () => mergeIssueComments(comments ?? [], optimisticComments),
     [comments, optimisticComments],
   );
-  const breadcrumbTitle = issue?.title ?? issueId ?? issueDetailUi.breadcrumbFallbackTitle;
+  const breadcrumbTitle = issue
+    ? displayProductivityReviewIssueTitle(issue)
+    : issueId ?? issueDetailUi.breadcrumbFallbackTitle;
+  const productivityReviewDisplayTitle = issue ? displayProductivityReviewIssueTitle(issue) : "";
+  const productivityReviewDisplayDescription = issue
+    ? displayProductivityReviewIssueDescription(issue) ?? ""
+    : "";
   const issueCacheRefs = useMemo(() => {
     const refs = new Set<string>();
     if (issueId) refs.add(issueId);
@@ -2802,8 +2808,8 @@ export function IssueDetail() {
       el.innerHTML = text;
       return el.value;
     };
-    const title = decodeEntities(issue.title);
-    const body = decodeEntities(issue.description ?? "");
+    const title = decodeEntities(displayProductivityReviewIssueTitle(issue));
+    const body = decodeEntities(displayProductivityReviewIssueDescription(issue) ?? issue.description ?? "");
     const md = `# ${issue.identifier}: ${title}\n\n${body}`.trimEnd();
     await navigator.clipboard.writeText(md);
     setCopied(true);
@@ -3154,14 +3160,14 @@ export function IssueDetail() {
                     location.search,
                   )}
                 className="hover:text-foreground transition-colors truncate max-w-[200px]"
-                title={ancestor.title}
+                title={displayProductivityReviewIssueTitle(ancestor)}
               >
-                {ancestor.title}
+                {displayProductivityReviewIssueTitle(ancestor)}
               </Link>
             </span>
           ))}
           <ChevronRight className="h-3 w-3 shrink-0" />
-          <span className="text-foreground/60 truncate max-w-[200px]">{issue.title}</span>
+          <span className="text-foreground/60 truncate max-w-[200px]">{productivityReviewDisplayTitle}</span>
         </nav>
       )}
 
@@ -3531,6 +3537,9 @@ export function IssueDetail() {
 
         <InlineEditor
           value={issue.title}
+          displayValue={
+            issue.originKind === "issue_productivity_review" ? productivityReviewDisplayTitle : undefined
+          }
           onSave={(title) => updateIssue.mutateAsync({ title })}
           as="h2"
           className="text-xl font-bold"
@@ -3538,6 +3547,9 @@ export function IssueDetail() {
 
         <InlineEditor
           value={issue.description ?? ""}
+          displayValue={
+            issue.originKind === "issue_productivity_review" ? productivityReviewDisplayDescription : undefined
+          }
           onSave={(description) => updateIssue.mutateAsync({ description })}
           as="p"
           className="text-[15px] leading-7 text-foreground"
