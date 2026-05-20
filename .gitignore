@@ -83,6 +83,9 @@ cookies.txt
 Thumbs.db
 *.md.tmp
 .tmp/
+.tmp-smoke-encoding/
+__pycache__/
+*.py[cod]
 
 # 本地 Paperclip 助手/一次性 curl 落地（不入库）
 .paperclip-tmp/
