@@ -156,16 +156,16 @@ export function CompanyInvites() {
   }
 
   if (invitesQuery.isLoading) {
-    return <div className="text-sm text-muted-foreground">Loading invites…</div>;
+    return <div className="text-sm text-muted-foreground">{companyInvitesPage.loading}</div>;
   }
 
   if (invitesQuery.error) {
     const message =
       invitesQuery.error instanceof ApiError && invitesQuery.error.status === 403
-        ? "You do not have permission to manage company invites."
+        ? companyInvitesPage.forbidden
         : invitesQuery.error instanceof Error
           ? invitesQuery.error.message
-          : "Failed to load invites.";
+          : companyInvitesPage.failedToLoad;
     return <div className="text-sm text-destructive">{message}</div>;
   }
 
@@ -244,7 +244,7 @@ export function CompanyInvites() {
                 {latestInviteCopied ? (
                   <div className="inline-flex items-center gap-1 text-xs font-medium text-foreground">
                     <Check className="h-3.5 w-3.5" />
-                    Copied
+                    {companyInvitesPage.copied}
                   </div>
                 ) : null}
               </div>
@@ -371,5 +371,5 @@ export function CompanyInvites() {
 }
 
 function formatInviteState(state: "active" | "accepted" | "expired" | "revoked") {
-  return state.charAt(0).toUpperCase() + state.slice(1);
+  return companyInvitesPage.inviteState[state];
 }

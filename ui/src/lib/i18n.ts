@@ -1425,6 +1425,7 @@ export const issueTreeControl = {
   preview409: "子树状态已变更，预览已过期。请重试刷新。",
   preview422: "当前所选事务无法执行此子树操作。",
   previewLoadFailed: "无法加载预览。",
+  retryPreview: "重试预览",
 } as const;
 
 export const issueDetailActors = {
@@ -3425,6 +3426,16 @@ export const companyInvitesPage = {
   inviteRevoked: "邀请已撤销",
   failedToRevoke: "撤销邀请失败",
   pendingBadge: (n: number) => `待处理（${n}）`,
+  loading: "正在加载邀请…",
+  forbidden: "你无权管理公司邀请。",
+  failedToLoad: "加载邀请失败。",
+  copied: "已复制",
+  inviteState: {
+    active: "有效",
+    accepted: "已接受",
+    expired: "已过期",
+    revoked: "已撤销",
+  },
 } as const;
 
 /** 公司访问页 */
@@ -4091,6 +4102,8 @@ export const companySkillsPage = {
   skippedSuffix: " 个跳过",
   acrossPrefix: "共 ",
   workspacesSuffix: " 个工作区",
+  copiedPath: "已复制路径",
+  copySourcePath: "复制来源路径",
 } as const;
 
 // ——— Instance Experimental Settings page ———

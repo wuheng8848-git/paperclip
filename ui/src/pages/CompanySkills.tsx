@@ -182,14 +182,14 @@ function middleTruncate(value: string, maxLength = 72) {
 }
 
 function formatProjectScanSummary(result: CompanySkillProjectScanResult) {
-  const parts = [
-    `${result.discovered} found`,
-    `${result.imported.length} imported`,
-    `${result.updated.length} updated`,
-  ];
-  if (result.conflicts.length > 0) parts.push(`${result.conflicts.length} conflicts`);
-  if (result.skipped.length > 0) parts.push(`${result.skipped.length} skipped`);
-  return `${parts.join(", ")} across ${result.scannedWorkspaces} workspace${result.scannedWorkspaces === 1 ? "" : "s"}.`;
+  return companySkillsPage.scanSummary(
+    result.discovered,
+    result.imported.length,
+    result.updated.length,
+    result.conflicts.length,
+    result.skipped.length,
+    result.scannedWorkspaces,
+  );
 }
 
 function fileIcon(kind: CompanySkillFileInventoryEntry["kind"]) {
@@ -618,9 +618,9 @@ function SkillPane({
                     </span>
                     <CopyText
                       text={detail.sourcePath}
-                      copiedLabel="Copied path"
-                      ariaLabel="Copy source path"
-                      title="Copy source path"
+                      copiedLabel={companySkillsPage.copiedPath}
+                      ariaLabel={companySkillsPage.copySourcePath}
+                      title={companySkillsPage.copySourcePath}
                       className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-sm border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                     >
                       <Copy className="h-3.5 w-3.5" />
