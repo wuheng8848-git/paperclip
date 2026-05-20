@@ -82,6 +82,18 @@ export const statusBadge: Record<string, string> = {
 
 export const statusBadgeDefault = "bg-muted text-muted-foreground";
 
+export const runStatusText: Record<string, string> = {
+  succeeded: "text-green-600 dark:text-green-400",
+  failed: "text-red-600 dark:text-red-400",
+  running: "text-cyan-600 dark:text-cyan-400",
+  queued: "text-yellow-600 dark:text-yellow-400",
+  scheduled_retry: "text-sky-600 dark:text-sky-400",
+  timed_out: "text-orange-600 dark:text-orange-400",
+  cancelled: "text-neutral-500 dark:text-neutral-400",
+};
+
+export const runStatusTextDefault = "text-foreground";
+
 // ---------------------------------------------------------------------------
 // Agent status dot — solid background for small indicator dots
 // ---------------------------------------------------------------------------

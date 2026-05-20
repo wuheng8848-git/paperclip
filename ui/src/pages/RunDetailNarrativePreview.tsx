@@ -5,9 +5,9 @@ import {
   Clock,
   Copy,
   FileText,
+  LayoutDashboard,
   ListTree,
   Terminal,
-  Workflow,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -31,16 +30,17 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { StatusBadge } from "@/components/StatusBadge";
 import { useBreadcrumbs } from "@/context/BreadcrumbContext";
 import { Link } from "@/lib/router";
-import { nav, orchestrationInjectionPage } from "@/lib/i18n";
+import { nav, orchestrationInjectionPage, formatRunStatus } from "@/lib/i18n";
 import { RUN_LIST_PATH } from "@/lib/run-routes";
+import { runStatusText, runStatusTextDefault } from "@/lib/status-colors";
 import { cn } from "@/lib/utils";
 
 type ExpertView = "prompt" | "friendly" | "raw" | "json-context" | "json-wake" | "json-invoke" | "json-result";
 
 const MOCK_RUN_ID = "101c048a-0000-4000-8000-000000000001";
+const MOCK_RUN_STATUS = "succeeded" as const;
 
 const PROMPT_BLOCKS = [
   { id: "bootstrap", status: "带入" as const, size: "~1.2k 字", summary: "公司边界、工具表骨架" },
@@ -103,11 +103,44 @@ function PropertyRow({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-function StatCell({ label, value }: { label: string; value: string }) {
+function StatCell({
+  label,
+  value,
+  valueClassName,
+  size = "lg",
+}: {
+  label: string;
+  value: ReactNode;
+  valueClassName?: string;
+  size?: "lg" | "md";
+}) {
   return (
     <div className="px-4 py-3">
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-1 text-lg font-semibold tabular-nums tracking-tight">{value}</div>
+      <div
+        className={cn(
+          "mt-1 tracking-tight",
+          size === "lg" ? "text-lg font-semibold tabular-nums" : "text-sm font-medium",
+          valueClassName,
+        )}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function MetricStrip({ children, columns = 4 }: { children: ReactNode; columns?: 2 | 3 | 4 }) {
+  return (
+    <div
+      className={cn(
+        "overflow-hidden rounded-md border border-border sm:grid sm:divide-x sm:divide-y",
+        columns === 2 && "sm:grid-cols-2",
+        columns === 3 && "sm:grid-cols-2 lg:grid-cols-3",
+        columns === 4 && "sm:grid-cols-2 lg:grid-cols-4",
+      )}
+    >
+      {children}
     </div>
   );
 }
@@ -139,6 +172,7 @@ function NarrativeCard({
   title,
   description,
   icon: Icon,
+  headerActions,
   children,
   footer,
 }: {
@@ -146,6 +180,7 @@ function NarrativeCard({
   title: string;
   description: string;
   icon?: React.ComponentType<{ className?: string }>;
+  headerActions?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
 }) {
@@ -157,11 +192,40 @@ function NarrativeCard({
         ) : null}
         <CardTitle className="shrink-0 text-sm font-medium leading-none">{title}</CardTitle>
         <CardDescription className="min-w-0 flex-1 pb-px text-xs leading-none">{description}</CardDescription>
+        {headerActions ? (
+          <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2 pb-px">{headerActions}</div>
+        ) : null}
       </div>
       <CardContent className={cn("space-y-3 px-6 pt-3", footer && "pb-3")}>{children}</CardContent>
       {footer ? (
         <CardFooter className="flex flex-wrap gap-2 border-t px-6 py-3 [.border-t]:pt-3">{footer}</CardFooter>
       ) : null}
+    </Card>
+  );
+}
+
+function OverviewCard({
+  headerActions,
+  children,
+}: {
+  headerActions?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <Card id="outcome" className="scroll-mt-4 gap-0 py-0 shadow-none">
+      <div className="flex flex-col gap-3 border-b px-6 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-wrap items-end gap-x-2 gap-y-0">
+          <LayoutDashboard className="mb-px h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+          <CardTitle className="shrink-0 text-base font-medium leading-none">概览</CardTitle>
+          <CardDescription className="min-w-0 flex-1 pb-px text-xs leading-none">
+            本轮运行结论 — 终态、用量与结构化回传摘要
+          </CardDescription>
+        </div>
+        {headerActions ? (
+          <div className="flex shrink-0 flex-wrap items-center gap-2">{headerActions}</div>
+        ) : null}
+      </div>
+      <CardContent className="space-y-3 px-6 pb-3 pt-3">{children}</CardContent>
     </Card>
   );
 }
@@ -253,48 +317,19 @@ export function RunDetailNarrativePreview() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
-      <div className="rounded-lg border border-border p-4 sm:p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0 space-y-3">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <StatusBadge status="succeeded" />
-              <span className="font-mono text-xs text-muted-foreground">{MOCK_RUN_ID.slice(0, 8)}…</span>
-            </div>
-            <dl className="grid gap-3 sm:grid-cols-3">
-              <div>
-                <dt className="text-xs text-muted-foreground">{orchestrationInjectionPage.agent}</dt>
-                <dd className="mt-0.5 text-sm font-medium">
-                  <Link to="/agents/all" className="text-primary hover:underline">
-                    T5 执行
-                  </Link>
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">适配器</dt>
-                <dd className="mt-0.5 text-sm font-medium">CodeBuddy 本地</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">时长</dt>
-                <dd className="mt-0.5 text-sm font-medium tabular-nums">2 分 45 秒</dd>
-              </div>
-            </dl>
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-2">
+      <OverviewCard
+        headerActions={
+          <>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
-                  深读
+                  技术数据
                   <ChevronDown className="ml-1 h-4 w-4" aria-hidden />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem onClick={() => openExpert("prompt")}>最终提示词</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => openExpert("friendly")}>友好转写</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => openExpert("raw")}>原始流</DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => openExpert("json-context")}>运行快照（JSON）</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => openExpert("json-wake")}>唤醒载荷（JSON）</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => openExpert("json-invoke")}>完整命令行</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => openExpert("json-result")}>结构化回传（JSON）</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -302,9 +337,50 @@ export function RunDetailNarrativePreview() {
               <Copy className="mr-1.5 h-4 w-4" aria-hidden />
               复制运行 ID
             </Button>
-          </div>
+          </>
+        }
+      >
+        <MetricStrip>
+          <StatCell
+            size="md"
+            label={orchestrationInjectionPage.agent}
+            value={
+              <Link to="/agents/all" className="text-primary hover:underline">
+                T5 执行
+              </Link>
+            }
+          />
+          <StatCell size="md" label="适配器" value="CodeBuddy 本地" />
+          <StatCell size="md" label="时长" value="2 分 45 秒" />
+          <StatCell size="md" label="退出码" value="0" />
+          <StatCell
+            label={orchestrationInjectionPage.status}
+            value={formatRunStatus(MOCK_RUN_STATUS)}
+            valueClassName={runStatusText[MOCK_RUN_STATUS] ?? runStatusTextDefault}
+          />
+          <StatCell label="输入 Token" value="12.4k" />
+          <StatCell label="输出 Token" value="3.1k" />
+          <StatCell label="缓存读取 Token" value="8.2k" />
+        </MetricStrip>
+        <div className="rounded-md border border-border bg-muted/15 px-3 py-1">
+          <PropertyRow
+            label="结构化回传摘要"
+            value={
+              <span className="inline-flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+                <span>变更文件 1 个 · releases/v2026.318.0.zh.md · 事务评论已回写</span>
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="h-auto px-0 text-xs"
+                  onClick={() => openExpert("json-result")}
+                >
+                  完整 JSON
+                </Button>
+              </span>
+            }
+          />
         </div>
-      </div>
+      </OverviewCard>
 
       <NarrativeCard
         id="source"
@@ -353,7 +429,7 @@ export function RunDetailNarrativePreview() {
       <NarrativeCard
         id="input"
         title="输入编排"
-        description="控制面如何组装本轮输入 — 提示词段清单（最终提示词全文见深读）"
+        description="控制面如何组装本轮输入 — 提示词段清单"
         icon={ListTree}
         footer={
           <Button variant="outline" size="sm" onClick={() => openExpert("prompt")}>
@@ -391,6 +467,9 @@ export function RunDetailNarrativePreview() {
             <Button variant="outline" size="sm" onClick={() => openExpert("friendly")}>
               查看完整友好转写
             </Button>
+            <Button variant="ghost" size="sm" onClick={() => openExpert("raw")}>
+              原始流
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => openExpert("json-invoke")}>
               完整命令行
             </Button>
@@ -423,32 +502,6 @@ export function RunDetailNarrativePreview() {
           <pre className="max-h-28 overflow-hidden whitespace-pre-wrap break-words rounded-md border border-border bg-muted/30 p-3 font-mono text-xs leading-relaxed text-muted-foreground">
             {EXPERT_BODY.friendly}
           </pre>
-        </div>
-      </NarrativeCard>
-
-      <NarrativeCard
-        id="outcome"
-        title="结果"
-        description="本轮交回什么 — 终态、用量与结构化回传摘要"
-        icon={Workflow}
-        footer={
-          <Button variant="outline" size="sm" onClick={() => openExpert("json-result")}>
-            查看完整结构化回传（JSON）
-          </Button>
-        }
-      >
-        <div className="overflow-hidden rounded-md border border-border sm:grid sm:grid-cols-2 xl:grid-cols-5 xl:divide-x">
-          <StatCell label={orchestrationInjectionPage.status} value="成功" />
-          <StatCell label="退出码" value="0" />
-          <StatCell label="输入 Token" value="12.4k" />
-          <StatCell label="输出 Token" value="3.1k" />
-          <StatCell label="缓存读取 Token" value="8.2k" />
-        </div>
-        <div className="rounded-md border border-border bg-muted/15 px-3 py-1">
-          <PropertyRow
-            label="结构化回传摘要"
-            value="变更文件 1 个 · releases/v2026.318.0.zh.md · 事务评论已回写"
-          />
         </div>
       </NarrativeCard>
 
