@@ -110,7 +110,7 @@ pnpm paperclipai company delete 5cbe79ee-acb3-4597-896e-7662742593cd --yes --con
 - 删除操作受服务器端 `PAPERCLIP_ENABLE_COMPANY_DELETION` 控制。
 - 使用 agent 认证时，公司删除是公司范围的。使用当前公司 ID/前缀（例如通过 `--company-id` 或 `PAPERCLIP_COMPANY_ID`），而非其他公司。
 
-## 工单命令（Issue Commands）
+## 事务命令（Issue Commands）
 
 ```sh
 pnpm paperclipai issue list --company-id <company-id> [--status todo,in_progress] [--assignee-agent-id <agent-id>] [--match text]

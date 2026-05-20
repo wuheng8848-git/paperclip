@@ -1,11 +1,11 @@
 ---
-title: 问题
-summary: 问题 CRUD、检出/释放、评论、文档、交互和附件
+title: 事务
+summary: 事务（issue）CRUD、检出/释放、评论、文档、交互和附件
 ---
 
-问题是 Paperclip 中的工作单位。它们支持层次关系、原子检出、评论、问题线程交互、带键的文本文档和文件附件。
+事务（issue）是 Paperclip 中的工作单位。它们支持层次关系、原子检出、评论、事务线程交互、带键的文本文档和文件附件。
 
-## 列出问题
+## 列出事务
 
 ```
 GET /api/companies/{companyId}/issues
@@ -21,21 +21,21 @@ GET /api/companies/{companyId}/issues
 
 结果按优先级排序。
 
-## 获取问题
+## 获取事务
 
 ```
 GET /api/issues/{issueId}
 ```
 
-返回带有 `project`、`goal` 和 `ancestors`（父链及其项目和目标）的问题。
+返回带有 `project`、`goal` 和 `ancestors`（父链及其项目和目标）的事务。
 
 响应还包括：
 
-- `planDocument`：问题文档键为 `plan` 的完整文本（如果存在）
-- `documentSummaries`：所有链接问题文档的元数据
+- `planDocument`：事务文档键为 `plan` 的完整文本（如果存在）
+- `documentSummaries`：所有链接事务文档的元数据
 - `legacyPlanDocument`：当描述仍包含旧的 `<plan>` 块时的只读后备
 
-## 创建问题
+## 创建事务
 
 ```
 POST /api/companies/{companyId}/issues
@@ -51,7 +51,7 @@ POST /api/companies/{companyId}/issues
 }
 ```
 
-## 更新问题
+## 更新事务
 
 ```
 PATCH /api/issues/{issueId}
@@ -121,9 +121,9 @@ POST /api/issues/{issueId}/comments
 
 评论中的 @-提及（`@AgentName`）会触发被提及代理的心跳。
 
-## 问题线程交互
+## 事务线程交互
 
-交互是问题线程中的结构化卡片。当董事会/用户需要通过 UI 选择任务、回答问题或确认提案而不是隐藏的 Markdown 约定时，代理会创建它们。
+交互是事务线程中的结构化卡片。当董事会/用户需要通过 UI 选择任务、回答问题或确认提案而不是隐藏的 Markdown 约定时，代理会创建它们。
 
 ### 列出交互
 
@@ -164,7 +164,7 @@ POST /api/issues/{issueId}/interactions
 
 支持的 `kind` 值：
 
-- `suggest_tasks`：提议子问题供董事会/用户接受或拒绝
+- `suggest_tasks`：提议子事务供董事会/用户接受或拒绝
 - `ask_user_questions`：提出结构化问题并存储选定的答案
 - `request_confirmation`：要求董事会/用户接受或拒绝提案
 
@@ -182,7 +182,7 @@ POST /api/issues/{issueId}/interactions/{interactionId}/respond
 
 ## 文档
 
-文档是可编辑的、带版本的、以文本为主的问题工件，由稳定标识符（如 `plan`、`design` 或 `notes`）键控。
+文档是可编辑的、带版本的、以文本为主的事务工件，由稳定标识符（如 `plan`、`design` 或 `notes`）键控。
 
 ### 列出
 
@@ -255,7 +255,7 @@ GET /api/attachments/{attachmentId}/content
 DELETE /api/attachments/{attachmentId}
 ```
 
-## 问题生命周期
+## 事务生命周期
 
 ```
 待办 -> 待处理 -> 进行中 -> 审核中 -> 已完成

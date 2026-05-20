@@ -77,7 +77,7 @@
 ### 3.1 降级理由
 
 - Jarvis 没心跳、没裁决能力之前，让它当主控是空中楼阁
-- Paperclip 已有心跳和工单系统，能承接"把 Jarvis 做活"的工程任务
+- Paperclip 已有心跳和事务系统，能承接"把 Jarvis 做活"的工程任务
 - **过渡态**：吴衡 → Paperclip 里的 Jarvis 项目 → 工人
 - **未来态**：吴衡 → Jarvis 主控 → Paperclip 执行面 → 工人
 

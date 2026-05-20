@@ -115,7 +115,7 @@ Plaintext
 Plaintext
 
 ```
-□ 建 .paperclip/state/ 目录□ 写3个MCP工具（只读）：   ├── getKeyMetrics() → 从业务数据源拉指标   ├── getAppHealth() → 从Sentry/监控拉错误率   └── getUserFeedback() → 从客服渠道拉最近反馈□ 加入 pre-heartbeat hook，生成本地dashboard.md□ 修改CEO Agent的system prompt：第一步读dashboard□ 让Agent在工单里写「我的分析和决策依据」
+□ 建 .paperclip/state/ 目录□ 写3个MCP工具（只读）：   ├── getKeyMetrics() → 从业务数据源拉指标   ├── getAppHealth() → 从Sentry/监控拉错误率   └── getUserFeedback() → 从客服渠道拉最近反馈□ 加入 pre-heartbeat hook，生成本地dashboard.md□ 修改CEO Agent的system prompt：第一步读dashboard□ 让Agent在事务里写「我的分析和决策依据」
 ```
 
 **验证标准：**
@@ -148,7 +148,7 @@ Plaintext
 Plaintext
 
 ```
-□ Level 1: 只读外部渠道   ├── 读邮件收件箱   ├── 读飞书/企业微信消息   └── 读客户支持工单□ Level 2: 内部写入   ├── 给自己发飞书通知（关键事件推送）   └── 创建内部文档□ Level 3: 草稿生成（审批后发送）   ├── Agent写邮件回复草稿 → 你审批 → 发送   └── Agent写营销内容草稿 → 你审批 → 发布□ Level 4: 自动化操作（看情况决定要不要开）   └── 高重复低风险的操作自动执行
+□ Level 1: 只读外部渠道   ├── 读邮件收件箱   ├── 读飞书/企业微信消息   └── 读客户支持事务□ Level 2: 内部写入   ├── 给自己发飞书通知（关键事件推送）   └── 创建内部文档□ Level 3: 草稿生成（审批后发送）   ├── Agent写邮件回复草稿 → 你审批 → 发送   └── Agent写营销内容草稿 → 你审批 → 发布□ Level 4: 自动化操作（看情况决定要不要开）   └── 高重复低风险的操作自动执行
 ```
 
 **验证标准：**

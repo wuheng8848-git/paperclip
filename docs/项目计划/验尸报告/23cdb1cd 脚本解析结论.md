@@ -55,7 +55,7 @@ echo "Reply with exactly: ok" | & "$env:LOCALAPPDATA\cursor-agent\agent.CMD" -p 
 | 13:03–13:06 | reconnect ×3，`checkpoint_turn_count: 1` |
 | 13:07:57 | stderr：`Failed to run step, exceeded max retries` |
 
-无 `assistant` / tool / `type:result`；工单侧 **未见** 评论 `ok`。
+无 `assistant` / tool / `type:result`；事务侧 **未见** 评论 `ok`。
 
 ---
 

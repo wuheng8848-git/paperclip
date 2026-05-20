@@ -11,7 +11,7 @@
 
 - Board **pause agent** 后，queued/running run 被取消，但 issue 侧仍像「占着」checkout 或仍有 pending wakeup；
 - **continuation / accepted interaction** 路径被其它 run 或 pause/recovery 打断；
-- 源工单 **ROU-60/61** 一类问题在自动 recovery 下长出 **Recover stalled…** / **Unblock liveness…** 等子单，看起来像「编号扩散」。
+- 源事务 **ROU-60/61** 一类问题在自动 recovery 下长出 **Recover stalled…** / **Unblock liveness…** 等子单，看起来像「编号扩散」。
 
 本轮先在代码侧厘清 **pause → cancel → release → recovery** 的链路，再落地 **最小止损补丁**（见执行单）。
 

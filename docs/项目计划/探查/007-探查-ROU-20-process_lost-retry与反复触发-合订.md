@@ -1,6 +1,6 @@
 # 合订探查：ROU-20、`process_lost_retry`、反复触发与取证最佳实践
 
-本文合并四块内容：**(1)** `process_lost_retry` 报错语义与 **`enqueueProcessLossRetry` 行为**；**(2)** 怎么查「工单 + 相关活动」；**(3)** 反查「每条 run 最后一条挂钩活动」的最佳实践 + **ROU-20 六条 run 结论表**；**(4)** 为何体感「反复触发」、机制是否正常、与「最多重试 / 已完成少打扰」的产品取向。
+本文合并四块内容：**(1)** `process_lost_retry` 报错语义与 **`enqueueProcessLossRetry` 行为**；**(2)** 怎么查「事务 + 相关活动」；**(3)** 反查「每条 run 最后一条挂钩活动」的最佳实践 + **ROU-20 六条 run 结论表**；**(4)** 为何体感「反复触发」、机制是否正常、与「最多重试 / 已完成少打扰」的产品取向。
 
 **取证脚本**（已落地）：`scripts/issue-run-forensics.mjs`（`pnpm issue:forensics`）。**数据快照**：`local_trusted` 下 `routic` 公司 + **ROU-20**（`companyId=cc098628-d91e-4e10-b4e4-000a6c822946`）。
 
@@ -36,7 +36,7 @@
    - 若 `issueId` 存在且 **`issues.executionRunId` 仍等于原 run id**，则把 **`executionRunId`** 切到 **新 retry run**（避免指针悬空）。  
 4. **事务外**：发 **`heartbeat.run.queued`** live event；写一条 **lifecycle / warn** 事件（英文队列说明）。  
 
-**不在此函数内做的**：不在这里「再判一次工单是否 done」；是否继续跑由后续 **`executeRun`**、排队门控、以及 **`reapOrphanedRuns` 的 `shouldRetry`** 等路径共同决定。
+**不在此函数内做的**：不在这里「再判一次事务是否 done」；是否继续跑由后续 **`executeRun`**、排队门控、以及 **`reapOrphanedRuns` 的 `shouldRetry`** 等路径共同决定。
 
 ### 1.3 谁在什么条件下会调用它
 
@@ -52,15 +52,15 @@
 
 ---
 
-## 2）怎么查「工单 + 相关活动」——操作指南
+## 2）怎么查「事务 + 相关活动」——操作指南
 
 ### 2.1 最小 API 组合
 
 | 目的 | 请求 |
 |------|------|
-| 校验公司、拿工单 UUID / `companyId` | `GET /api/issues/{ROU-20或UUID}` |
-| 与本工单相关的 **runs**（含 `runId`） | `GET /api/issues/{ref}/runs` |
-| 工单维度的 **活动流**（含 `runId` 可能为空） | `GET /api/issues/{ref}/activity` |
+| 校验公司、拿事务 UUID / `companyId` | `GET /api/issues/{ROU-20或UUID}` |
+| 与本事务相关的 **runs**（含 `runId`） | `GET /api/issues/{ref}/runs` |
+| 事务维度的 **活动流**（含 `runId` 可能为空） | `GET /api/issues/{ref}/activity` |
 | 单条 run 详情（`error` / `contextSnapshot`） | `GET /api/heartbeat-runs/{runId}` |
 | 单条 run 事件 + **adapter 提示词** | `GET /api/heartbeat-runs/{runId}/events?limit=200` |
 
@@ -70,7 +70,7 @@
 # 列 runs（按 createdAt 升序编号 = 第 N 条）
 pnpm issue:forensics -- --company <companyUuid> --issue ROU-20
 
-# 工单全部活动（新 → 旧 宽表）
+# 事务全部活动（新 → 旧 宽表）
 pnpm issue:forensics -- --company <companyUuid> --issue ROU-20 --issue-activity
 
 # 对每条 run：run 摘要 + 该 runId 下「最后一条活动」+ prompt 节选
@@ -82,7 +82,7 @@ pnpm issue:forensics -- --company <companyUuid> --issue ROU-20 --run 4
 
 **硬规则**：`--company` 必须与 `GET /api/issues/{ref}` 返回的 **`companyId`** 一致，否则脚本直接退出（防串租户）。
 
-更多踩坑见 **`../最佳实践/002-实践-工单运行记录API取证路径.md`**。
+更多踩坑见 **`../最佳实践/002-实践-事务运行记录API取证路径.md`**。
 
 ---
 
@@ -121,15 +121,15 @@ pnpm issue:forensics -- --company <companyUuid> --issue ROU-20 --run 4
 
 - **`process_lost_retry` 不是无限循环**：对**同一条原 run**，`processLossRetryCount < 1` 时 **最多排队 1 个**重试 run（见 §1.3）。  
 - **ROU-20 上出现两条 `process_lost_retry`**（`82eecc3c…`、`f7f3c17d…`），是因为存在 **两条独立「原 run 丢进程」链**（`1e367944…` 与 `0607fc70…`），**各触发一次**自动重试 —— **符合当前代码设计**，不是「同一条链被重复 enqueue」那种 bug。  
-- **额外 CLI 次数**还来自：**assignment**、**issue_reopened_via_comment**、**issue_commented** 等 **正常唤醒路径**；以及 **`deferred_comment_wake`** 在 **`done` 工单上把状态 reopen 到 `todo`** 带来的 **又一次心跳机会** —— 这与「工单已结案但线程上仍有人类评论 / 系统延迟唤醒」强相关，体感会像「怎么又来」，但根因是 **产品规则 + 运维动作** 叠在 **进程不稳定** 之上。
+- **额外 CLI 次数**还来自：**assignment**、**issue_reopened_via_comment**、**issue_commented** 等 **正常唤醒路径**；以及 **`deferred_comment_wake`** 在 **`done` 事务上把状态 reopen 到 `todo`** 带来的 **又一次心跳机会** —— 这与「事务已结案但线程上仍有人类评论 / 系统延迟唤醒」强相关，体感会像「怎么又来」，但根因是 **产品规则 + 运维动作** 叠在 **进程不稳定** 之上。
 
 ### 4.2 哪些是「正常」、哪些值得产品化收紧
 
 | 现象 | 倾向 |
 |------|------|
 | API 重启 / 子进程真死 → `process_lost` + **一次** `process_lost_retry` | **预期自愈** |
-| `done` 后仍 `issue_commented` / `deferred_comment_wake` reopen | **规则使然**；若希望「done 后零噪音」，要单独立 **门禁**（例如：终态工单不再排 `process_lost_retry` / 不再因纯评论拉起 CLI，除非显式 `resume`）——**属于产品决策**，不是简单修一行就能「又安全又省事」。 |
-| 「最多 2 次」CLI（你文中所述） | 当前实现是 **每条原 run 最多 +1 次自动重试**；若你要 **「全工单维度」** 或 **「done 后 0 次」**，需在 **`reapOrphanedRuns` / `enqueueProcessLossRetry` / comment-wake** 几处做 **统一预算**，并写清与 **恢复 / 评论唤醒** 的优先级。 |
+| `done` 后仍 `issue_commented` / `deferred_comment_wake` reopen | **规则使然**；若希望「done 后零噪音」，要单独立 **门禁**（例如：终态事务不再排 `process_lost_retry` / 不再因纯评论拉起 CLI，除非显式 `resume`）——**属于产品决策**，不是简单修一行就能「又安全又省事」。 |
+| 「最多 2 次」CLI（你文中所述） | 当前实现是 **每条原 run 最多 +1 次自动重试**；若你要 **「全事务维度」** 或 **「done 后 0 次」**，需在 **`reapOrphanedRuns` / `enqueueProcessLossRetry` / comment-wake** 几处做 **统一预算**，并写清与 **恢复 / 评论唤醒** 的优先级。 |
 
 ### 4.3 与「token 怨气」对齐的工程翻译
 
@@ -140,7 +140,7 @@ pnpm issue:forensics -- --company <companyUuid> --issue ROU-20 --run 4
 
 ## 5）脚本变更记录（本轮）
 
-- 新增 **`--issue-activity`**：打印工单全部活动宽表。  
+- 新增 **`--issue-activity`**：打印事务全部活动宽表。  
 - 新增 **`--reverse-last-per-run`**：对每条 run 输出 **摘要 + 最后活动 + prompt 节选**；**禁止**与 `--run` / `--run-id` 同时使用。  
 - 修正截断尾缀为 **ASCII**，避免 Windows 控制台编码污染 Markdown。
 
@@ -150,6 +150,6 @@ pnpm issue:forensics -- --company <companyUuid> --issue ROU-20 --run 4
 
 - `探查-ROU-20-运行记录.md`  
 - `探查-process_lost_retry.md`  
-- `../最佳实践/002-实践-工单运行记录API取证路径.md`  
+- `../最佳实践/002-实践-事务运行记录API取证路径.md`  
 
 **最后更新**：与脚本 `issue-run-forensics.mjs` 本轮增强同步。

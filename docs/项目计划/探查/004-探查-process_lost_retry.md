@@ -27,7 +27,7 @@
 | **API 刚重启**后出现 `process_lost` + 一条 `process_lost_retry` 的 queued run | **预期**：旧进程内存丢失，DB 仍 `running` |
 | 子进程仍存活但句柄丢了 | 走 **`process_detached`**，**不**当 `process_lost`（见 `reapOrphanedRuns` 中 `processPidAlive` 分支） |
 | **同一原 run** 出现 **多条** `process_lost_retry` 子链 | **可疑**：应被 `processLossRetryCount < 1` 挡住，需带 **run id** 查库与日志 |
-| 工单已 **`done`/`cancelled`** 仍执行重试 run | **可疑边角**：`enqueueProcessLossRetry` 更新 `issues.executionRunId` 有条件 `executionRunId === 旧 run`；重试 run 仍可能 `queued`，需在具体案例里对 `executeRun` 与 issue 状态交叉验证 |
+| 事务已 **`done`/`cancelled`** 仍执行重试 run | **可疑边角**：`enqueueProcessLossRetry` 更新 `issues.executionRunId` 有条件 `executionRunId === 旧 run`；重试 run 仍可能 `queued`，需在具体案例里对 `executeRun` 与 issue 状态交叉验证 |
 
 ## 取证（API）
 

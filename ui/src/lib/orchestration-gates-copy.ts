@@ -158,7 +158,7 @@ export const orchestrationGatesRows: ReadonlyArray<OrchestrationGatesTableRow> =
     uiLinks: [{ to: "/orchestration-injection", labelKey: "jumpOrchestrationInjection" }],
     configurable: "阈值（约 1h / 4h 等）写在实现里，本页不暴露滑块；若将来实例级可配会出现在设置。",
     hardcoded:
-      "活跃无输出盯梢说明：跑次长时间卡在活跃却几乎没控制台输出时，分级怀疑，并可能开复查单或留评论。\n\n与「心跳避退」不是一回事：这里盯的是输出静默，并对同类提醒去重。\n\n触发：每轮调度内，扫描正在跑且命中静默规则的心跳跑次。\n\n结果：可能创建或挂上「活跃无输出复核」类工单并叫醒；细节见活动日志。",
+      "活跃无输出盯梢说明：跑次长时间卡在活跃却几乎没控制台输出时，分级怀疑，并可能开复查单或留评论。\n\n与「心跳避退」不是一回事：这里盯的是输出静默，并对同类提醒去重。\n\n触发：每轮调度内，扫描正在跑且命中静默规则的心跳跑次。\n\n结果：可能创建或挂上「活跃无输出复核」类事务并叫醒；细节见活动日志。",
     codeRef: "recovery/scanSilentActiveRuns · heartbeat",
   },
   {

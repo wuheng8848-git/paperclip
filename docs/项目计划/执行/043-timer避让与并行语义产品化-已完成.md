@@ -26,7 +26,7 @@ status: 已完成
 
 ## 技术设计
 
-1. **`source === "timer"` 且已通过 HB-007（有可分派工单）`** 之后，数一数该 `agentId` 是否已有 **`queued` / `running` / `scheduled_retry` 且 `invocationSource` ≠ `timer`** 的 `heartbeat_runs`。
+1. **`source === "timer"` 且已通过 HB-007（有可分派事务）`** 之后，数一数该 `agentId` 是否已有 **`queued` / `running` / `scheduled_retry` 且 `invocationSource` ≠ `timer`** 的 `heartbeat_runs`。
 2. 若有 → **`agent_wakeup_requests` 写入 `skipped`，`reason` = `heartbeat.timer_yield_non_timer_pending`**；并调整 **`agents.lastHeartbeatAt`**（否则 `tickTimers` 会因间隔判据每拍反复撞同一分支）。
 3. **退让时间：** `computeDeferredTimerBaseline(now, intervalSec, deferSec)`；默认 **`deferSec` = `HEARTBEAT_TIMER_NON_TIMER_PENDING_DEFER_SEC`（默认 120，可通过环境变量改）**。`deferSec === 0` 表示把时钟拨到「现在」（等同丢弃本轮再等满间隔）。
 
@@ -54,7 +54,7 @@ status: 已完成
 | 退让基数计算 / 计数 | `server/src/services/heartbeat-timer-yield.ts` |
 | 入队闸 | `server/src/services/heartbeat.ts` · `enqueueWakeup` |
 | UI 脚注 | `ui/src/pages/HeartbeatTasks.tsx`、`ui/src/lib/i18n.ts`（`heartbeatTasksPage.concurrencySemanticsFootnote`、`agentConfigHelp.maxConcurrentRuns`） |
-| 运维交叉 | **`docs/项目计划/最佳实践/004-实践-工单心跳与僵尸run排障.md`** §5 |
+| 运维交叉 | **`docs/项目计划/最佳实践/004-实践-事务心跳与僵尸run排障.md`** §5 |
 
 **测试：** `server/src/__tests__/heartbeat-timer-yield.test.ts`（退让时间纯函数；本机嵌入式 Postgres 不可用时的 **端到端 enqueue 冒烟**请参考同目录其它 `heartbeat-*.test.ts` 范式，需在可启动 embedded Postgres 的环境下补跑）。
 
@@ -70,4 +70,4 @@ status: 已完成
 
 ## 参考链
 
-[`007-心跳调度无issue不触发.md`](007-心跳调度无issue不触发.md)、[`032-agent-pause止损与heartbeat释放一致性.md`](032-agent-pause止损与heartbeat释放一致性.md)、[`033-控制面-issue-run观测与checkout应急操作.md`](033-控制面-issue-run观测与checkout应急操作.md)、[`004-实践-工单心跳与僵尸run排障.md`](../最佳实践/004-实践-工单心跳与僵尸run排障.md)。
+[`007-心跳调度无issue不触发.md`](007-心跳调度无issue不触发.md)、[`032-agent-pause止损与heartbeat释放一致性.md`](032-agent-pause止损与heartbeat释放一致性.md)、[`033-控制面-issue-run观测与checkout应急操作.md`](033-控制面-issue-run观测与checkout应急操作.md)、[`004-实践-事务心跳与僵尸run排障.md`](../最佳实践/004-实践-事务心跳与僵尸run排障.md)。

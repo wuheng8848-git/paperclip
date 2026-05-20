@@ -1,6 +1,6 @@
 # 实践：044 父子单接力与 checkout、唤醒标准剧本
 
-**工单：** **[`044-父子单接力与checkout唤醒标准剧本-已完成.md`](../执行/044-父子单接力与checkout唤醒标准剧本-已完成.md)**  
+**事务：** **[`044-父子单接力与checkout唤醒标准剧本-已完成.md`](../执行/044-父子单接力与checkout唤醒标准剧本-已完成.md)**  
 **母本：** **[`长期需求/24…` §A4、§D3](../长期需求/24%20评论唤起过载与编排分层改版计划%202026-05-17.md)**  
 **耦合：** **`032`** pause 与_wakeup 收口 · **`052`**（上下级 PATCH/UTF-8 若另起） · **`014`** 审阅/接力口径
 
@@ -17,7 +17,7 @@
 
 | 规则 | 说明 |
 | --- | --- |
-| **可变更是务带头** | 凡 `POST/PATCH` 会改写工单、评论、interaction、checkout、指派等，头部带 **`X-Paperclip-Run-Id: {runId}`**（沿用 [`skills/paperclip/SKILL.md`](../../../skills/paperclip/SKILL.md)、[`docs/API接口/01 API 概览 overview.md`](../../API接口/01%20API%20概览%20overview.md)）。Board 会话发起的操作若无「当前 run」，按你们治理约定仍可调用；**不要用 CEO agent key 冒充 Board 可调 API**。 |
+| **可变更是务带头** | 凡 `POST/PATCH` 会改写事务、评论、interaction、checkout、指派等，头部带 **`X-Paperclip-Run-Id: {runId}`**（沿用 [`skills/paperclip/SKILL.md`](../../../skills/paperclip/SKILL.md)、[`docs/API接口/01 API 概览 overview.md`](../../API接口/01%20API%20概览%20overview.md)）。Board 会话发起的操作若无「当前 run」，按你们治理约定仍可调用；**不要用 CEO agent key 冒充 Board 可调 API**。 |
 | **checkout 认领** | `POST /api/issues/{issueId}/checkout`，body 含 `agentId`、`expectedStatuses`。同一 assignee **已有活动 run** 且头里带了 **自己的** `runId` 再 checkout：**服务端不再重复派发 assignee wakeup**（`shouldWakeAssigneeOnCheckout`，见 [`issues-checkout-wakeup.ts`](../../../server/src/routes/issues-checkout-wakeup.ts)）。其它角色代 checkout → **仍会 `heartbeat.wakeup` assignee**。 |
 | **pause / resume** | `POST /api/agents/:id/pause`、`POST /api/agents/:id/resume`：**Board**（[`agents.ts`](../../../server/src/routes/agents.ts) `assertBoard`）。**CEO 的 agent Bearer 不能直接 resume CTO**。 |
 | **代唤醒** | `POST /api/agents/:id/wakeup`（或 `/heartbeat/invoke`）：若为 **Board** → 可叫醒**公司内任一**智能体（`assertBoardCanManageAgentsForCompany`）；若为 **agent** → **只能叫醒自己**。即：**CEO agent key 不能用来 POST `/agents/{ctoId}/wakeup`**。 |
@@ -52,7 +52,7 @@
    - **显式 wakeup：** Board（或托管 Board 的编排器密钥） `POST /api/agents/{ctoId}/wakeup`，body `source`、`reason`、`payload.issueId` 等。**勿用 CEO agent key** 直呼 CTO wakeup。
    - **评论唤起：** Board/人类 `POST /api/issues/{childId}/comments`（或由既有评论线程触发档位），走 **042/041** 档位与归因。
    - **`interaction`**：需人在回路时 `POST …/interactions`，需要接力继续时 **`continuationPolicy: "wake_assignee"`**（见 [`03 任务工作流`](../../指南/智能体开发者/03%20任务工作流%20task-workflow.md)）。
-5. **CTO 自己跑稳定后：** CTO 在当前 run 下对自己负责工单 `checkout`/`PATCH`，**继续使用同一 `X-Paperclip-Run-Id`**，别再让 CEO PATCH agent 配置兜底。
+5. **CTO 自己跑稳定后：** CTO 在当前 run 下对自己负责事务 `checkout`/`PATCH`，**继续使用同一 `X-Paperclip-Run-Id`**，别再让 CEO PATCH agent 配置兜底。
 
 ---
 
@@ -102,7 +102,7 @@ Content-Type: application/json
 
 ---
 
-## 7. 「延后」与产品缺口（工单已登记）
+## 7. 「延后」与产品缺口（事务已登记）
 
 **尚未做：** 「委派创建子单时是否自动 wakeup assignee」的 **Board 可选策略开关**——当前只靠 **checkout wakeup**、`/wakeup`、评论档位等既有路径组合；若要「建子必醒」须在 **`server/services/issues`/`routes`** 加闸与 **[`049`](../执行/049-审批参与者身份提示与执行阶段可查.md)** 一起看。
 

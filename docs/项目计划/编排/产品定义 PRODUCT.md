@@ -58,7 +58,7 @@ Paperclip 用多种方式运行 agent 的 **heartbeat（心跳）**：
 
 任务有 **parentage（父子关系）**。每个任务都服务于父任务，直到公司 **goal**。这让自主 agent 保持对齐 —— 永远能回答「我为什么在做这件事？」
 
-当前的 **issue（工单）** 模型包括：稳定 issue 标识、父/子 issue、**blockers（阻塞）**、**单一 assignee（受指派人）**、评论、issue 文档、附件与工作产物、以及 review/approval（评审/审批）交接。该结构让 **board（控制台/董事会界面）** 与 agent 都能检查工作，同时仍允许 agent 把工作拆成更小任务。
+当前的 **issue（事务）** 模型包括：稳定 issue 标识、父/子 issue、**blockers（阻塞）**、**单一 assignee（受指派人）**、评论、issue 文档、附件与工作产物、以及 review/approval（评审/审批）交接。该结构让 **board（控制台/董事会界面）** 与 agent 都能检查工作，同时仍允许 agent 把工作拆成更小任务。
 
 ## 原则（Principles）
 
@@ -97,7 +97,7 @@ Paperclip 必须支持的两种运行时模式：
 
 ## 延伸阅读（Further Detail）
 
-完整技术规格见 [`03 规范 SPEC.md`](./03%20规范%20SPEC.md)；任务/工单数据模型见 [`11 任务管理 TASKS.md`](./11%20任务管理%20TASKS.md)。
+完整技术规格见 [`03 规范 SPEC.md`](./03%20规范%20SPEC.md)；任务/事务数据模型见 [`11 任务管理 TASKS.md`](./11%20任务管理%20TASKS.md)。
 
 ---
 

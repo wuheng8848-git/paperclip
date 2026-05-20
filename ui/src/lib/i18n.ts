@@ -245,6 +245,7 @@ export const nav = {
   issues: "事务清单",
   routines: "例行任务",
   heartbeatTasks: "心跳任务",
+  /** Sidebar label for `/runs` (运行清单). Legacy path `/orchestration-injection` redirects. See docs/项目计划/最佳实践/023-… */
   orchestrationInjection: "运行清单",
   orchestrationGates: "编排闸门",
   goals: "公司目标",
@@ -287,7 +288,7 @@ export const heartbeatTasksPage = {
   never: "从未",
   running: (count: number) => `运行中 ${count}`,
   concurrencySemanticsFootnote:
-    "并行上限常为 1。若评论/指派类等唤醒尚在排队或运行中，调度器触发的定时心跳会避让：不新增 timer run，写入 `agent_wakeup_requests` 一条 `skipped`（reason 含 heartbeat.timer_yield），并顺延界面上的「上次心跳」；与 **042** 的 `effectiveTrigger` 同看时间线更清楚。（工单 **043**）",
+    "并行上限常为 1。若评论/指派类等唤醒尚在排队或运行中，调度器触发的定时心跳会避让：不新增 timer run，写入 `agent_wakeup_requests` 一条 `skipped`（reason 含 heartbeat.timer_yield），并顺延界面上的「上次心跳」；与 **042** 的 `effectiveTrigger` 同看时间线更清楚。（事务 **043**）",
 } as const;
 
 /** @see ./orchestration-gates-copy.ts */
@@ -1255,7 +1256,7 @@ export function translatePaperclipTranscriptLine(line: string): string {
   if (!line.includes("[paperclip]")) return line;
   const trimmedEnd = line.replace(/\s+$/, "");
   const sessionSkipReasonZh: Record<string, string> = {
-    "wake reason is issue_assigned": "唤醒原因为工单指派（issue_assigned）",
+    "wake reason is issue_assigned": "唤醒原因为事务指派（issue_assigned）",
     "wake reason is execution_review_requested": "唤醒原因为执行审查请求（execution_review_requested）",
     "wake reason is execution_approval_requested": "唤醒原因为执行审批请求（execution_approval_requested）",
     "wake reason is execution_changes_requested": "唤醒原因为执行变更请求（execution_changes_requested）",
