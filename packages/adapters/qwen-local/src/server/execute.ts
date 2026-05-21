@@ -213,20 +213,16 @@ function renderPaperclipEnvNote(env: Record<string, string>): string {
   ].join("\n");
 }
 
-function renderPaperclipApiAccessNote(env: Record<string, string>): string {
+/** 唯一入口：每轮 Qwen 心跳只要带 PAPERCLIP_API_URL+KEY 就注入 api_access_note（新 session / 续跑 / 任意唤醒均同）。 */
+export function renderPaperclipApiAccessNote(env: Record<string, string>): string {
   if (!hasNonEmptyEnvValue(env, "PAPERCLIP_API_URL") || !hasNonEmptyEnvValue(env, "PAPERCLIP_API_KEY")) {
     return "";
   }
 
   return [
-    "Paperclip API access note:",
-    "Use the injected Paperclip API environment variables to update issue state before ending the heartbeat.",
-    "Never hard-code Paperclip API hosts. In local/dev runs, https://api.paperclip.ai is the wrong server.",
-    "For any mutating request, include Authorization: Bearer $PAPERCLIP_API_KEY and X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID.",
-    "When work is complete, do not only leave a comment. PATCH the issue itself to a terminal or waiting status.",
-    "PowerShell completion example:",
-    `  Invoke-RestMethod -Method Patch -Uri "$env:PAPERCLIP_API_URL/api/issues/$env:PAPERCLIP_TASK_ID" -Headers @{ Authorization = "Bearer $env:PAPERCLIP_API_KEY"; "X-Paperclip-Run-Id" = $env:PAPERCLIP_RUN_ID } -ContentType "application/json" -Body (@{ status = "done"; comment = "Completed in this run." } | ConvertTo-Json)`,
-    "Valid issue status values include backlog, todo, in_progress, in_review, done, blocked, and cancelled.",
+    "Paperclip API (Qwen): use PAPERCLIP_* env only; mutating calls need Bearer $PAPERCLIP_API_KEY and X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID; finish with POST comment + PATCH issue status.",
+    "Chinese comment/body: write UTF-8 JSON file first; on Windows use pwsh only — Get-Content $path -Raw -Encoding utf8 then Invoke-RestMethod -Body $json (same for PATCH).",
+    "Never: Get-Content -Raw without -Encoding utf8; UTF8.GetBytes($json) after read; curl with $env: in non-pwsh; curl -d or -Body with inline Chinese JSON (mojibake e.g. 缁撹 for 结论).",
   ].join("\n");
 }
 

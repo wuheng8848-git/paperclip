@@ -1,4 +1,9 @@
 import { runningProcesses, killWindowsProcessTree } from "@paperclipai/adapter-utils/server-utils";
+import {
+  collectCodeBuddyResultErrorTexts,
+  isCodeBuddyQuotaExhaustionText,
+  resolveCodeBuddyTerminalError,
+} from "./codebuddy-error-text.js";
 
 export type CodeBuddyFatalStop = {
   errorMessage: string;
@@ -86,6 +91,12 @@ function formatFatalPatternMatch(pattern: FatalPattern, match: RegExpMatchArray)
 export function inspectCodeBuddyStderrLine(line: string): CodeBuddyFatalStop | null {
   const trimmed = line.trim();
   if (!trimmed) return null;
+  if (isCodeBuddyQuotaExhaustionText(trimmed)) {
+    return {
+      errorMessage: trimmed,
+      errorCode: "codebuddy_quota_exceeded",
+    };
+  }
   for (const pattern of STDERR_FATAL_PATTERNS) {
     const match = trimmed.match(pattern.re);
     if (match) return formatFatalPatternMatch(pattern, match);
@@ -106,14 +117,13 @@ export function inspectCodeBuddyStreamJsonLine(line: string): CodeBuddyFatalStop
   const subtype = typeof obj.subtype === "string" ? obj.subtype.toLowerCase() : "";
   const isError = obj.is_error === true || subtype === "error" || subtype === "failure";
   if (!isError) return null;
-  const detail =
-    typeof obj.result === "string" && obj.result.trim().length > 0
-      ? obj.result.trim()
-      : "CodeBuddy 返回错误结果，无头模式无法在同一次运行内恢复。";
-  return {
-    errorMessage: detail,
-    errorCode: "codebuddy_execution_error",
-  };
+  const resultTexts = collectCodeBuddyResultErrorTexts(obj);
+  const fallbackMessage = "CodeBuddy 返回错误结果，无头模式无法在同一次运行内恢复。";
+  const resolved = resolveCodeBuddyTerminalError({
+    resultTexts,
+    fallbackMessage,
+  });
+  return resolved;
 }
 
 function splitBufferedLines(buffer: string, chunk: string): { lines: string[]; rest: string } {

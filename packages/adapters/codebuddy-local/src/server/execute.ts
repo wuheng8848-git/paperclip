@@ -28,6 +28,7 @@ import {
 } from "@paperclipai/adapter-utils/server-utils";
 import { runChildProcess } from "@paperclipai/adapter-utils/server-utils";
 import { createCodeBuddyStreamLogHandler } from "./stream-liveness.js";
+import { collectCodeBuddyResultErrorTexts, resolveCodeBuddyTerminalError } from "./codebuddy-error-text.js";
 
 const __moduleDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -650,9 +651,13 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
   const isError = resultJson.is_error === true;
   const failed = (proc.exitCode ?? 0) !== 0 || isError;
-  const errorMessage = failed
-    ? resultJson.result ?? `CodeBuddy exited with code ${proc.exitCode ?? -1}`
+  const terminalError = failed
+    ? resolveCodeBuddyTerminalError({
+        resultTexts: collectCodeBuddyResultErrorTexts(resultJson as unknown as Record<string, unknown>),
+        fallbackMessage: resultJson.result ?? `CodeBuddy exited with code ${proc.exitCode ?? -1}`,
+      })
     : null;
+  const errorMessage = terminalError?.errorMessage ?? null;
 
   const summary = assistantText || resultJson.result || "";
 
@@ -661,7 +666,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     signal: proc.signal,
     timedOut: false,
     errorMessage,
-    errorCode: failed ? "codebuddy_execution_error" : null,
+    errorCode: terminalError?.errorCode ?? null,
     usage,
     sessionId: resolvedSessionId,
     sessionParams: resolvedSessionParams,

@@ -55,7 +55,7 @@ curl -sS -X POST "$PAPERCLIP_API_URL/api/issues/$ISSUE_ID/comments" \
   --data-binary @/tmp/paperclip-comment.json
 ```
 
-如果你发现评论或交互里出现乱码，优先检查该内容是否由 agent 通过 shell 内联 JSON 写入；不要先归因 UI、i18n 或数据库。完整根因、排障与修订方案以仓库内 `docs/项目计划/最佳实践/021-实践-乱码根因与修订方案.md` 为唯一权威（本文 §「中文与多行正文安全写入」为其执行摘要）。
+如果你发现评论或交互里出现乱码，优先检查该内容是否由 agent 通过 shell 内联 JSON 写入；不要先归因 UI、i18n 或数据库。完整根因、排障与修订方案以仓库内 `docs/07 测试与排障/05 乱码根因与修订方案 mojibake-root-cause.md` 为唯一权威（本文 §「中文与多行正文安全写入」为其执行摘要）。
 
 ## 心跳标准流程（每轮必循）
 

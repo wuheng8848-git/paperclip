@@ -228,6 +228,11 @@ import {
 } from "./recovery/model-profile-hint.js";
 import { recoveryService } from "./recovery/service.js";
 import { productivityReviewService } from "./productivity-review.js";
+import {
+  isProviderQuotaExhaustionFailure,
+  PROVIDER_QUOTA_FUSE_AGENT_PAUSE_MESSAGE,
+  PROVIDER_QUOTA_FUSE_CANCEL_MESSAGE,
+} from "./provider-quota-exhaustion.js";
 import { withAgentStartLock } from "./agent-start-lock.js";
 import {
   redactCurrentUserText,
@@ -301,6 +306,7 @@ const OPERATIONAL_CONTROL_PLANE_CANCEL_MESSAGES = [
   "Cancelled due to agent pause",
   "Cancelled due to agent termination",
   "Cancelled due to budget pause",
+  PROVIDER_QUOTA_FUSE_CANCEL_MESSAGE,
 ] as const;
 
 function isOperationalControlPlaneCancellation(error: string | null | undefined): boolean {
@@ -8069,10 +8075,22 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             );
           }
         }
-        if (outcome === "failed" && isMaxTurnExhaustionRun(livenessRun)) {
-          const policy = parseMaxTurnContinuationPolicy(agent);
+        let activeAgent = agent;
+        const providerQuotaExhausted =
+          outcome === "failed" &&
+          isProviderQuotaExhaustionFailure({
+            error: livenessRun.error,
+            errorCode: livenessRun.errorCode,
+            resultJson: parseObject(livenessRun.resultJson),
+          });
+
+        if (providerQuotaExhausted) {
+          await fuseAgentAfterProviderQuotaExhaustion(activeAgent, livenessRun);
+          activeAgent = (await getAgent(agent.id)) ?? activeAgent;
+        } else if (outcome === "failed" && isMaxTurnExhaustionRun(livenessRun)) {
+          const policy = parseMaxTurnContinuationPolicy(activeAgent);
           if (policy.enabled && policy.maxAttempts > 0) {
-            await scheduleBoundedRetryForRun(livenessRun, agent, {
+            await scheduleBoundedRetryForRun(livenessRun, activeAgent, {
               retryReason: MAX_TURN_CONTINUATION_RETRY_REASON,
               wakeReason: MAX_TURN_CONTINUATION_WAKE_REASON,
               maxAttempts: policy.maxAttempts,
@@ -8091,20 +8109,25 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
             });
           }
         } else if (outcome === "failed" && readTransientRecoveryContractFromRun(livenessRun)) {
-          await scheduleBoundedRetryForRun(livenessRun, agent);
+          await scheduleBoundedRetryForRun(livenessRun, activeAgent);
         }
-        const issueCommentPolicyResult = await finalizeIssueCommentPolicy(livenessRun, agent);
+
+        const issueCommentPolicyResult = providerQuotaExhausted
+          ? { outcome: "not_applicable" as const, queuedRun: null }
+          : await finalizeIssueCommentPolicy(livenessRun, activeAgent);
         await releaseIssueExecutionAndPromote(livenessRun);
-        await handleRunLivenessContinuation(livenessRun);
-        await handleSuccessfulRunHandoff(
-          issueCommentPolicyResult.outcome === "retry_queued" || issueCommentPolicyResult.outcome === "retry_exhausted"
-            ? {
-              ...livenessRun,
-              issueCommentStatus: issueCommentPolicyResult.outcome,
-            }
-            : livenessRun,
-          agent,
-        );
+        if (!providerQuotaExhausted) {
+          await handleRunLivenessContinuation(livenessRun);
+          await handleSuccessfulRunHandoff(
+            issueCommentPolicyResult.outcome === "retry_queued" || issueCommentPolicyResult.outcome === "retry_exhausted"
+              ? {
+                ...livenessRun,
+                issueCommentStatus: issueCommentPolicyResult.outcome,
+              }
+              : livenessRun,
+            activeAgent,
+          );
+        }
       }
 
       if (finalizedRun) {
@@ -9838,6 +9861,114 @@ export function heartbeatService(db: Db, options: HeartbeatServiceOptions = {}) 
 
   /** @deprecated Use reconcileRunningRunsForClosedIssues */
   const reconcileTerminalIssueRunningRuns = reconcileRunningRunsForClosedIssues;
+
+  async function cancelNonRunningRunsForProviderQuotaFuse(agentId: string, exceptRunId?: string | null) {
+    const runs = await db
+      .select()
+      .from(heartbeatRuns)
+      .where(
+        and(
+          eq(heartbeatRuns.agentId, agentId),
+          inArray(heartbeatRuns.status, ["queued", "scheduled_retry"]),
+          exceptRunId ? sql`${heartbeatRuns.id} <> ${exceptRunId}` : sql`true`,
+        ),
+      );
+
+    const now = new Date();
+    let cancelled = 0;
+
+    for (const queuedRun of runs) {
+      const contextSnapshot = parseObject(queuedRun.contextSnapshot);
+      const issueId = readNonEmptyString(contextSnapshot.issueId);
+
+      const updated = await setRunStatus(queuedRun.id, "cancelled", {
+        finishedAt: now,
+        error: PROVIDER_QUOTA_FUSE_CANCEL_MESSAGE,
+        errorCode: "cancelled",
+        resultJson: {
+          ...parseObject(queuedRun.resultJson),
+          stopReason: "provider_quota_fuse",
+          providerQuotaFuse: true,
+        },
+      });
+      if (!updated) continue;
+      cancelled += 1;
+
+      await setWakeupStatus(queuedRun.wakeupRequestId, "skipped", {
+        finishedAt: now,
+        error: PROVIDER_QUOTA_FUSE_CANCEL_MESSAGE,
+      });
+
+      if (issueId) {
+        await db
+          .update(issues)
+          .set({
+            executionRunId: null,
+            executionAgentNameKey: null,
+            executionLockedAt: null,
+            updatedAt: now,
+          })
+          .where(
+            and(
+              eq(issues.companyId, queuedRun.companyId),
+              eq(issues.id, issueId),
+              eq(issues.executionRunId, queuedRun.id),
+            ),
+          );
+      }
+
+      await appendRunEvent(updated, await nextRunEventSeq(updated.id), {
+        eventType: "lifecycle",
+        stream: "system",
+        level: "warn",
+        message: PROVIDER_QUOTA_FUSE_CANCEL_MESSAGE,
+        payload: {
+          providerQuotaFuse: true,
+          exceptRunId: exceptRunId ?? null,
+        },
+      });
+    }
+
+    return cancelled;
+  }
+
+  async function fuseAgentAfterProviderQuotaExhaustion(
+    agent: typeof agents.$inferSelect,
+    triggeringRun: typeof heartbeatRuns.$inferSelect,
+  ) {
+    const cancelledRuns = await cancelNonRunningRunsForProviderQuotaFuse(agent.id, triggeringRun.id);
+    const cancelledWakeups = await cancelPendingWakeupsForAgentScope({
+      companyId: agent.companyId,
+      agentId: agent.id,
+      errorMessage: PROVIDER_QUOTA_FUSE_CANCEL_MESSAGE,
+    });
+
+    if (agent.status !== "paused" && agent.status !== "terminated") {
+      await db
+        .update(agents)
+        .set({
+          status: "paused",
+          pauseReason: "system",
+          pausedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(agents.id, agent.id));
+    }
+
+    await appendRunEvent(triggeringRun, await nextRunEventSeq(triggeringRun.id), {
+      eventType: "lifecycle",
+      stream: "system",
+      level: "warn",
+      message: PROVIDER_QUOTA_FUSE_AGENT_PAUSE_MESSAGE,
+      payload: {
+        providerQuotaFuse: true,
+        cancelledRuns,
+        cancelledWakeups,
+      },
+    });
+
+    return { cancelledRuns, cancelledWakeups };
+  }
 
   async function cancelActiveForAgentInternal(agentId: string, reason = "Cancelled due to agent pause") {
     const agent = await getAgent(agentId);
