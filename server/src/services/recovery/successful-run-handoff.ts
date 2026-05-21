@@ -3,25 +3,50 @@ import type { Db } from "@paperclipai/db";
 import { agentWakeupRequests, agents, heartbeatRuns, issues } from "@paperclipai/db";
 import type { IssueCommentMetadata, IssueCommentPresentation, RunLivenessState } from "@paperclipai/shared";
 import { withRecoveryModelProfileHint } from "./model-profile-hint.js";
+import {
+  FINISH_SUCCESSFUL_RUN_HANDOFF_REASON,
+  SUCCESSFUL_RUN_MISSING_STATE_REASON,
+  SUCCESSFUL_RUN_HANDOFF_REQUIRED_NOTICE_BODY,
+  SUCCESSFUL_RUN_HANDOFF_EXHAUSTED_NOTICE_BODY,
+  LEGACY_SUCCESSFUL_RUN_HANDOFF_NOTICE_PREFIXES,
+  SUCCESSFUL_RUN_HANDOFF_OPTIONS,
+  HANDOFF_NOTICE_TITLE_REQUIRED,
+  HANDOFF_NOTICE_TITLE_EXHAUSTED,
+  HANDOFF_SECTION_REQUIRED_ACTION,
+  HANDOFF_SECTION_RUN_EVIDENCE,
+  HANDOFF_SECTION_RECOVERY_OWNER,
+  HANDOFF_LABEL_SOURCE_ISSUE,
+  HANDOFF_LABEL_ASSIGNEE,
+  HANDOFF_LABEL_MISSING_DISPOSITION,
+  HANDOFF_LABEL_VALID_DISPOSITIONS,
+  HANDOFF_LABEL_DETECTED_PROGRESS,
+  HANDOFF_LABEL_AUTOMATIC_RETRY,
+  HANDOFF_LABEL_RECOVERY_ISSUE,
+  HANDOFF_LABEL_RECOVERY_OWNER as HANDOFF_LABEL_RECOVERY_OWNER_ZH,
+  HANDOFF_LABEL_SOURCE_ASSIGNEE,
+  HANDOFF_LABEL_SUGGESTED_ACTION,
+  HANDOFF_LABEL_SOURCE_RUN,
+  HANDOFF_LABEL_CORRECTIVE_HANDOFF_RUN,
+  HANDOFF_LABEL_LATEST_ISSUE_STATUS,
+  HANDOFF_LABEL_LATEST_HANDOFF_RUN_STATUS,
+  HANDOFF_LABEL_NORMALIZED_CAUSE,
+  HANDOFF_VALUE_ONE_RETRY_QUEUED,
+  HANDOFF_VALUE_CHOOSE_DISPOSITION,
+  HANDOFF_VALUE_VALID_DISPOSITIONS,
+  RUN_LIVENESS_CONTINUATION_INSTRUCTION,
+} from "./recovery-messages-zh.js";
 
-export const FINISH_SUCCESSFUL_RUN_HANDOFF_REASON = "finish_successful_run_handoff";
-export const SUCCESSFUL_RUN_MISSING_STATE_REASON = "successful_run_missing_state";
+// Re-export constants that other modules import directly
+export {
+  FINISH_SUCCESSFUL_RUN_HANDOFF_REASON,
+  SUCCESSFUL_RUN_MISSING_STATE_REASON,
+  SUCCESSFUL_RUN_HANDOFF_REQUIRED_NOTICE_BODY,
+  SUCCESSFUL_RUN_HANDOFF_EXHAUSTED_NOTICE_BODY,
+  LEGACY_SUCCESSFUL_RUN_HANDOFF_NOTICE_PREFIXES,
+  SUCCESSFUL_RUN_HANDOFF_OPTIONS,
+};
+
 export const DEFAULT_MAX_SUCCESSFUL_RUN_HANDOFF_ATTEMPTS = 1;
-export const SUCCESSFUL_RUN_HANDOFF_REQUIRED_NOTICE_BODY =
-  "Paperclip needs a disposition before this issue can continue.";
-export const SUCCESSFUL_RUN_HANDOFF_EXHAUSTED_NOTICE_BODY =
-  "Paperclip could not resolve this issue's missing disposition automatically. The issue is blocked on a recovery owner.";
-export const LEGACY_SUCCESSFUL_RUN_HANDOFF_NOTICE_PREFIXES = [
-  "## This issue still needs a next step",
-  "## Successful run missing issue disposition",
-] as const;
-
-export const SUCCESSFUL_RUN_HANDOFF_OPTIONS = [
-  "mark_done_or_cancelled",
-  "send_for_review_or_ask_for_input",
-  "mark_blocked",
-  "delegate_or_continue_from_checkpoint",
-] as const;
 
 const PRODUCTIVE_SUCCESS_LIVENESS_STATES = new Set<RunLivenessState>([
   "advanced",
@@ -142,32 +167,32 @@ export function buildSuccessfulRunHandoffRequiredNotice(input: {
     body: SUCCESSFUL_RUN_HANDOFF_REQUIRED_NOTICE_BODY,
     presentation: systemNoticePresentation({
       tone: "warning",
-      title: "Missing issue disposition",
+      title: HANDOFF_NOTICE_TITLE_REQUIRED,
     }),
     metadata: {
       version: 1,
       sourceRunId: input.run.id,
       sections: [
         {
-          title: "Required action",
+          title: HANDOFF_SECTION_REQUIRED_ACTION,
           rows: [
-            issueLinkRow("Source issue", input.issue),
-            agentLinkRow("Assignee", input.agent),
-            keyValueRow("Missing disposition", "clear_next_step"),
+            issueLinkRow(HANDOFF_LABEL_SOURCE_ISSUE, input.issue),
+            agentLinkRow(HANDOFF_LABEL_ASSIGNEE, input.agent),
+            keyValueRow(HANDOFF_LABEL_MISSING_DISPOSITION, "clear_next_step"),
             keyValueRow(
-              "Valid dispositions",
-              "done, cancelled, in_review with an owner, blocked with blockers, delegated follow-up, or explicit continuation",
+              HANDOFF_LABEL_VALID_DISPOSITIONS,
+              HANDOFF_VALUE_VALID_DISPOSITIONS,
             ),
           ],
         },
         {
-          title: "Run evidence",
+          title: HANDOFF_SECTION_RUN_EVIDENCE,
           rows: [
-            runLinkRow("Successful run", input.run),
-            keyValueRow("Run status", input.run.status),
-            keyValueRow("Normalized cause", SUCCESSFUL_RUN_MISSING_STATE_REASON),
-            keyValueRow("Detected progress", input.detectedProgressSummary),
-            keyValueRow("Automatic retry", "one corrective handoff wake queued"),
+            runLinkRow("成功运行", input.run),
+            keyValueRow("运行状态", input.run.status),
+            keyValueRow(HANDOFF_LABEL_NORMALIZED_CAUSE, SUCCESSFUL_RUN_MISSING_STATE_REASON),
+            keyValueRow(HANDOFF_LABEL_DETECTED_PROGRESS, input.detectedProgressSummary),
+            keyValueRow(HANDOFF_LABEL_AUTOMATIC_RETRY, HANDOFF_VALUE_ONE_RETRY_QUEUED),
           ],
         },
       ],
@@ -190,31 +215,31 @@ export function buildSuccessfulRunHandoffExhaustedNotice(input: {
     body: SUCCESSFUL_RUN_HANDOFF_EXHAUSTED_NOTICE_BODY,
     presentation: systemNoticePresentation({
       tone: "danger",
-      title: "Missing disposition recovery blocked",
+      title: HANDOFF_NOTICE_TITLE_EXHAUSTED,
     }),
     metadata: {
       version: 1,
       sourceRunId: input.sourceRun?.id ?? null,
       sections: [
         {
-          title: "Recovery owner",
+          title: HANDOFF_SECTION_RECOVERY_OWNER,
           rows: [
-            issueLinkRow("Source issue", input.issue),
-            issueLinkRow("Recovery issue", input.recoveryIssue),
-            agentLinkRow("Recovery owner", input.recoveryOwner),
-            agentLinkRow("Source assignee", input.sourceAssignee),
-            keyValueRow("Suggested action", "choose and record a valid issue disposition without copying transcript content"),
+            issueLinkRow(HANDOFF_LABEL_SOURCE_ISSUE, input.issue),
+            issueLinkRow(HANDOFF_LABEL_RECOVERY_ISSUE, input.recoveryIssue),
+            agentLinkRow(HANDOFF_LABEL_RECOVERY_OWNER_ZH, input.recoveryOwner),
+            agentLinkRow(HANDOFF_LABEL_SOURCE_ASSIGNEE, input.sourceAssignee),
+            keyValueRow(HANDOFF_LABEL_SUGGESTED_ACTION, HANDOFF_VALUE_CHOOSE_DISPOSITION),
           ],
         },
         {
-          title: "Run evidence",
+          title: HANDOFF_SECTION_RUN_EVIDENCE,
           rows: [
-            runLinkRow("Source run", input.sourceRun),
-            runLinkRow("Corrective handoff run", input.correctiveRun),
-            keyValueRow("Latest issue status", input.latestIssueStatus),
-            keyValueRow("Latest handoff run status", input.latestHandoffRunStatus),
-            keyValueRow("Normalized cause", SUCCESSFUL_RUN_MISSING_STATE_REASON),
-            keyValueRow("Missing disposition", input.missingDisposition),
+            runLinkRow(HANDOFF_LABEL_SOURCE_RUN, input.sourceRun),
+            runLinkRow(HANDOFF_LABEL_CORRECTIVE_HANDOFF_RUN, input.correctiveRun),
+            keyValueRow(HANDOFF_LABEL_LATEST_ISSUE_STATUS, input.latestIssueStatus),
+            keyValueRow(HANDOFF_LABEL_LATEST_HANDOFF_RUN_STATUS, input.latestHandoffRunStatus),
+            keyValueRow(HANDOFF_LABEL_NORMALIZED_CAUSE, SUCCESSFUL_RUN_MISSING_STATE_REASON),
+            keyValueRow(HANDOFF_LABEL_MISSING_DISPOSITION, input.missingDisposition),
           ],
         },
       ],
@@ -291,25 +316,25 @@ export function buildSuccessfulRunHandoffInstruction(input: {
   issueIdentifier: string | null;
   sourceRunId: string;
 }) {
-  const issueLabel = input.issueIdentifier ?? "this issue";
+  const issueLabel = input.issueIdentifier ?? "此事务";
   return [
-    `Your previous run on ${issueLabel} succeeded, but the issue is still in \`in_progress\` and Paperclip cannot identify a valid issue disposition.`,
+    `你在 ${issueLabel} 上的上一次运行已成功，但此事务仍处于 \`in_progress\` 状态，且 Paperclip 无法识别有效的事务处置。`,
     "",
-    "Resolve the missing disposition before creating or revising any new artifacts. Choose **exactly one** outcome and perform the matching Paperclip action:",
+    "在创建或修改任何新工件之前，请先补全缺失的处置。选择**恰好一种**结果并执行对应的 Paperclip 操作：",
     "",
-    "**Is the issue finished?**",
-    "1. Mark it `done` (scope complete) or `cancelled` (intentionally stopped).",
+    "**事务是否已完成？**",
+    "1. 将其标记为 `done`（范围已完成）或 `cancelled`（有意停止）。",
     "",
-    "**Does someone else need to look at it?**",
-    "2. Move it to `in_review` with a real reviewer path — `executionState.currentParticipant`, a human owner via `assigneeUserId`, a pending issue-thread interaction, or a linked pending approval.",
+    "**是否需要其他人审阅？**",
+    "2. 将其移至 `in_review` 并指定真实审阅路径 — `executionState.currentParticipant`、通过 `assigneeUserId` 指定人类负责人、待处理的 issue-thread 交互，或关联的待审批项。",
     "",
-    "**Can it not continue right now?**",
-    "3. Mark it `blocked` with first-class blockers (`blockedByIssueIds`) or a clearly named unblock owner/action.",
+    "**是否当前无法继续？**",
+    "3. 将其标记为 `blocked`，需提供一级阻塞项（`blockedByIssueIds`）或明确命名的解除负责人/动作。",
     "",
-    "**Is there more work to do?**",
-    `4. Either delegate follow-up work (create/link a follow-up issue and block this one on it, or close this issue if its scope is independently complete) or record an explicit continuation path with \`resumeIntent: true\`, \`resumeFromRunId: ${input.sourceRunId}\`, and a concrete next action.`,
+    "**是否还有更多工作要做？**",
+    `4. 委派后续工作（创建/链接后续事务并阻塞此事务，或若此事务范围已独立完成则关闭此事务），或记录明确的续跑路径：\`resumeIntent: true\`、\`resumeFromRunId: ${input.sourceRunId}\` 以及具体的下一步操作。`,
     "",
-    "Comments, document revisions, work-product writes, and continuation summaries are supporting evidence only — they do not satisfy this handoff unless the issue state/path also records one valid disposition.",
+    "评论、文档修订、工件写入与续跑总结仅作为佐证 — 除非事务状态/路径同时记录了一条有效处置，否则它们不能满足此次交接要求。",
   ].join("\n");
 }
 

@@ -81,9 +81,9 @@ describe("successful run handoff decision", () => {
       handoffRequired: true,
       modelProfile: "cheap",
     });
-    expect(decision.instruction).toContain("Resolve the missing disposition before creating or revising any new artifacts");
-    expect(decision.instruction).toContain("Choose **exactly one** outcome");
-    expect(decision.instruction).toContain("record an explicit continuation path");
+    expect(decision.instruction).toContain("补全缺失的处置");
+    expect(decision.instruction).toContain("选择**恰好一种**");
+    expect(decision.instruction).toContain("明确的续跑路径");
   });
 
   it("does not queue when the issue already has a valid disposition", () => {
@@ -215,25 +215,25 @@ describe("successful run handoff decision", () => {
     expect(notice.presentation).toEqual({
       kind: "system_notice",
       tone: "warning",
-      title: "Missing issue disposition",
+      title: "缺失事务处置",
       detailsDefaultOpen: false,
     });
     expect(notice.metadata.sourceRunId).toBe("22222222-2222-4222-8222-222222222222");
     expect(notice.metadata.sections).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        title: "Required action",
+        title: "所需操作",
         rows: expect.arrayContaining([
           expect.objectContaining({ type: "issue_link", identifier: "PAP-1" }),
           expect.objectContaining({ type: "agent_link", name: "CodexCoder" }),
-          expect.objectContaining({ type: "key_value", label: "Missing disposition", value: "clear_next_step" }),
+          expect.objectContaining({ type: "key_value", label: "缺失处置", value: "clear_next_step" }),
         ]),
       }),
       expect.objectContaining({
-        title: "Run evidence",
+        title: "运行证据",
         rows: expect.arrayContaining([
           expect.objectContaining({ type: "run_link", runId: "22222222-2222-4222-8222-222222222222" }),
-          expect.objectContaining({ type: "key_value", label: "Normalized cause", value: SUCCESSFUL_RUN_MISSING_STATE_REASON }),
-          expect.objectContaining({ type: "key_value", label: "Detected progress" }),
+          expect.objectContaining({ type: "key_value", label: "标准化原因", value: SUCCESSFUL_RUN_MISSING_STATE_REASON }),
+          expect.objectContaining({ type: "key_value", label: "检测到的进展" }),
         ]),
       }),
     ]));
@@ -266,23 +266,24 @@ describe("successful run handoff decision", () => {
     expect(notice.presentation).toMatchObject({
       kind: "system_notice",
       tone: "danger",
+      title: "缺失处置恢复阻塞",
       detailsDefaultOpen: false,
     });
     expect(notice.metadata.sourceRunId).toBe("22222222-2222-4222-8222-222222222222");
     expect(notice.metadata.sections).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        title: "Recovery owner",
+        title: "恢复负责人",
         rows: expect.arrayContaining([
           expect.objectContaining({ type: "issue_link", identifier: "PAP-2" }),
-          expect.objectContaining({ type: "agent_link", label: "Recovery owner", name: "CTO" }),
+          expect.objectContaining({ type: "agent_link", label: "恢复负责人", name: "CTO" }),
         ]),
       }),
       expect.objectContaining({
-        title: "Run evidence",
+        title: "运行证据",
         rows: expect.arrayContaining([
-          expect.objectContaining({ type: "run_link", label: "Source run" }),
-          expect.objectContaining({ type: "run_link", label: "Corrective handoff run" }),
-          expect.objectContaining({ type: "key_value", label: "Missing disposition", value: "clear_next_step" }),
+          expect.objectContaining({ type: "run_link", label: "源运行" }),
+          expect.objectContaining({ type: "run_link", label: "修正交接运行" }),
+          expect.objectContaining({ type: "key_value", label: "缺失处置", value: "clear_next_step" }),
         ]),
       }),
     ]));

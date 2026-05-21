@@ -4,6 +4,7 @@ import { agentWakeupRequests, agents, heartbeatRuns, issues } from "@paperclipai
 import type { RunLivenessState } from "@paperclipai/shared";
 import { withRecoveryModelProfileHint } from "./model-profile-hint.js";
 import { RECOVERY_REASON_KINDS } from "./origins.js";
+import { RUN_LIVENESS_CONTINUATION_INSTRUCTION } from "./recovery-messages-zh.js";
 
 export const RUN_LIVENESS_CONTINUATION_REASON = RECOVERY_REASON_KINDS.runLivenessContinuation;
 export const DEFAULT_MAX_LIVENESS_CONTINUATION_ATTEMPTS = 2;
@@ -135,12 +136,12 @@ export function decideRunLivenessContinuation(input: {
       attempt: currentAttempt,
       maxAttempts,
       comment: [
-        "Bounded liveness continuation exhausted",
+        "有界存活续跑已用尽",
         "",
-        `- Last liveness state: \`${livenessState}\``,
-        `- Attempts used: ${currentAttempt}/${maxAttempts}`,
-        `- Reason: ${livenessReason ?? "Run ended without concrete progress"}`,
-        "- Next action: a human or manager should inspect the run and either clarify the task, mark it blocked, or assign a concrete follow-up.",
+        `- 最后存活状态: \`${livenessState}\``,
+        `- 已用尝试: ${currentAttempt}/${maxAttempts}`,
+        `- 原因: ${livenessReason ?? "运行结束但无具体进展"}`,
+        "- 下一步操作：人类或管理器应检查此运行，明确任务、标记为阻塞，或指派具体的后续操作。",
       ].join("\n"),
     };
   }
@@ -164,8 +165,7 @@ export function decideRunLivenessContinuation(input: {
     continuationAttempt: nextAttempt,
     maxContinuationAttempts: maxAttempts,
     instruction:
-      nextAction ??
-      "The previous run ended without concrete progress. Take the first concrete action now or mark the issue blocked with a specific unblock request.",
+      nextAction ?? RUN_LIVENESS_CONTINUATION_INSTRUCTION,
   });
 
   return {

@@ -55,6 +55,24 @@ import {
   withRecoveryModelProfileHint,
 } from "./model-profile-hint.js";
 import { isAutomaticRecoverySuppressedByPauseHold } from "./pause-hold-guard.js";
+import {
+  buildRecoveryEscalationCommentLines,
+  buildLivenessEscalationDescription as buildLivenessEscalationDescriptionZh,
+  buildLivenessOriginalIssueComment as buildLivenessOriginalIssueCommentZh,
+  buildStaleRunEvaluationDescription as buildStaleRunEvaluationDescriptionZh,
+  buildStaleRunEvaluationTitle,
+  buildNestedStrandedRecoveryLine as buildNestedStrandedRecoveryLineZh,
+  SUCCESSFUL_RUN_HANDOFF_EXHAUSTED_COMMENT,
+  STRANDED_ASSIGNED_ISSUE_EXHAUSTED_COMMENT,
+  buildRecoveryLineWithIssue,
+  RECOVERY_LINE_DISABLED,
+  RECOVERY_LINE_NO_INVOKABLE_OWNER,
+  AUTO_RECOVERY_TODO_ASSIGNMENT_FAILED,
+  AUTO_RECOVERY_INPROGRESS_CONTINUATION_MADE_PROGRESS,
+  AUTO_RECOVERY_INPROGRESS_CONTINUATION_FAILED,
+  SUCCESSFUL_RUN_HANDOFF_REQUIRED_NOTICE_BODY,
+  SUCCESSFUL_RUN_HANDOFF_EXHAUSTED_NOTICE_BODY,
+} from "./recovery-messages-zh.js";
 
 const EXECUTION_PATH_HEARTBEAT_RUN_STATUSES = ["queued", "running", "scheduled_retry"] as const;
 const UNSUCCESSFUL_HEARTBEAT_RUN_TERMINAL_STATUSES = ["failed", "cancelled", "timed_out"] as const;
@@ -340,51 +358,6 @@ function formatDependencyPath(finding: IssueLivenessFinding) {
     .join(" -> ");
 }
 
-function buildLivenessEscalationDescription(finding: IssueLivenessFinding) {
-  const source = finding.dependencyPath[0];
-  const recovery = finding.dependencyPath.find((entry) => entry.issueId === finding.recoveryIssueId);
-  const selectedOwner = finding.recommendedOwnerAgentId ?? "none";
-
-  return [
-    "Paperclip detected a harness-level issue graph liveness incident.",
-    "",
-    "## Source",
-    "",
-    `- Source issue: ${source?.identifier ?? source?.issueId ?? finding.issueId}`,
-    `- Recovery target issue: ${recovery?.identifier ?? recovery?.issueId ?? finding.recoveryIssueId}`,
-    `- Incident key: \`${finding.incidentKey}\``,
-    `- Detected invariant: \`${finding.state}\``,
-    `- Dependency path: ${formatDependencyPath(finding)}`,
-    `- Reason: ${finding.reason}`,
-    "",
-    "## Ownership",
-    "",
-    `- Selected owner agent: \`${selectedOwner}\``,
-    `- Candidate owner agents: ${finding.recommendedOwnerCandidateAgentIds.length > 0 ? finding.recommendedOwnerCandidateAgentIds.map((id) => `\`${id}\``).join(", ") : "none"}`,
-    "",
-    "## Next Action",
-    "",
-    finding.recommendedAction,
-    "",
-    "Resolve the blocked chain, then mark this escalation issue done so the original issue can resume when all blockers are cleared.",
-  ].join("\n");
-}
-
-function buildLivenessOriginalIssueComment(finding: IssueLivenessFinding, escalation: typeof issues.$inferSelect) {
-  return [
-    "Paperclip detected a harness-level liveness incident in this issue's dependency graph.",
-    "",
-    `- Escalation issue: ${escalation.identifier ?? escalation.id}`,
-    `- Incident key: \`${finding.incidentKey}\``,
-    `- Finding: \`${finding.state}\``,
-    `- Dependency path: ${formatDependencyPath(finding)}`,
-    `- Reason: ${finding.reason}`,
-    `- Manager action requested: ${finding.recommendedAction}`,
-    "",
-    "This issue now keeps its existing blockers and is also blocked by the escalation issue so dependency wakeups remain explicit.",
-  ].join("\n");
-}
-
 export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup }) {
   const { strandedIssueRecoveryEnabled } = loadConfig();
   const issuesSvc = issueService(db);
@@ -603,12 +576,12 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       await issuesSvc.addComment(
         candidate.id,
         [
-          "## Assigned Orphan Blocker",
+          "## 已指派孤儿阻塞项",
           "",
-          `Paperclip found this issue is blocking ${blockingLinks} but had no assignee, so no heartbeat could pick it up.`,
+          `Paperclip 发现此事务阻塞 ${blockingLinks} 但无经办人，因此无心跳可接管。`,
           "",
-          "- Assigned it back to the agent that created the blocker.",
-          "- Next action: resolve this blocker or reassign it to the right owner.",
+          "- 已将其指派回创建该阻塞项的智能体。",
+          "- 下一步操作：解决此阻塞项，或将其重新指派给正确的负责人。",
         ].join("\n"),
         {},
       );
@@ -916,76 +889,6 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
     };
   }
 
-  function buildStaleRunEvaluationDescription(input: {
-    run: typeof heartbeatRuns.$inferSelect;
-    runningAgent: typeof agents.$inferSelect;
-    sourceIssue: typeof issues.$inferSelect | null;
-    prefix: string;
-    evidence: Awaited<ReturnType<typeof collectStaleRunEvidence>>;
-    level: "suspicious" | "critical";
-    now: Date;
-  }) {
-    const sourceIssue = input.sourceIssue
-      ? issueUiLink({ identifier: input.sourceIssue.identifier, id: input.sourceIssue.id }, input.prefix)
-      : "none";
-    const recentEvents = input.evidence.recentEvents.length > 0
-      ? input.evidence.recentEvents.map((event) =>
-        `- ${event.createdAt} \`${event.eventType}\`${event.level ? ` ${event.level}` : ""}: ${event.message ?? "(no message)"}`,
-      ).join("\n")
-      : "- none";
-    const childIssues = input.evidence.childIssues.length > 0
-      ? input.evidence.childIssues.map((issue) =>
-        `- ${issueUiLink({ identifier: issue.identifier, id: issue.id }, input.prefix)} \`${issue.status}\`: ${issue.title}`,
-      ).join("\n")
-      : "- none detected";
-    const blockers = input.evidence.blockers.length > 0
-      ? input.evidence.blockers.map((issue) =>
-        `- ${issueUiLink({ identifier: issue.identifier, id: issue.id }, input.prefix)} \`${issue.status}\`: ${issue.title}`,
-      ).join("\n")
-      : "- none detected";
-    return [
-      `Paperclip detected ${input.level} output silence on an active heartbeat run.`,
-      "",
-      "## Run",
-      "",
-      `- Run: ${runUiLink(input.run, input.prefix)}`,
-      `- Agent: ${input.runningAgent.name} (${input.runningAgent.adapterType})`,
-      `- Invocation: ${input.run.invocationSource}${input.run.triggerDetail ? ` / ${input.run.triggerDetail}` : ""}`,
-      `- Source issue: ${sourceIssue}`,
-      `- Started at: ${input.run.startedAt?.toISOString() ?? "unknown"}`,
-      `- Process started at: ${input.run.processStartedAt?.toISOString() ?? "unknown"}`,
-      `- Last output at: ${input.run.lastOutputAt?.toISOString() ?? "none recorded"}`,
-      `- Last output sequence: ${input.run.lastOutputSeq ?? 0}`,
-      `- Silent for: ${formatDuration(input.evidence.silenceAgeMs)}`,
-      `- Thresholds: suspicious after ${formatDuration(ACTIVE_RUN_OUTPUT_SUSPICION_THRESHOLD_MS)}, critical after ${formatDuration(ACTIVE_RUN_OUTPUT_CRITICAL_THRESHOLD_MS)}`,
-      `- Process metadata: pid \`${input.run.processPid ?? "unknown"}\`, process group \`${input.run.processGroupId ?? "unknown"}\`, in-memory handle \`${runningProcesses.has(input.run.id) ? "yes" : "no"}\``,
-      "",
-      "## Last Output Excerpt",
-      "",
-      input.evidence.safeTail ? `\`\`\`text\n${input.evidence.safeTail}\n\`\`\`` : "_No run-log tail was available._",
-      "",
-      "## Recent Run Events",
-      "",
-      recentEvents,
-      "",
-      "## Related Work",
-      "",
-      "Active child issues:",
-      childIssues,
-      "",
-      "Current source blockers:",
-      blockers,
-      "",
-      "## Decision Checklist",
-      "",
-      "- Continue or snooze if the run is intentionally quiet.",
-      "- Ask the run owner for context if work may be delegated outside the transcript.",
-      "- Preserve artifacts, branch state, and useful output before cancellation.",
-      "- Cancel or recover through the explicit run recovery controls when authorized.",
-      "- Close this issue as a false positive only after recording the reason.",
-    ].join("\n");
-  }
-
   function isUniqueStaleRunEvaluationConflict(error: unknown) {
     const maybe = unwrapDatabaseConflictError(error);
     if (!maybe) return false;
@@ -1022,12 +925,12 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       blockedByIssueIds: nextBlockerIds,
     });
     await issuesSvc.addComment(input.sourceIssue.id, [
-      "Paperclip detected critical output silence on this issue's active run.",
+      "Paperclip 在此事务的活跃运行中检测到关键输出静默。",
       "",
-      `- Evaluation issue: ${input.evaluationIssue.identifier ?? input.evaluationIssue.id}`,
-      `- Run: \`${input.run.id}\``,
+      `- 评估事务: ${input.evaluationIssue.identifier ?? input.evaluationIssue.id}`,
+      `- 运行: \`${input.run.id}\``,
       "",
-      "This blocks the source issue on the explicit review task without cancelling the active process.",
+      "此操作将源事务阻塞于明确的审阅任务上，而不取消活跃进程。",
     ].join("\n"), { runId: input.run.id });
     await logActivity(db, {
       companyId: input.sourceIssue.companyId,
@@ -1105,12 +1008,12 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       await issuesSvc.addComment(
         canonical.id,
         [
-          "Paperclip reopened this stale-run evaluation for the same heartbeat run (one evaluation ticket per run).",
+          "Paperclip 重新打开此陈旧运行的评估（同一心跳运行，每次运行仅一张评估票）。",
           "",
-          `- Run: \`${input.run.id}\``,
-          `- Level: ${level}`,
-          `- Silent for: ${formatDuration(evidence.silenceAgeMs)}`,
-          `- Last output at: ${input.run.lastOutputAt?.toISOString() ?? "none recorded"}`,
+          `- 运行: \`${input.run.id}\``,
+          `- 级别: ${level}`,
+          `- 静默时长: ${formatDuration(evidence.silenceAgeMs)}`,
+          `- 最后输出时间: ${input.run.lastOutputAt?.toISOString() ?? "无记录"}`,
         ].join("\n"),
         { runId: input.run.id },
       );
@@ -1164,19 +1067,50 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
       return { kind: "reopened" as const, evaluationIssueId: canonical.id };
     }
 
-    const description = buildStaleRunEvaluationDescription({
-      run: input.run,
-      runningAgent,
-      sourceIssue,
-      prefix,
-      evidence,
+    const sourceIssueLink = sourceIssue
+      ? issueUiLink({ identifier: sourceIssue.identifier, id: sourceIssue.id }, prefix)
+      : "无";
+    const recentEventsMarkdown = evidence.recentEvents.length > 0
+      ? evidence.recentEvents.map((event) =>
+        `- ${event.createdAt} \`${event.eventType}\`${event.level ? ` ${event.level}` : ""}: ${event.message ?? "（无消息）"}`,
+      ).join("\n")
+      : "- 无";
+    const childIssuesMarkdown = evidence.childIssues.length > 0
+      ? evidence.childIssues.map((issue) =>
+        `- ${issueUiLink({ identifier: issue.identifier, id: issue.id }, prefix)} \`${issue.status}\`: ${issue.title}`,
+      ).join("\n")
+      : "- 未检测到";
+    const blockersMarkdown = evidence.blockers.length > 0
+      ? evidence.blockers.map((issue) =>
+        `- ${issueUiLink({ identifier: issue.identifier, id: issue.id }, prefix)} \`${issue.status}\`: ${issue.title}`,
+      ).join("\n")
+      : "- 未检测到";
+    const description = buildStaleRunEvaluationDescriptionZh({
       level,
-      now: input.now,
+      runLink: runUiLink(input.run, prefix),
+      agentName: runningAgent.name,
+      adapterType: runningAgent.adapterType,
+      invocation: `${input.run.invocationSource}${input.run.triggerDetail ? ` / ${input.run.triggerDetail}` : ""}`,
+      sourceIssueLink,
+      startedAt: input.run.startedAt?.toISOString() ?? "未知",
+      processStartedAt: input.run.processStartedAt?.toISOString() ?? "未知",
+      lastOutputAt: input.run.lastOutputAt?.toISOString() ?? "无记录",
+      lastOutputSeq: input.run.lastOutputSeq ?? 0,
+      silenceAgeMs: evidence.silenceAgeMs,
+      suspiciousThresholdMs: ACTIVE_RUN_OUTPUT_SUSPICION_THRESHOLD_MS,
+      criticalThresholdMs: ACTIVE_RUN_OUTPUT_CRITICAL_THRESHOLD_MS,
+      processPid: input.run.processPid ?? "未知",
+      processGroupId: input.run.processGroupId ?? "未知",
+      hasInMemoryHandle: runningProcesses.has(input.run.id),
+      safeTail: evidence.safeTail,
+      recentEventsMarkdown,
+      childIssuesMarkdown,
+      blockersMarkdown,
     });
     let evaluation: Awaited<ReturnType<typeof issuesSvc.create>>;
     try {
       evaluation = await issuesSvc.create(input.run.companyId, {
-        title: `Review silent active run for ${runningAgent.name}`,
+        title: buildStaleRunEvaluationTitle(runningAgent.name),
         description,
         status: "todo",
         priority: level === "critical" ? "high" : "medium",
@@ -1460,17 +1394,12 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
         .then((rows) => rows[0] ?? null)
       : null;
     const sourceLine = sourceIssue
-      ? `- Original source issue: ${issueUiLink(sourceIssue, prefix)}`
+      ? `- 原始源事务: ${issueUiLink(sourceIssue, prefix)}`
       : sourceIssueId
-        ? `- Original source issue: \`${sourceIssueId}\``
-        : "- Original source issue: unknown";
+        ? `- 原始源事务: \`${sourceIssueId}\``
+        : "- 原始源事务: unknown";
 
-    return [
-      "",
-      "- Nested recovery: suppressed because this issue is already a `stranded_issue_recovery` issue.",
-      sourceLine,
-      "- Next action: the assigned recovery owner or board operator should fix the runtime/adapter problem, resolve or reassign the original source issue, then mark this recovery issue done or cancelled.",
-    ].join("\n");
+    return buildNestedStrandedRecoveryLineZh(sourceLine);
   }
 
   async function resolveStrandedIssueRecoveryOwnerAgentId(issue: typeof issues.$inferSelect) {
@@ -1528,28 +1457,32 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
         ? `[\`${sourceRunId}\`](/${input.prefix}/agents/${input.latestRun.agentId}/runs/${sourceRunId})`
         : "unknown";
       const missingDisposition = input.successfulRunHandoffEvidence?.missingDisposition ?? "clear_next_step";
+      const sourceAssigneeLabel = agentUiLink(input.sourceAssignee ?? null, input.prefix);
+      const issueStatus = input.issue.status;
+      const handoffRunStatus = input.latestRun?.status ?? "unknown";
+
       return [
-        "Paperclip exhausted the bounded corrective handoff for a successful run that still has no valid issue disposition.",
+        "Paperclip 已用尽对有成功运行但仍未获得有效事务处置的有界修正交接。",
         "",
-        "This is not a runtime/adapter crash report. The source run succeeded; the remaining problem is the missing `done`, `in_review`, `blocked`, delegated follow-up, or explicit continuation path.",
+        "这不是运行时/适配器崩溃报告。源运行已成功；剩余问题是缺失 `done`、`in_review`、`blocked`、委派后续或显式续跑路径。",
         "",
-        "## Safe Evidence",
+        "## 安全证据",
         "",
-        `- Source issue: ${sourceIssue}`,
-        `- Source run: ${sourceRunLink}`,
-        `- Corrective handoff run: ${runLink}`,
-        `- Source assignee: ${agentUiLink(input.sourceAssignee ?? null, input.prefix)}`,
-        `- Latest issue status: \`${input.issue.status}\``,
-        `- Latest handoff run status: \`${input.latestRun?.status ?? "unknown"}\``,
-        `- Normalized cause: \`${SUCCESSFUL_RUN_MISSING_STATE_REASON}\``,
-        `- Missing disposition: \`${missingDisposition}\``,
-        "- Suggested manager action: choose and record a valid issue disposition without copying transcript content.",
+        `- 源事务: ${sourceIssue}`,
+        `- 源运行: ${sourceRunLink}`,
+        `- 修正交接运行: ${runLink}`,
+        `- 源经办: ${sourceAssigneeLabel}`,
+        `- 最新事务状态: \`${issueStatus}\``,
+        `- 最新交接运行状态: \`${handoffRunStatus}\``,
+        `- 标准化原因: \`${SUCCESSFUL_RUN_MISSING_STATE_REASON}\``,
+        `- 缺失处置: \`${missingDisposition}\``,
+        "- 建议管理员操作：选择并记录有效的事务处置，不要复制对话记录内容。",
         "",
-        "## Required Action",
+        "## 所需操作",
         "",
-        "- Inspect the source issue and run metadata, not raw transcript excerpts.",
-        "- Choose a valid issue disposition: `done`/`cancelled`, `in_review` with an owner, `blocked` with first-class blockers, delegated follow-up work, or an explicit continuation path.",
-        "- When the source issue has a clear owner and disposition, mark this recovery issue done.",
+        "- 检查源事务和运行元数据，而非原始对话记录摘录。",
+        "- 选择有效的事务处置：`done`/`cancelled`、`in_review` 并指定负责人、`blocked` 并提供一级阻塞项、委派后续工作，或显式续跑路径。",
+        "- 当源事务有明确的负责人和处置后，将此恢复事务标记为 done。",
       ].join("\n");
     }
 
@@ -1557,27 +1490,27 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
     const failureSummary = summarizeRunFailureForIssueComment(input.latestRun);
 
     return [
-      "Paperclip exhausted automatic recovery for an assigned issue and created this explicit recovery task.",
+      "Paperclip 已用尽对已指派事务的自动恢复，并创建了此显式恢复任务。",
       "",
-      "## Source",
+      "## 来源",
       "",
-      `- Source issue: ${sourceIssue}`,
-      `- Previous source status: \`${input.previousStatus}\``,
-      `- Latest retry run: ${runLink}`,
-      `- Latest retry status: \`${input.latestRun?.status ?? "unknown"}\``,
-      `- Detected invariant: \`stranded_assigned_issue\``,
-      `- Retry reason: \`${retryReason}\``,
-      failureSummary ? `- Failure: ${failureSummary.trim()}` : "- Failure: none recorded",
+      `- 源事务: ${sourceIssue}`,
+      `- 原状态: \`${input.previousStatus}\``,
+      `- 最近重试运行: ${runLink}`,
+      `- 最近重试状态: \`${input.latestRun?.status ?? "unknown"}\``,
+      `- 检测到的不变量: \`stranded_assigned_issue\``,
+      `- 重试原因: \`${retryReason}\``,
+      failureSummary ? `- 失败信息: ${failureSummary.trim()}` : "- 失败信息: none recorded",
       "",
-      "## Ownership",
+      "## 归属",
       "",
-      "- Selected owner: the first invokable manager/creator/executive candidate with budget available.",
+      "- 选定的负责人：首个可用且具有预算的管理者/创建者/执行候选人。",
       "",
-      "## Required Action",
+      "## 所需操作",
       "",
-      "- Inspect the latest run and source issue state.",
-      "- Fix the runtime/adapter problem, reassign the source issue, or convert the source issue into a clear manual-review state.",
-      "- When the source issue has a live execution path or has been intentionally resolved, mark this recovery issue done.",
+      "- 检查最近运行和源事务状态。",
+      "- 修复运行时/适配器问题，重新指派源事务，或将源事务转换为清晰的手动审阅状态。",
+      "- 当源事务有活跃执行路径或已被有意解决后，将此恢复事务标记为 done。",
     ].join("\n");
   }
 
@@ -1676,23 +1609,18 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
   }) {
     const runLink = input.latestRun
       ? runUiLink({ id: input.latestRun.id, agentId: input.latestRun.agentId }, input.prefix)
-      : "none";
-    const retryReason = readNonEmptyString(parseObject(input.latestRun?.contextSnapshot)?.retryReason) ?? "none";
+      : "无";
+    const retryReason = readNonEmptyString(parseObject(input.latestRun?.contextSnapshot)?.retryReason) ?? "无";
     const failureSummary = summarizeRunFailureForIssueComment(input.latestRun);
 
-    return [
-      "Paperclip stopped automatic stranded-work recovery for this recovery issue.",
-      "",
-      `- Recovery issue: ${issueUiLink({ identifier: input.issue.identifier, id: input.issue.id }, input.prefix)}`,
-      `- Previous status: \`${input.previousStatus}\``,
-      `- Latest run: ${runLink}`,
-      `- Latest run status: \`${input.latestRun?.status ?? "unknown"}\``,
-      `- Retry reason: \`${retryReason}\``,
-      failureSummary ? `- Failure: ${failureSummary.trim()}` : "- Failure: none recorded",
-      "- Guard: recovery issues do not create nested `stranded_issue_recovery` issues.",
-      "",
-      "Next action: the current recovery owner should inspect the failed run evidence, restore a live execution path or record the manual resolution, then move this recovery issue out of `blocked`.",
-    ].join("\n");
+    return buildRecoveryEscalationCommentLines({
+      issueLink: issueUiLink({ identifier: input.issue.identifier, id: input.issue.id }, input.prefix),
+      previousStatus: input.previousStatus,
+      runLink,
+      runStatus: input.latestRun?.status ?? "unknown",
+      retryReason,
+      failureLine: failureSummary ? `- 失败信息：${failureSummary.trim()}` : "- 失败信息：无记录",
+    }).join("\n");
   }
 
   async function escalateStrandedRecoveryIssueInPlace(input: {
@@ -1828,24 +1756,13 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
     if (nestedRecoverySuppressed) {
       recoveryLine = await buildNestedStrandedRecoveryLine(input.issue, prefix);
     } else if (recoveryIssue) {
-      recoveryLine = [
-        "",
-        `- Recovery issue: ${issueUiLink({ identifier: recoveryIssue.identifier, id: recoveryIssue.id }, prefix)}`,
-        `- Recovery owner: ${agentUiLink(recoveryOwner, prefix)}`,
-        "- Next action: the recovery owner should either restore a live execution path or record the manual resolution, then mark the recovery issue done.",
-      ].join("\n");
+      const recoveryIssueLink = issueUiLink({ identifier: recoveryIssue.identifier, id: recoveryIssue.id }, prefix);
+      const recoveryOwnerLabel = agentUiLink(recoveryOwner, prefix);
+      recoveryLine = buildRecoveryLineWithIssue(recoveryIssueLink, recoveryOwnerLabel);
     } else if (!strandedIssueRecoveryEnabled) {
-      recoveryLine = [
-        "",
-        "- Recovery issue: none created — automatic stranded-issue recovery is disabled for this server instance (`PAPERCLIP_STRANDED_ISSUE_RECOVERY_ENABLED=false`).",
-        "- Next action: handle this issue manually, or set the env var to `true` and restart the server.",
-      ].join("\n");
+      recoveryLine = RECOVERY_LINE_DISABLED;
     } else {
-      recoveryLine = [
-        "",
-        "- Recovery issue: none created because Paperclip could not find an invokable manager, creator, or executive owner with budget available.",
-        "- Next action: a board operator should assign an invokable recovery owner, fix the agent/runtime state, or record an intentional manual resolution.",
-      ].join("\n");
+      recoveryLine = RECOVERY_LINE_NO_INVOKABLE_OWNER;
     }
 
     if (notice) {
@@ -1986,10 +1903,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
             issue,
             previousStatus: "todo",
             latestRun,
-            comment:
-              "Paperclip automatically retried dispatch for this assigned `todo` issue after a lost wake/run, " +
-              `but it still has no live execution path.${failureSummary ?? ""} ` +
-              "Moving it to `blocked` so it is visible for intervention.",
+            comment: `${AUTO_RECOVERY_TODO_ASSIGNMENT_FAILED}${failureSummary ?? ""}`,
           });
           if (updated) {
             result.escalated += 1;
@@ -2062,9 +1976,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
             issue,
             previousStatus: "in_progress",
             latestRun: successfulRun,
-            comment:
-              "Paperclip automatically retried continuation for this assigned `in_progress` issue and the retry " +
-              "made progress, but it still has no live execution path. Moving it to `blocked` so it is visible for intervention.",
+            comment: AUTO_RECOVERY_INPROGRESS_CONTINUATION_MADE_PROGRESS,
           });
           if (updated) {
             result.escalated += 1;
@@ -2102,10 +2014,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
           issue,
           previousStatus: "in_progress",
           latestRun,
-          comment:
-            "Paperclip automatically retried continuation for this assigned `in_progress` issue after its live " +
-            `execution disappeared, but it still has no live execution path.${failureSummary ?? ""} ` +
-            "Moving it to `blocked` so it is visible for intervention.",
+          comment: `${AUTO_RECOVERY_INPROGRESS_CONTINUATION_FAILED}${failureSummary ?? ""}`,
         });
         if (updated) {
           result.escalated += 1;
@@ -2743,7 +2652,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
     try {
       escalation = await issuesSvc.create(issue.companyId, {
         title: `Unblock liveness incident for ${recoveryIssue.identifier ?? recoveryIssue.title}`,
-        description: buildLivenessEscalationDescription(input.finding),
+        description: buildLivenessEscalationDescriptionZh(input.finding),
         status: "todo",
         priority: "high",
         parentId: recoveryIssue.id,
@@ -2787,7 +2696,7 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
 
     await issuesSvc.addComment(
       issue.id,
-      buildLivenessOriginalIssueComment(input.finding, escalation),
+      buildLivenessOriginalIssueCommentZh(input.finding, escalation),
       { runId: input.runId ?? null },
     );
 
